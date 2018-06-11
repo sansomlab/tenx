@@ -12,10 +12,11 @@ immune.combined <- AlignSubspace(immune.combined, reduction.type = "cca", groupi
 saveRDS(immune.combined, "immune.combined.rds")
 ```
 
-The pipeline was then configured and run as follows:
+pipeline_seurat.py was then configured and run as follows:
 
 ```
 # (from a bash shell)
+# $align_path is the directory containing the "immune.combined.rds" file.
 mkdir seurat_aligned_example
 cd seurat_aligned_example
 mkdir aligned.seurat.dir
@@ -27,7 +28,8 @@ python $tenx_path/pipelines/pipeline_seurat.py config
 # edit the file appropriately, e.g.
 emacs -nw pipeline.yml
 
-## run the pipeline
+# run the pipeline
+# $tenx_path is the directory containing your clone of the tenx code.
 python $tenx_path/pipelines/pipeline_seurat.py -v5 -p200 make report
 ```
 
