@@ -13,9 +13,21 @@ The piplines are in active development, this is an "alpha" release - use at your
 
 # typical workflow
 
-1. Run the 10x Cell Ranger pipeline and perform downsampling using: **pipelines/pipeline_cellranger.py**
-2. Perform analysis using Seurat: **pipelines/pipeline_seurat.py**
+1. Perform mapping, quantitation, aggregation and downsampling using: **pipelines/pipeline_cellranger.py**
+   * Can be run either from `cellranger mkfastq` or `cellranger aggr` outputs.
+   * Samples are mapped and quantiated with `cellranger count`.
+   * Aggregation of sample matrices is performed with with `cellranger aggr`.
+   * Cells with barcodes shared between cells can be removed (within sequencing batch) to mitigate index hopping.
+   * Random downsampling of the umi-count matrix is supported.
+   * Arbitrary subsets of the aggregated dataset can be generated.
 
+2. Perform analysis using Seurat: **pipelines/pipeline_seurat.py**
+   * Can be run either from the count matrix (pipeline_cellranger.py output) or from a Seurat object.
+   * Multiple samples with different parameter combinations can be executed in parallel.
+   * Supports testing for differences between conditions.
+   * Supports finding conserved markers (both between cluster and condition).
+   * Support for basic geneset over-enrichment analysis (including of arbitrary "gmt" genesets e.g. as from Msigdb).
+   * Support for visualising expression of arbitrary lists of genes on tSNE plots.
 
 # pipeline_seurat.py example.
 
