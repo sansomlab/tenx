@@ -217,7 +217,7 @@ findmarkers:
     # across all levels of this factor
     conserved_factor: stim
 
-    conserved_between_padj: 0.05
+    conserved_padj: 0.05
 
     # Conserved differential expression between conditions  (optional)
     # ---------------------------------------------------------------
