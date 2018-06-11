@@ -30,7 +30,7 @@ The pipelines are in active development, this is an "alpha" release - use at you
    * Support for visualising expression of arbitrary lists of genes on tSNE plots.
 
 
-# pipeline_seurat.py example.
+# pipeline_seurat.py example
 
 pipeline_seurat.py was run on the interferon beta stimulated PBMC example dataset from the [Seurat website](https://satijalab.org/seurat/).
 
