@@ -1613,8 +1613,11 @@ def latexVars(infile, outfile):
     else:
         conservedFactor = "None"
 
-    conservedBetweenFactor = PARAMS["findmarkers_conserved_between"]
-    conservedBetweenFactor = conservedBetweenFactor.replace("_", "\\_")
+    if PARAMS["findmarkers_conserved_between"]:
+        conservedBetweenFactor = PARAMS["findmarkers_conserved_between_factor"]
+        conservedBetweenFactor = conservedBetweenFactor.replace("_", "\\_")
+    else:
+        conservedBetweenFactor = "None"
 
     vars = {"sample": "%(sample)s" % locals(),
             "projectName": "%(projectname)s" % PARAMS,
