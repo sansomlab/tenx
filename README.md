@@ -26,7 +26,7 @@ The piplines are in active development, this is an "alpha" release - use at your
    * Multiple samples with different parameter combinations can be executed in parallel.
    * Supports testing for differences between conditions.
    * Supports finding conserved markers (both between cluster and condition).
-   * Support for basic geneset over-enrichment analysis (including of arbitrary "gmt" genesets e.g. from MSigDB).
+   * Support for basic geneset over-enrichment analysis (including of arbitrary "gmt" genesets e.g. from [MSigDB](https://software.broadinstitute.org/gsea/msigdb/)).
    * Support for visualising expression of arbitrary lists of genes on tSNE plots.
 
 
