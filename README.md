@@ -1,6 +1,6 @@
 # tenx
 
-A collection of pipelines and Rscripts for analysing data generated with the 10x Genomics platform. The pipelines are based on 10x's [Cell Ranger pipeline](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/installation) for mapping and quantitation and the [R Seurat package](https://satijalab.org/seurat/) for downstream analysis.
+A collection of python3 pipelines and Rscripts for analysing data generated with the 10x Genomics platform. The pipelines are based on 10x's [Cell Ranger pipeline](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/installation) for mapping and quantitation and the [R Seurat package](https://satijalab.org/seurat/) for downstream analysis.
 
 The piplines are in active development, this is an "alpha" release - use at your own risk!
 
@@ -23,7 +23,7 @@ The piplines are in active development, this is an "alpha" release - use at your
 
 2. Perform analysis using Seurat: **`pipelines/pipeline_seurat.py`**
    * Can be run either from count matrices (e.g. `pipeline_cellranger.py` output) or from saved Seurat object(s).
-   * Multiple samples with different parameter combinations can be executed in parallel.
+   * Analysis of multiple samples with different parameter combinations can be executed in parallel.
    * Supports testing for differences between conditions.
    * Supports finding conserved markers (both between cluster and condition).
    * Support for basic geneset over-enrichment analysis (including of arbitrary "gmt" genesets e.g. from [MSigDB](https://software.broadinstitute.org/gsea/msigdb/)).

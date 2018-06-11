@@ -6,7 +6,6 @@ stopifnot(
   require(Seurat),
   require(dplyr),
   require(Matrix),
-  require(cellrangerRkit),
   require(reshape2),
   require(data.table),
   require(openxlsx),

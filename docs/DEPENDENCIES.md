@@ -5,7 +5,6 @@
 * R >= 3.42
 * R libraries:
   * Seurat
-  * cellrangerRkit
   * ComplexHeatmap
   * data.table
   * DESeq2
