@@ -1,6 +1,6 @@
 # Installation
 
-Check the list of [dependencies][DEPENDENCIES.md]
+Check the list of [dependencies](DEPENDENCIES.md)
 
 1. Install the cgat-core pipeline sytem following the instructions here: https://github.com/cgat-developers/cgat-core/
 2. Install the gsfisher R library, e.g.
