@@ -17,7 +17,3 @@ Check the list of [dependencies][DEPENDENCIES.md]
    $> cd tenx
    $> R CMD INSTALL --no-multiarch --with-keep.source tenxutils
 ```
-# Typical workflow
-
-1. Run the 10x Cell Ranger pipeline and perform downsampling using: **pipelines/pipeline_cellranger.py**
-2. Perform analysis using Seurat: **pipelines/pipeline_seurat.py**

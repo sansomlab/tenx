@@ -19,7 +19,7 @@ The piplines are in active development, this is an "alpha" release - use at your
 
 # pipeline_seurat.py example.
 
-pipeline_seurat.py was run on the interferon beta stimulated PBMC example dataset from the [Seurat websit](https://satijalab.org/seurat/). Prior to running the pipeline the [vignette](https://satijalab.org/seurat/immune_alignment.html) was followed to perform [CCA alignmet](https://doi.org/10.1038/nbt.4096).
+pipeline_seurat.py was run on the interferon beta stimulated PBMC example dataset from the [Seurat website](https://satijalab.org/seurat/).
 
 The summary report can be download here: [Summary Report](https://dl.dropbox.com/s/67z5xydxvhqdw3p/summaryReport.pdf)
 
