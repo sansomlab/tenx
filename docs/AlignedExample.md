@@ -33,7 +33,7 @@ emacs -nw pipeline.yml
 python $tenx_path/pipelines/pipeline_seurat.py -v5 -p200 make report
 ```
 
-The configuration file is available here: [pipeline.yml](https://satijalab.org/seurat/immune_alignment.html)
+The configuration file is available here: [pipeline.yml](https://dl.dropbox.com/s/kvy2r70h9giasie/pipeline.yml)
 
 
 # Full outputs
