@@ -5,13 +5,13 @@ A collection of pipelines and Rscripts for analysing data generated with the 10x
 The piplines are in active development, this is an "alpha" release - use at your own risk!
 
 
-# Installation and dependencies
+# installation and dependencies
 
-[Installation](docs/INSTALL.md)
-[Dependencies](docs/DEPENDENCIES.md)
+1. [Installation](docs/INSTALL.md)
+2. [Dependencies](docs/DEPENDENCIES.md)
 
 
-# Typical workflow
+# typical workflow
 
 1. Run the 10x Cell Ranger pipeline and perform downsampling using: **pipelines/pipeline_cellranger.py**
 2. Perform analysis using Seurat: **pipelines/pipeline_seurat.py**
@@ -21,6 +21,6 @@ The piplines are in active development, this is an "alpha" release - use at your
 
 pipeline_seurat.py was run on the interferon beta stimulated PBMC example dataset from the [Seurat websit](https://satijalab.org/seurat/). Prior to running the pipeline the [vignette](https://satijalab.org/seurat/immune_alignment.html) was followed to perform [CCA alignmet](https://doi.org/10.1038/nbt.4096).
 
-[Summary Report ](https://dl.dropbox.com/s/67z5xydxvhqdw3p/summaryReport.pdf)
+The summary report can be download here: [Summary Report](https://dl.dropbox.com/s/67z5xydxvhqdw3p/summaryReport.pdf)
 
-The steps followed, and full output are documented here: [aligned example](docs/AlignedExample.md).
+The steps followed, and full output are available here: [aligned example](docs/AlignedExample.md).
