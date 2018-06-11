@@ -2,7 +2,7 @@
 
 A collection of python3 pipelines and Rscripts for analysing data generated with the 10x Genomics platform. The pipelines are based on 10x's [Cell Ranger pipeline](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/installation) for mapping and quantitation and the [R Seurat package](https://satijalab.org/seurat/) for downstream analysis.
 
-The piplines are in active development, this is an "alpha" release - use at your own risk!
+The pipelines are in active development, this is an "alpha" release - use at your own risk!
 
 
 # installation and dependencies
@@ -13,12 +13,12 @@ The piplines are in active development, this is an "alpha" release - use at your
 
 # typical workflow
 
-1. Perform mapping, quantitation, aggregation and downsampling using: **`pipelines/pipeline_cellranger.py`**
+1. Perform mapping, quantification, aggregation and down-sampling using: **`pipelines/pipeline_cellranger.py`**
    * Can be run either from `cellranger mkfastq` or `cellranger aggr` outputs.
-   * Samples are mapped and quantiated with `cellranger count`.
+   * Samples are mapped and quantitated with `cellranger count`.
    * Aggregation of sample matrices is performed with with `cellranger aggr`.
    * Cells with barcodes shared between cells can be removed (within sequencing batch) to mitigate index hopping.
-   * Random downsampling of the umi-count matrix is supported.
+   * Random down-sampling of the UMI-count matrix is supported.
    * Arbitrary subsets of the aggregated dataset can be generated.
 
 2. Perform analysis using Seurat: **`pipelines/pipeline_seurat.py`**

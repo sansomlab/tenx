@@ -1,6 +1,6 @@
 # pipeline_seurat.py: aligned example
 
-Prior to running the pipeline the [Satija lab vignette](https://satijalab.org/seurat/immune_alignment.html) was followed to perform [CCA alignmet](https://doi.org/10.1038/nbt.4096).
+Prior to running the pipeline the [Satija lab vignette](https://satijalab.org/seurat/immune_alignment.html) was followed to perform [CCA alignment](https://doi.org/10.1038/nbt.4096).
 
 ```
 # (in R)

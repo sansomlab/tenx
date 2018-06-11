@@ -22,6 +22,6 @@
   * reshape2
   * S4Vectors
   * xtable
-  * gsfisher (see below)
-  * tenxutils (see below)
+  * gsfisher (see [INSTALL](INSTALL.md))
+  * tenxutils (see [INSTALL](INSTALL.md))
 * Latex
