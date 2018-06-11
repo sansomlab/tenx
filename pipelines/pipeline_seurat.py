@@ -1825,9 +1825,9 @@ def report():
 @transform(cluster,
            regex(r"(.*)/cluster.sentinel"),
            r"\1/cluster_counts.rds")
-def aggregateClusterCellCounts(infile, outfile):
+def aggregateUMIsPseudobulks(infile, outfile):
     '''
-    Aggregate counts of cells within cluster to form pseudobulks.
+    Aggregate UMI counts across cells within cluster to form pseudobulks.
 
     Useful for performing e.g. DESeq2 analysis of clusters from
     multiple samples.
@@ -1844,7 +1844,7 @@ def aggregateClusterCellCounts(infile, outfile):
 
     log_file = os.path.join(outdir, 'aggregated_clusters.log')
 
-    statement = '''Rscript %(tenx_dir)s/R/aggregate_cluster.R
+    statement = '''Rscript %(tenx_dir)s/R/aggregate_umis_pseudobulks.R
                            --tenxdir=%(tenxdir)s
                            --clusterids=%(cluster_ids)s
                            --outfile=%(outfile)s
@@ -1856,7 +1856,7 @@ def aggregateClusterCellCounts(infile, outfile):
 
 # ------------------------ < auxillary target > ----------------------------- #
 
-@follows(aggregateClusterCellCounts)
+@follows(aggregateUMIsPseudobulks)
 def aux():
     pass
 
