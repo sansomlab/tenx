@@ -1,0 +1,28 @@
+# ignore python compilation files
+*.py[cod]
+
+# ignore R files
+.Rhistory
+.Rbuildignore
+*.Rproj
+
+# ignore temporary files from emacs/vim
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ignore checkpoint folder from ipython notebooks
+.ipynb_checkpoints/
+
+# PyCharm
+.idea/
+
+# Mac
+.DS_Store
+._.DS_Store
+.Rproj.user

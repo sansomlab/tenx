@@ -1,0 +1,159 @@
+#
+# Pipeline pipeline_cellranger.py configuration file
+# ==================================================
+#
+
+# General options
+# ---------------
+
+# Project name
+projectname: CellRanger
+
+# Copyright statement
+copyright: KIR (2015-2018)
+
+# Title of '_'-separated metadata encoded in the sample name.
+# e.g. considering a sample named "donor1_stimulated_1":
+name_field_titles: donor,condition,replicate
+
+# (Optional, normally would not be set.)
+# Subset of `name_field_titles` (above), that are shared by samples
+# originating from the same original set of cells.
+# This is used by the `clean` task to re-assimilate samples that have been
+# split across multiple 10x channels.
+sample_fields:
+
+# The pipeline can start from either
+# (A) cellranger mkfastq samples: "mkfastq"
+# (B) cellranger count samples: "count"
+input: mkfastq
+
+
+# General Cellranger configuration options
+# ----------------------------------------
+
+cellranger:
+    # Passed to `cellranger count`
+    chemistry: SC3Pv2
+
+    # Passed to `cellranger count`
+    # e.g. for human: /gfs/mirror/genomes/10x/refdata-cellranger-GRCh38-1.2.0
+    # e.g. for mouse: /gfs/mirror/genomes/10x/refdata-cellranger-mm10-1.2.0
+    transcriptome:
+
+    # Passed to `cellranger count` and `cellranger aggr`
+    threads: 24
+
+    # Passed to `cellranger count` and `cellranger aggr`
+    # Note: in MB
+    memory: 240000
+
+
+# Picard configuration
+# ----------------------------------------------------
+
+# Picard is run on the Star BAM file of aligned reads
+# that cellranger count produces
+
+picard:
+    # Standard Picard option
+    # See: https://broadinstitute.github.io/picard/command-line-overview.html
+    # Choices: 'STRICT'|'LENIENT'|'SILENT'
+    validation_stringency: SILENT
+
+    # Count of threads requested for each job
+    threads: 3
+
+    # Set the total memory required by all threads combined.
+    # in MB
+    total_mb_memory: 16000
+
+    # Picard option 'BARCODE_TAG'
+    barcode_tag: BC
+    # Picard option 'READ_ONE_BARCODE_TAG'
+    read_one_barcode_tag: BC
+    # Picard option 'READ_TWO_BARCODE_TAG'
+    read_two_barcode_tag: BC
+
+    # Additional options passed to picard
+    markduplicate_options: ASSUME_SORT_ORDER=coordinate
+
+
+# Cellranger Aggr configuration options
+# -------------------------------------
+
+aggr:
+    # !! Normalising here is not recommended !!
+    # See below for down-sampling of the final count matrix
+    # Normalize can be set none (default), mapped, raw
+    # Choices: 'mapped'|'raw'|'none'
+    normalize: none
+
+    # Additional options passed to `cellranger aggr`
+    options:
+
+
+# Post-processing of Aggr matrix
+# ------------------------------
+
+postprocess:
+    # Whether to exclude cells with identical barcodes
+    # in the same sequencing batch.
+    # Addresses index hopping on the HiSeq 4000.
+    # Choices: True|False
+    barcodes: True
+
+    # Path to a file that contains barcodes to exclude. One per line.
+    # e.g.
+    # AAACCTGAGGTTCCTA-1
+    # AAACCTGGTTCTGTTT-1
+    # AAACCTGTCGATCCCT-1
+    # 'none' disables this function
+    blacklist: none
+
+    # Path to the matrix subdirectory, relative to each sample directory.
+    # Note that this is species specific.
+    #
+    # e.g. for human: outs/filtered_gene_bc_matrices_mex/GRCh38
+    # e.g. for mouse: outs/filtered_gene_bc_matrices_mex/mm10
+    mexdir:
+
+    # Set the memory allowance for the R script
+    memory: 10000M
+
+    # Additional options to the R script
+    # --writeaggmat:        Write the aggregated cleaned matrix of all samples
+    # --writesamplemats:    Write the individual matrix for each sample,
+    #                       after cleaning and/or downsampling.
+    options: --writeaggmat --writesamplemats
+
+
+# Subsetting and downsampling of post-processed matrix
+# ----------------------------------------------------
+
+# specification of the the dataset subsets to generate
+
+datasets:
+    # If True, generates a data set that includes all samples.
+    # Useful if one wishes to downsample counts for each data set independently,
+    # in which case, one should set, e.g.
+    # `clean_downsample='no'` and `subset_downsample='median'`
+    # Choices: 'True'|'False'
+    all: True
+
+    # Additional data sets that include subsets of samples with:
+    # - the subset name, as key
+    # - the comma-separated list of individual samples to include, as value, e.g.:
+    #donor1: donor1_stimulated_1,donor1_control_1
+    #donor2: donor2_stimulated_1,donor2_control_1
+
+downsampling:
+    # If enabled the UMI metric normalised between samples.
+    enabled: True
+
+    # Choices: "mean" | "median" (or any appropriate R function)
+    function: median
+
+    # by default the down-sampling is performed after subsetting.
+    # Choices: "before_subsetting" | "after_subsetting"
+    apply: after_subsetting

@@ -1,0 +1,13 @@
+\subsection{Quality assessment and removal of low-quality cells}
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth]{{{\runDir/qc.genePlot}}}
+\caption{Basic QC plots}
+\end{figure}
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\runDir/qc.vlnPlot}}}
+\caption{QC: violin plots}
+\end{figure}
+
+The dataset was filtered to remove (1) cells expressing fewer than \qcMinGenes{} genes per cell and (2) cells with a fraction of mitochondrial reads greater than \qcMaxMito{}. Genes expressed in less than \minCells{} cells were removed from the analysis.

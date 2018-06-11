@@ -1,0 +1,273 @@
+#
+# Pipeline pipeline_seurat.py configuration file
+# ==============================================
+#
+
+# General options
+# ---------------
+
+# Project name
+projectname: 10x single cell analysis
+
+# Author
+author: Sansom group
+
+
+# Gene annotations
+# ----------------
+
+annotation:
+    # Species
+    # Used to obtain gene annotations for gene set analyses
+    # Choices: 'hs' (for human) | 'mm' (for mouse)
+    species: hs
+
+    # Release of Ensembl gene annotations
+    # Choices: 'latest' or a specific number, e.g. 89,90 etc
+    ensembl_release: latest
+
+
+# Pre-run subsetting (optional)
+# -----------------------------
+
+subsetcells:
+    # Whether subsetting is active
+    # Choices: False|True
+    active: False
+    # Type of subsetting strategy.
+    # Choices: 'barcode_list'|'factor'
+    # If 'type: barcode_list', specify the location of sample-specific
+    # header-less text files containing the identifier of cells to retain (1 per line).
+    # To retain all the cells for a sample use the string "use.all"
+    # If 'type: factor', the given factor must be a column in metadata.tsv
+    type: barcode_list
+    factor: condition
+    sample_one: /path/to/sample_one_cells_to_keep.txt
+    sample_two: use.all
+    sample_three: stimulated
+
+
+# Run specifications
+# ------------------
+# - Parameters in "runspecs" accept comma separated lists of arguments
+# - All combinations of these parameters will be run.
+
+runspecs:
+    # Number(s) of components for initial dimensions reduction
+    # (see Seurat::FindClusters)
+    n_components: 15,25
+
+    # Clustering resolution(s)
+    # (see Seurat::FindClusters)
+    cluster_resolutions: 0.6,1
+
+    # Clustering algorithm(s)
+    # (see Seurat::FindClusters)
+    cluster_algorithms: 1,3
+
+    # Differential expression testing method(s)
+    # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
+    de_tests: wilcox
+
+    # Runs to skip (comma separated list of subfolders within each sample directory)
+    skip:
+
+
+# QC parameters
+# -------------
+
+qc:
+    # A column in metadata.tsv by which cells will be grouped for
+    # QC plots, and (if enabled) downsampling
+    groupby: sample_id
+    ## Creation of the Seurat object (see ?CreateSeuratObject)
+    # Include cells where at least this many genes are detected.
+    initial_mingenes: 200
+    # Include genes with detected expression in at least this many cells.
+    mincells: 3
+    ## QC Filtering of the Seurat object (see ?FilterCells)
+    # Retain cells where at least this many genes are detected
+    mingenes: 500
+    # Retain cells where at most this proportion of UMI are assigned to mitochondrial genes
+    # Note that the default 5% (0.05) can be excessively stringent in some cases
+    maxpercentmito: 0.05
+    # Whether to downsample to a common number of cells
+    # Choices: False|True
+    downsamplecells: False
+
+
+# Regression parameters
+# ---------------------
+
+regress:
+    ## Removal of unwanted variation (see Seurat::ScaleData)
+    # Latent variables to regress out
+    latentvars: nUMI,percent.mito
+    # Model used to regress out latent variables
+    # Choices: 'linear'|'poisson'|'negbinom'
+    modeluse: linear
+    # see http://satijalab.org/seurat/cell_cycle_vignette.html
+    # Choices: 'none'|'all'|'difference'
+    # - Use "all" to regress out all cell cycle effects.
+    # - Use "difference" to regress out the difference between G2M and S phase scores
+    # (i.e. the Alternate Workflow in the link above)
+    cellcycle: none
+    sgenes:
+    g2mgenes:
+
+
+# Variable gene identification parameters
+# ---------------------------------------
+
+vargenes:
+    ## Identification of variable genes (see Seurat::FindVariableGenes)
+    # Bottom cutoff on y-axis for identifying variable genes (see y.cutoff=...)
+    sdcutoff: 1
+    # Bottom cutoff on x-axis for identifying variable genes (see x.low.cutoff=...)
+    xlowcutoff: 0.1
+    # Top cutoff on x-axis for identifying variable genes (see x.high.cutoff=...)
+    xhighcutoff: 8
+
+
+# Dimension reduction parameters
+# ------------------------------
+
+dimreduction:
+    ## Determine statistical significance of PCA scores (see seurat_jackstraw.R)
+    # Number of replicate samplings to perform (see Seurat::JackStraw)
+    jackstraw_n_replicate: 100
+    # Type of dimensionality reduction to use for clustering and t-SNE
+    # (see Seurat::FindClusters, Seurat::RunTSNE)
+    # Choices: 'pca'|'ica'
+    method: pca
+
+
+# Plotting parameters
+# -------------------
+
+plot:
+    # Groups to be visualised in tSNE/bar plots
+    # e.g. 'genotype,cluster'
+    # 'cluster' is automatically added if not specified.
+    groups: cluster
+    # Subgroup used to break down the bar plots and cell counts.
+    # Note that it also visualised in t-SNE plots.
+    subgroup:
+
+
+# tSNE parameters
+# ---------------
+
+tsne:
+    # Specify up to 9 different values of the perplexity parameters to test
+    # Only values strictly less than `floor(ncells/5)` will be considered
+    perplexities: 5,10,20,30,50,100,200,500,1000
+    # A single perplexity value used for downstream plotting and analysis
+    perplexity: 30
+    maxiter: 10000
+    # Choices: True|False
+    fast: True
+    # QC variable to be visualised on the tSNE plot
+    qcvars: nUMI,percent.mito
+    # Column in metadata.tsv represented by the shape of data points
+    shape:
+    # Opacity of data points
+    pointalpha: 0.8
+    # Size of data points
+    pointsize: 0.5
+
+
+# FindMarkers parameters
+# ----------------------
+
+findmarkers:
+    ## Differential expression parameters (see Seurat::FindMarkers)
+    # Limit testing to genes which show, on average, at least X-fold difference
+    # (see logfc.threshold=...)
+    threshuse: 0.25
+    # Only test genes that are detected in a minimum fraction of min.pct cells
+    # (see min.pct=...)
+    minpct: 0.1
+    #
+    # Within-cluster differential expression (optional)
+    # ------------------------------------------------
+    # Whether to perform within-cluster DE analysis
+    # Choices: False|True
+    between: False
+
+    # Column in metadata.tsv that contains the factor
+    # for within-cluster differential expression analysis, e.g.
+    # testfactor: genotype
+    between_testfactor: genotype
+
+    # Names of the two levels to compare
+    # Note that 'a' is the numerator, 'b' the denominator of fold-changes, e.g.
+    # between_a: knockout
+    # between_b: wildtype
+    between_a: knockout
+    between_b: wildtype
+
+    # Conserved marker identification (optional)
+    # -------------------------------------------
+    # Identify conserved markers
+    conserved: False
+
+    # set the below to colnames in seurat@metadata
+    ## option marker -> apply to find cluster markers that are conserved
+    # across all levels of this factor
+    conserved_factor: donor
+
+    ## option between -> apply to find DE genes that are DE on
+    # PARAMS["between_testfactor"] and that are conserved
+    # across all levels of this factor, needs to be orthogonal to PARAMS["between_testfactor"]
+    # (e.g. PARAMS["between_testfactor"] :  condition;
+    # PARAMS["conserved_between"] :  donor)
+    conserved_between: none
+    conserved_padj: 0.1
+
+
+# Gene expression report options
+# ------------------------------
+
+exprsreport:
+
+   # Count of up-regulated markers to represent in tSNE plots for each cluster
+    n_positive: 50
+    # Count of down-regulated markers to represent in tSNE plots for each cluster
+    n_negative: 25
+
+    # Make plots from user-defined genelists?
+    genelists: False
+
+    # a directory containing manually defined gene lists as
+    # tab-delimited .txt files with columns:
+    # gene_id, gene_name, common_name (common_name is optional)
+    genelist_dir:
+
+
+# Geneset over-representation analysis
+# ------------------------------------
+# (GO categories and KEGG pathways are analysed by default)
+
+genesets:
+  # Arbitrary genesets can be specified here using gmt files.
+  # the key is taken as the set name, and the value as the path to the gmt file, i.e.
+  # set_name: gmt_file_path
+  #
+  # note that the below files are species and site specific
+  #
+  # > human msigdb sets >
+  #
+  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.gmt
+  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.reactome.v6.1.entrez.gmt
+  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.gmt
+  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.gmt
+  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.gmt
+  #
+  # > mouse msigdb sets >
+  #
+  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.mouse.gmt
+  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.reactome.v6.1.entrez.mouse.gmt
+  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.mouse.gmt
+  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.mouse.gmt
+  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.mouse.gmt

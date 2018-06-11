@@ -1,0 +1,79 @@
+\documentclass{article}
+
+
+\usepackage{\latexVars}
+\usepackage{\tenxDir/latex/preamble}
+
+\begin{document}
+
+\title{\reportTitle \\
+  \vspace{5mm}
+  \large \projectName \\
+}
+
+\author{\reportAuthor}
+\maketitle
+
+
+\vspace{\fill}
+\noindent
+{\large \textbf{Sample}: \sample}
+
+\vspace{3mm}
+\noindent
+{\large \textbf{Run specs}: \runDetails}
+
+\vspace{3mm}
+\noindent
+{\large \textbf{Code}: \url{https://github.com/sansomlab/tenx}}
+
+
+
+\clearpage
+
+
+\tableofcontents
+
+\clearpage
+
+
+\section{Analysis parameters}
+
+These should match those given in the introduction of the accompanying summary report.
+\vspace{5mm}
+\input{\tenxDir/pipelines/pipeline_seurat/introductionSection.tex}
+\clearpage
+
+\section{Expression of genes of interest}
+\input{\clusterDir/plot.rdims.known.genes}
+\clearpage
+
+
+\section{Expression of de-novo identified cluster marker genes}
+
+Here, we aim to visualise the expression of the ``best'' cluster marker genes. The genes shown are selected as follows:
+
+\begin{enumerate}
+\item Only strong marker genes passing the following filters were retained:
+  \begin{itemize}
+  \item BH adjusted p.value < 0.01
+  \item absolute log fold change (cluster of interest vs all other cells) > 1
+  \item mean expression level (in cluster of interest) > 2
+  \item percent cells expressing (in cluster of interest) > 25
+  \end{itemize}
+\item The remaining strong marker genes were then ranked according to a heuristic score calculated as the geometric mean of (i) the 1 - adjusted p value, (ii) the log2 mean expression level (in the cluster of interest) and (iii) the absolute fold change.
+  \end{enumerate}
+
+\clearpage
+\subsection{Positive cluster marker genes}
+
+Up to \nPositiveMarkers{} top-scoring positive marker genes are shown for each cluster.
+
+\input{\clusterDir/plot.rdims.genes.top.positive.cluster.markers}
+
+\clearpage
+\subsection{Negative cluster marker genes}
+
+Up to \nNegativeMarkers{} top-scoring negative marker genes are shown for each cluster.
+
+\input{\clusterDir/plot.rdims.genes.top.negative.cluster.markers}

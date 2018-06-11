@@ -1,0 +1,39 @@
+\section{With-in cluster comparison of conditions}
+
+Genes differentially expressed between the conditions within each cluster were identified. Full results are avaliable as a tab delimited text file.
+
+Key parameters are:
+
+\begin{itemize}
+\item Conservation factor: \conservedBetweenFactor
+\end{itemize}
+
+\input{\clusterDir/markers.between.summary.tex}
+
+\subsection{Number of cells within each cluster}
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth]{{{\clusterDir/markers.between.summary.cellnumbers}}}
+\caption{The numbers of cells of each condition found in the clusters}
+\end{figure}
+
+\subsection{Summary of the top within-cluster differentially expressed genes}
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/markers.between.summary.nde}}}
+\caption{Numbers of genes differential expressed between the conditions within each clusters}
+\end{figure}
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/markers.between.summary.heatmap}}}
+\caption{Genes differential expressed between the conditions within one or more clusters}
+\end{figure}
+
+\subsection{Summary of differentially expressed genes per cluster}
+\input{\clusterDir/characterise.degenes.between}
+\input{\clusterDir/characteriseClusterMarkersBetween}
+
+\clearpage
+
+\section{Geneset enrichment analysis of within-cluster differentially expressed genes}
+\input{\tenxDir/pipelines/pipeline_seurat/genesetBetweenSection.tex}

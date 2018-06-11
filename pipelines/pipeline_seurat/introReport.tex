@@ -1,0 +1,44 @@
+\documentclass{article}
+
+\usepackage{\tenxDir/latex/preamble}
+
+\begin{document}
+
+\title{\reportTitle \\
+  \vspace{5mm}
+  \large \projectName \\
+}
+
+\author{\reportAuthor}
+\maketitle
+
+\vspace{10mm}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth,height=0.4\textheight,keepaspectratio]{{{\plotDir/tsne.cluster}}}
+\end{figure}
+
+\vspace{\fill}
+\noindent
+{\large \textbf{Sample}: \sample}
+
+\vspace{3mm}
+\noindent
+{\large \textbf{Run specs}: \runDetails}
+
+\vspace{3mm}
+\noindent
+{\large \textbf{Code}: \url{https://github.com/sansomlab/tenx}}
+
+
+
+\clearpage
+
+\tableofcontents
+
+\clearpage
+
+\section{Introduction}
+\input{\tenxDir/pipelines/pipeline_seurat/introductionSection.tex}
+
+\clearpage

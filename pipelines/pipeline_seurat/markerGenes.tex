@@ -1,0 +1,22 @@
+Cluster marker genes were identified using the Seurat FindMarkers routine and the \deTest{} test. A summary table containing all of the significant markers for all of the clusters (based on BH adjusted p value) is available separately.
+
+Key parameters are:
+
+\begin{itemize}
+\item Differential expression methods: \deTest
+\item Testing limited to genes with a log fold change of > \threshUse
+\item Testing limited to genes detected in a minimum fraction of \minPct{} of cells
+\item Conservation factor applied: \conservedFactor
+\end{itemize}
+
+\subsection{Heatmap of the top (by p-value) cluster marker genes}
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/markers.summary.heatmap}}}
+\caption{Heatmap of the top cluster-specific genes (based on differential expression analysis)}
+\end{figure}
+
+\subsection{Characterisation of differentially expressed genes by cluster}
+\input{\clusterDir/characterise.degenes}
+\input{\clusterDir/characteriseClusterMarkers}
+\clearpage
