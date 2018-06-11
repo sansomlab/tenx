@@ -4,7 +4,7 @@
 #
 #   $Id$
 #
-#   Copyright (C) 2017 Stephen Sansom
+#   Copyright (C) 2018 Stephen Sansom
 #
 #   This program is free software; you can redistribute it and/or
 #   modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 Pipeline Cellranger
 ===========================
 
-:Author: Steve Sansom, Kevin Rue-Albrecht
+:Author: Sansom lab
 :Release: $Id$
 :Date: |today|
 :Tags: Python

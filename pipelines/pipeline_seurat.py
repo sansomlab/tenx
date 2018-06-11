@@ -25,7 +25,7 @@
 Pipeline Seurat
 ===========================
 
-:Author: Stephen Sansom
+:Author: Sansom lab
 :Release: $Id$
 :Date: |today|
 :Tags: Python
