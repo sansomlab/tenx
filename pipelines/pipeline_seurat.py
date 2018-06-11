@@ -1104,9 +1104,9 @@ def findMarkersBetweenConditions(infile, outfile):
     tenx_dir = PARAMS["tenx_dir"]
     testfactor = PARAMS["findmarkers_between_testfactor"]
 
-    if PARAMS["findmarkers_conserved"]:
-        conservedfactor = PARAMS["findmarkers_conserved_factor"]
-        conservedpadj = PARAMS["findmarkers_conserved_padj"]
+    if PARAMS["findmarkers_conserved_between"]:
+        conservedfactor = PARAMS["findmarkers_conserved_between_factor"]
+        conservedpadj = PARAMS["findmarkers_conserved_between_padj"]
         conserved_options = '''--conservedfactor=%(conservedfactor)s
             --conservedpadj=%(conservedpadj)s
         '''

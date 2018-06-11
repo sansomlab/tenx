@@ -207,23 +207,31 @@ findmarkers:
     between_a: knockout
     between_b: wildtype
 
-    # Conserved marker identification (optional)
-    # -------------------------------------------
-    # Identify conserved markers
-    conserved: False
+    # Conserved cluster marker identification (optional)
+    # -------------------------------------------------
+    # Identify conserved cluster markers
+    conserved: True
 
-    # set the below to colnames in seurat@metadata
-    ## option marker -> apply to find cluster markers that are conserved
+    # Set the below to a colname in seurat@metadata
+    # to find cluster markers that are conserved
     # across all levels of this factor
-    conserved_factor: donor
+    conserved_factor: stim
 
-    ## option between -> apply to find DE genes that are DE on
-    # PARAMS["between_testfactor"] and that are conserved
-    # across all levels of this factor, needs to be orthogonal to PARAMS["between_testfactor"]
-    # (e.g. PARAMS["between_testfactor"] :  condition;
-    # PARAMS["conserved_between"] :  donor)
-    conserved_between: none
-    conserved_padj: 0.1
+    conserved_between_padj: 0.05
+
+    # Conserved differential expression between conditions  (optional)
+    # ---------------------------------------------------------------
+
+    # Identify conserved differences between conditions (within-cluster)
+    conserved_between: False
+
+    # Set the below to a colname in seurat@metadata
+    # to find gene expression differences that are conserved
+    # between condition across all levels of this factor
+    # (it should be orthogonal to "between_testfactor")
+    conserved_between_factor: none
+
+    conserved_between_padj: 0.05
 
 
 # Gene expression report options
