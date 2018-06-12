@@ -584,11 +584,11 @@ def postprocessAggrMatrix(infiles, outfile):
         raise ValueError('"postprocess_mexdir" parameter not set'
                          ' in file "pipeline.yml"')
 
-    if not os.path.exists(mexdir):
-        raise ValueError('The specified "postprocess_mexdir"'
-                         ' directory does not exist')
-
     tenxdir = os.path.join(agg_dir, mexdir)
+    if not os.path.exists(tenxdir):
+        raise ValueError('The specified "postprocess_mexdir"'
+                         ' directory does not exist in directory ' + agg_dir)
+
     job_memory = PARAMS["postprocess_memory"]
 
     blacklist = PARAMS["postprocess_blacklist"]
