@@ -145,7 +145,6 @@ import CGATCore.Experiment as E
 from CGATCore import Pipeline as P
 import CGATCore.IOTools as IOTools
 
-
 # -------------------------- < parse parameters > --------------------------- #
 
 # load options from the config file
@@ -507,30 +506,24 @@ def plotTSNEFactors(infile, outfile):
     tsne_table = infile.replace(
         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
 
-    color_factors = []
+    color_factors = ["cluster"]
 
     if PARAMS["tsne_qcvars"] is not None:
-        color_factors.append(PARAMS["tsne_qcvars"].strip().replace(" ", ""))
+        color_factors += [x.strip() for x in
+                          PARAMS["tsne_qcvars"].split(",")]
 
     if PARAMS["plot_groups"] is not None:
-        plot_groups = [x.strip() for x in
-                       PARAMS["plot_groups"].split(",")]
-
-        if "cluster" not in plot_groups:
-            plot_groups.append("cluster")
-
-        color_factors.append(",".join(plot_groups))
-
-    else:
-        color_factors.append("cluster")
+        color_factors += [x.strip() for x in
+                          PARAMS["plot_groups"].split(",")]
 
     if PARAMS["plot_subgroup"] is not None:
-        color_factors.append(PARAMS["plot_subgroup"].strip())
+        color_factors += [x.strip() for x in
+                          PARAMS["plot_subgroup"].split(",")]
 
-    if len(color_factors) > 0:
-        color_factors = "--colorfactors=" + ",".join(color_factors)
-    else:
-        color_factors = ""
+    # ensure list is unique whilst preserving order.
+    color_factors = list(dict.fromkeys(color_factors))
+
+    color_factors = "--colorfactors=" + ",".join(color_factors)
 
     if PARAMS["tsne_shape"] is not None:
         shape_factors = "--shapefactor=%(tsne_shape)s" % PARAMS
@@ -1302,6 +1295,25 @@ def markers():
 # ######################### Geneset Analysis ################################ #
 # ########################################################################### #
 
+def parseGMTs():
+    '''Helper function for parsing the list of GMT files'''
+
+    gmts = [x for x in PARAMS.keys()
+            if x.startswith("gmt_files_")]
+
+    if len(gmts) > 0:
+        gmt_files = ",".join([PARAMS[x] for x in gmts])
+
+        gmt_names = ",".join([x.replace("gmt_files_", "")
+                              for x in gmts])
+
+    else:
+        gmt_files = "none"
+        gmt_names = "none"
+
+    return gmt_names, gmt_files
+
+
 # ------------------- < between cluster geneset analysis > ------------------ #
 
 @follows(summariseMarkers)
@@ -1329,10 +1341,7 @@ def genesetAnalysis(infiles, outfile):
     kegg_pathways = os.path.join(os.path.dirname(genesetAnno),
                                  "kegg_pathways.rds")
 
-    genesets = [x for x in PARAMS.keys() if x.startswith("genesets_")]
-
-    gmt_names = ",".join([x.replace("genesets_", "") for x in genesets])
-    gmt_files = ",".join([PARAMS[x] for x in genesets])
+    gmt_names, gmt_files = parseGMTs()
 
     outdir = os.path.dirname(outfile)
 
@@ -1392,8 +1401,7 @@ def summariseGenesetAnalysis(infile, outfile):
     # need to sort out the dependencies properly!
     genesetdir = os.path.dirname(infile)
 
-    genesets = [x for x in PARAMS.keys() if x.startswith("genesets_")]
-    gmt_names = ",".join([x.replace("genesets_", "") for x in genesets])
+    gmt_names, gmt_files = parseGMTs()
 
     with open(os.path.join(genesetdir, "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
@@ -1402,12 +1410,18 @@ def summariseGenesetAnalysis(infile, outfile):
 
     logfile = outfile + ".log"
 
+    use_adjusted = str(PARAMS["genesets_use_adjusted_pvalues"]).upper()
+    show_common = str(PARAMS["genesets_show_common"]).upper()
+
     statement = '''Rscript %(tenx_dir)s/R/summariseGenesets.R
                          --genesetdir=%(genesetdir)s
                          --gmt_names=%(gmt_names)s
                          --nclusters=%(nclusters)s
                          --mingenes=2
-                         --pthreshold=0.1
+                         --pvaluethreshold=%(genesets_pvalue_threshold)s
+                         --padjustmethod=%(genesets_padjust_method)s
+                         --useadjusted=%(use_adjusted)s
+                         --showcommon=%(show_common)s
                          --outfile=%(outfile)s
                          --prefix=genesets
                     &> %(logfile)s
@@ -1446,8 +1460,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     genesets = [x for x in PARAMS.keys() if x.startswith("genesets_")]
 
-    gmt_names = ",".join([x.replace("genesets_", "") for x in genesets])
-    gmt_files = ",".join([PARAMS[x] for x in genesets])
+    gmt_names, gmt_files = parseGMTs()
 
     outdir = os.path.dirname(outfile)
 
@@ -1522,14 +1535,21 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
     logfile = outfile + ".log"
 
     genesets = [x for x in PARAMS.keys() if x.startswith("genesets_")]
-    gmt_names = ",".join([x.replace("genesets_", "") for x in genesets])
+
+    gmt_names, gmt_files = parseGMTs()
+
+    use_adjusted = str(PARAMS["genesets_use_adjusted_pvalues"]).upper()
+    show_common = str(PARAMS["genesets_show_common"]).upper()
 
     statement = '''Rscript %(tenx_dir)s/R/summariseGenesets.R
                          --genesetdir=%(genesetdir)s
+                         --gmt_names=%(gmt_names)s
                          --nclusters=%(nclusters)s
                          --mingenes=2
-                         --gmt_names=%(gmt_names)s
-                         --pthreshold=0.1
+                         --pvaluethreshold=%(genesets_pvalue_threshold)s
+                         --padjustmethod=%(genesets_padjust_method)s
+                         --useadjusted=%(use_adjusted)s
+                         --showcommon=%(show_common)s
                          --outfile=%(outfile)s
                          --prefix=genesets.between
                     &> %(logfile)s

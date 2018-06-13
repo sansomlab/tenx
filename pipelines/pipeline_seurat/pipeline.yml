@@ -258,6 +258,25 @@ exprsreport:
 # (GO categories and KEGG pathways are analysed by default)
 
 genesets:
+    # A method recognised by the R "p.adjust" function
+  # The adjustment is applied to the combined results from
+  # all of the clusters.
+  padjust_method: BH
+
+  # Should the adjusted p-value be used for producing the
+  # summary heatmaps?
+  use_adjusted_pvalues: True
+
+  # The p-value threshold to be used for producing the
+  # summary heatmaps.
+  pvalue_threshold: 0.05
+
+  # Should genesets significantly enriched in all clusters
+  # be shown in the summary heatmaps?
+  show_common: True
+
+gmt_files:
+
   # Arbitrary genesets can be specified here using gmt files.
   # the key is taken as the set name, and the value as the path to the gmt file, i.e.
   # set_name: gmt_file_path

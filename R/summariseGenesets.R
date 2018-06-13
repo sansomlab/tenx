@@ -19,8 +19,15 @@ option_list <- list(
                 help="the number of the clusters being analysed"),
     make_option(c("--firstcluster"), type="integer", default=0,
                 help="clusters might not be zero based..."),
-    make_option(c("--pthreshold"),type="double",default=0.05,
-                help="raw p threshold filtering sets"),
+    make_option(c("--pvaluethreshold"),type="double",default=0.05,
+                help="p value threshold for filtering sets"),
+    make_option(c("--padjustmethod"), default="BH",
+                help="The given method is passed to p.adjust"),
+    make_option(c("--useadjusted"), default=TRUE,
+                help="should adjusted p-values be used for the summary heatmap"),
+    make_option(c("--showcommon"), default=TRUE,
+                help=paste("Should genesets significantly enriched in all clusters",
+                           "be shown in the summary heatmap")),
     make_option(c("--mingenes"), type="integer", default=2,
                 help="min no. genes in foreground set"),
     make_option(c("--gmt_names"), default="none",
@@ -70,6 +77,8 @@ for(geneset in genesets)
             first <- opt$firstcluster
             last <- opt$nclusters}
 
+    ## build a single table containing the results of the geneset tests for
+    ## all clusters
     for(cluster in first:last)
     {
         print(paste("Working on cluster: ", cluster))
@@ -107,42 +116,33 @@ for(geneset in genesets)
         next
     }
 
-    ## Filter the genesets
-    use_adjust_pvalues = FALSE
-    pvalue_threshold = 0.1
-    show_common = TRUE
-    padjust_method="BH"
-    total_n_clust <- length(unique(contents$cluster))
-
+    # Filter out genesets we do not wish to consider
     contents <- contents[contents$n_fg >= opt$mingenes,]
 
-    contents$p.adj <- p.adjust(contents$p.val, method=padjust_method)
+    ## Compute adjusted p-values
+    ## The input table contains _all tested genesets_
+    ## (with n_fg >= opt$mingenes) regardless of p value.
+    contents$p.adj <- p.adjust(contents$p.val, method=opt$padjustmethod)
 
-    if(use_adjust_pvalues)
+    ## Compute the number of clusters in which each geneset is signficantly enriched
+
+    if(opt$useadjusted)
     {
-      ## compute FDR accross all samples
-      contents <- contents[contents$p.adj < pvalue_threshold
-                                     & !is.na(contents$p.adj),]
+        nsigtmp <- contents[contents$p.adj < opt$pvaluethreshold,]
     } else {
-      contents <- contents[contents$p.val < pvalue_threshold
-                                     & !is.na(contents$p.val),]
+        nsigtmp <- contents[contents$p.val < opt$pvaluethreshold,]
     }
 
-    if(!show_common)
-    {
-      contents <- contents[contents$n_sample < total_n_sample,]
-    }
+    id_tab <- table(nsigtmp$geneset_id)
 
-
-    ## Compute the number of clusters in which the geneset is enriched
-    id_tab <- table(contents$geneset_id)
-    contents$n_clust <- id_tab[contents$geneset_id]
+    contents$n_clust_sig <- id_tab[contents$geneset_id]
+    contents$n_clust_sig[is.na(contents$n_clust_sig)] <- 0
 
     ## Sort by p value
     contents <- contents[order(contents$cluster,contents$p.val),]
 
     ## Tidy up the frame
-    firstcols <- c("cluster","geneset_id","description","p.adj","p.val","odds.ratio","n_clust","n_fg","n_bg")
+    firstcols <- c("cluster","geneset_id","description","p.adj","p.val","odds.ratio","n_clust_sig","n_fg","n_bg")
     firstcols <- firstcols[firstcols %in% colnames(contents)]
     othercols <- colnames(contents)[!colnames(contents) %in% firstcols]
     contents <- contents[,c(firstcols,othercols)]
@@ -161,6 +161,7 @@ for(geneset in genesets)
         contents[[numeric_col]] <- xx
     }
 
+    # Add the results to the worksheet
     addWorksheet(wb,geneset)
     setColWidths(wb,geneset,cols=1:ncol(contents),widths=10)
     hs <- createStyle(textDecoration = "BOLD")
@@ -171,8 +172,7 @@ for(geneset in genesets)
     for(clust in unique(as.character(contents$cluster)))
     {
 
-        # deal with latex
-        temp <- contents[contents$cluster==clust & contents$n_clust==1 & contents$n_fg >=3,]
+        temp <- contents[contents$cluster==clust,]
         nrows <- nrow(temp)
         if(nrows==0) { next }
         temp <- temp[1:min(nrows,5),]
@@ -189,12 +189,12 @@ for(geneset in genesets)
         xx[nchar(xx)>maxl] <- paste0(strtrim(xx[nchar(xx)>maxl],maxl),"...")
         temp$description <- xx
 
-
         temp_names <- colnames(temp)
         temp$type <- geneset
         temp <- temp[,c("type",temp_names)]
 
-        temp <- temp[,c("type","description","p.val","p.adj","odds.ratio","n_fg")]
+        temp <- temp[,c("type","description","p.val","p.adj",
+                        "n_clust_sig","odds.ratio","n_fg")]
 
         if(clust %in% names(ltabs))
         {
@@ -208,40 +208,46 @@ for(geneset in genesets)
 
     results_table <- contents
 
+
+    # catch case where there is nothing to plot.
+    if(opt$useadjusted)
+    {
+        nsig = nrow(results_table[results_table$p.adj < opt$pvaluethreshold,])
+    } else {
+        nsig =  nrow(results_table[results_table$p.val < opt$pvaluethreshold,])
+    }
+
+
     plotfn <- gsub("xlsx",geneset,opt$outfile)
-
-    print(dim(results_table))
-    print(head(results_table))
-
-    if(nrow(results_table) > 0)
+    if(nsig > 0)
     {
 
-    plot_fn <- function()
-    {
-      sampleEnrichmentHeatmap(results_table,
-                              max_rows=50,
-                              min_genes=opt$mingenes,
-                              adjust_pvalues=use_adjust_pvalues,
-                              padjust_method=padjust_method,
-                              pvalue_threshold=pvalue_threshold,
-                              maxl=45,
-                              show_common=show_common,
-                              sample_id_col="cluster",
-                              title=geneset)
-     }
+        plot_fn <- function()
+        {
+            sampleEnrichmentHeatmap(results_table,
+                                    max_rows=50,
+                                    min_genes=opt$mingenes,
+                                    p_col="p.val",
+                                    adjust_pvalues=opt$useadjusted,
+                                    padjust_method=opt$padjustmethod,
+                                    pvalue_threshold=opt$pvaluethreshold,
+                                    maxl=45,
+                                    show_common=opt$showcommon,
+                                    sample_id_col="cluster",
+                                    title=geneset)
+        }
 
-
-    save_plots(plotfn,
-               plot_fn=plot_fn,
-               width=8,
-               height=8)
+        save_plots(plotfn,
+                   plot_fn=plot_fn,
+                   width=8,
+                   height=8)
 
     } else {
             # draw an empty plot with an error message
             pngfn <- paste(plotfn, "png", sep=".")
             png(pngfn,width=8,height=8,units="in",res=100)
             plot.new()
-            text(0.5,0.5,paste0("no data for:\n",geneset))
+            text(0.5,0.5,paste0("no significant genesets for:\n",geneset))
             dev.off()
     }
 
