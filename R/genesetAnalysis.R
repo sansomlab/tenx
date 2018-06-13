@@ -101,19 +101,24 @@ if(length(fg_entrez)>0)
         outPrefix = paste0(opt$outdir,"/", opt$prefix, ".",opt$cluster)
         kegg_pathways <- readRDS(opt$kegg_pathways)
 
-        ## parse the list of gmts
         gmts <- list()
-        gmt_names <- strsplit(opt$gmt_names,",")[[1]]
-        gmt_files <- strsplit(opt$gmt_files,",")[[1]]
 
-        if(length(gmt_names) != length(gmt_files))
+        if(!opt$gmt_names == "none" | !opt$gmt_files == "none")
         {
-            stop("the same number of gmt_names and gmt_files must be specified")
-        }
+            ## parse the list of gmts
 
-        for(i in 1:length(gmt_names))
-        {
-            gmts[[gmt_names[i]]] <- gmt_files[i]
+            gmt_names <- strsplit(opt$gmt_names,",")[[1]]
+            gmt_files <- strsplit(opt$gmt_files,",")[[1]]
+
+            if(length(gmt_names) != length(gmt_files))
+            {
+                stop("the same number of gmt_names and gmt_files must be specified")
+            }
+
+            for(i in 1:length(gmt_names))
+            {
+                gmts[[gmt_names[i]]] <- gmt_files[i]
+            }
         }
 
         ## run the analysis.
