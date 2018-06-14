@@ -53,10 +53,17 @@ print(opt)
 ## aggregate geneset types by worksheet
 ## all clusters in each worksheet
 
+if(opt$gmt_names != "none")
+{
+    gmt_names <- strsplit(opt$gmt_names,",")[[1]]
+} else {
+    gmt_names <- c()
+}
+
 ## TODO: Detect automatically
 genesets = c("GO.BP","GO.MF","GO.CC",
              "KEGG",
-              strsplit(opt$gmt_names,",")[[1]])
+              gmt_names)
 
 ## set up workbook.
 wb <- createWorkbook()
@@ -67,6 +74,8 @@ tex <- c()
 
 for(geneset in genesets)
 {
+    contents <- NULL
+
     print(paste("Processing:", geneset,"annotations."))
     begin=T
 
@@ -112,125 +121,123 @@ for(geneset in genesets)
 
     }
 
-    if(nrow(contents) == 0)
-    {
-        print(paste0("Warning: no entries for geneset: ",geneset))
-        next
-    }
+    make_plot = FALSE
 
-    # Filter out genesets we do not wish to consider
-    contents <- contents[contents$n_fg >= opt$mingenes,]
-
-    ## Compute adjusted p-values
-    ## The input table contains _all tested genesets_
-    ## (with n_fg >= opt$mingenes) regardless of p value.
-    contents$p.adj <- p.adjust(contents$p.val, method=opt$padjustmethod)
-
-    ## Compute the number of clusters in which each geneset is signficantly enriched
-
-    if(opt$useadjusted)
-    {
-        nsigtmp <- contents[contents$p.adj < opt$pvaluethreshold,]
-    } else {
-        nsigtmp <- contents[contents$p.val < opt$pvaluethreshold,]
-    }
-
-    id_tab <- table(nsigtmp$geneset_id)
-
-    contents$n_clust_sig <- id_tab[contents$geneset_id]
-    contents$n_clust_sig[is.na(contents$n_clust_sig)] <- 0
-
-    ## Sort by p value
-    contents <- contents[order(contents$cluster,contents$p.val),]
-
-    ## Tidy up the frame
-    firstcols <- c("cluster","geneset_id","description","p.adj","p.val","odds.ratio","n_clust_sig","n_fg","n_bg")
-    firstcols <- firstcols[firstcols %in% colnames(contents)]
-    othercols <- colnames(contents)[!colnames(contents) %in% firstcols]
-    contents <- contents[,c(firstcols,othercols)]
-
-    numeric_cols <- colnames(contents)[sapply(contents, is.numeric)]
-
-    for(numeric_col in numeric_cols)
-    {
-        ## set to 3 sf
-        xx <- contents[[numeric_col]]
-
-        nas <- is.na(xx)
-        ints <- all((xx - round(xx)) == 0)
-        xx[xx<1000 & !nas & !ints] <- signif(xx[xx<1000 & !nas & !ints],digits=3)
-        xx[xx>=1000 & !nas] <- round(xx[xx>=1000 & !nas],digits=0)
-        xx[ints] <- as.integer(xx[ints])
-
-        contents[[numeric_col]] <- xx
-    }
-
-    # Add the results to the worksheet
-    addWorksheet(wb,geneset)
-    setColWidths(wb,geneset,cols=1:ncol(contents),widths=10)
-    hs <- createStyle(textDecoration = "BOLD")
-    writeData(wb, geneset, contents, withFilter = T, headerStyle=hs)
-
-    ## prepare for writing out a latex summary table (unique pathways)
-    ## and geneset heatmaps (can be shared)
-    for(clust in unique(as.character(contents$cluster)))
+    if(!is.null(contents))
     {
 
-        temp <- contents[contents$cluster==clust,]
-        nrows <- nrow(temp)
-        if(nrows==0) { next }
-        temp <- temp[1:min(nrows,5),]
+        ## Filter out genesets we do not wish to consider
+        contents <- contents[contents$n_fg >= opt$mingenes,]
 
-        if(!"description" %in% colnames(temp))
+        ## Compute adjusted p-values
+        ## The input table contains _all tested genesets_
+        ## (with n_fg >= opt$mingenes) regardless of p value.
+        contents$p.adj <- p.adjust(contents$p.val, method=opt$padjustmethod)
+
+        ## Compute the number of clusters in which each geneset is signficantly enriched
+
+        if(opt$useadjusted)
         {
-            temp$description <-temp$geneset_id
+            nsigtmp <- contents[contents$p.adj < opt$pvaluethreshold,]
+        } else {
+            nsigtmp <- contents[contents$p.val < opt$pvaluethreshold,]
         }
 
-        ## trim long descriptions
-        maxl <- 45
-        xx <- temp$description
+        id_tab <- table(nsigtmp$geneset_id)
 
-        xx <- temp$description
-        xx <- formatDescriptions(xx, c("REACTOME_", "BIOCARTA_"), maxl)
-        temp$description <- xx
+        contents$n_clust_sig <- id_tab[contents$geneset_id]
+        contents$n_clust_sig[is.na(contents$n_clust_sig)] <- 0
 
+        ## Sort by p value
+        contents <- contents[order(contents$cluster,contents$p.val),]
 
-        temp_names <- colnames(temp)
-        temp$type <- geneset
-        temp <- temp[,c("type",temp_names)]
+        ## Tidy up the frame
+        firstcols <- c("cluster","geneset_id","description","p.adj","p.val","odds.ratio","n_clust_sig","n_fg","n_bg")
+        firstcols <- firstcols[firstcols %in% colnames(contents)]
+        othercols <- colnames(contents)[!colnames(contents) %in% firstcols]
+        contents <- contents[,c(firstcols,othercols)]
 
-        temp <- temp[,c("type","description","p.val","p.adj",
-                        "n_fg","odds.ratio","n_clust_sig")]
+        numeric_cols <- colnames(contents)[sapply(contents, is.numeric)]
 
-        colnames(temp) <- c("type","description","p.val","p.adj",
-                        "n_fg","odds.ratio","n.clust")
-
-        if(clust %in% names(ltabs))
+        for(numeric_col in numeric_cols)
         {
-            ltabs[[clust]] <- rbind(ltabs[[clust]],temp)
+            ## set to 3 sf
+            xx <- contents[[numeric_col]]
+
+            nas <- is.na(xx)
+            ints <- all((xx - round(xx)) == 0)
+            xx[xx<1000 & !nas & !ints] <- signif(xx[xx<1000 & !nas & !ints],digits=3)
+            xx[xx>=1000 & !nas] <- round(xx[xx>=1000 & !nas],digits=0)
+            xx[ints] <- as.integer(xx[ints])
+
+            contents[[numeric_col]] <- xx
         }
-        else {
 
-            ltabs[[clust]] <- temp
+        ## Add the results to the worksheet
+        addWorksheet(wb,geneset)
+        setColWidths(wb,geneset,cols=1:ncol(contents),widths=10)
+        hs <- createStyle(textDecoration = "BOLD")
+        writeData(wb, geneset, contents, withFilter = T, headerStyle=hs)
+
+        ## prepare for writing out a latex summary table (unique pathways)
+        ## and geneset heatmaps (can be shared)
+        for(clust in unique(as.character(contents$cluster)))
+        {
+
+            temp <- contents[contents$cluster==clust,]
+            nrows <- nrow(temp)
+            if(nrows==0) { next }
+            temp <- temp[1:min(nrows,5),]
+
+            if(!"description" %in% colnames(temp))
+            {
+                temp$description <-temp$geneset_id
+            }
+
+            ## trim long descriptions
+            maxl <- 45
+            xx <- temp$description
+
+            xx <- temp$description
+            xx <- formatDescriptions(xx, c("REACTOME_", "BIOCARTA_"), maxl)
+            temp$description <- xx
+
+            temp_names <- colnames(temp)
+            temp$type <- geneset
+            temp <- temp[,c("type",temp_names)]
+
+            temp <- temp[,c("type","description","p.val","p.adj",
+                            "n_fg","odds.ratio","n_clust_sig")]
+
+            colnames(temp) <- c("type","description","p.val","p.adj",
+                                "n_fg","odds.ratio","n.clust")
+
+            if(clust %in% names(ltabs))
+            {
+                ltabs[[clust]] <- rbind(ltabs[[clust]],temp)
+            }
+            else {
+                ltabs[[clust]] <- temp
+            }
         }
+
+        results_table <- contents
+
+        ## catch case where there is nothing to plot.
+        if(opt$useadjusted)
+        {
+            nsig = nrow(results_table[results_table$p.adj < opt$pvaluethreshold &
+                                      results_table$odds.ratio >= opt$minoddsratio,])
+        } else {
+            nsig =  nrow(results_table[results_table$p.val < opt$pvaluethreshold &
+                                       results_table$odds.ratio >= opt$minoddsratio,])
+        }
+
+        if(nsig > 0) { make_plot <- TRUE }
     }
-
-    results_table <- contents
-
-
-    # catch case where there is nothing to plot.
-    if(opt$useadjusted)
-    {
-        nsig = nrow(results_table[results_table$p.adj < opt$pvaluethreshold &
-                                  results_table$odds.ratio >= opt$minoddsratio,])
-    } else {
-        nsig =  nrow(results_table[results_table$p.val < opt$pvaluethreshold &
-                                   results_table$odds.ratio >= opt$minoddsratio,])
-    }
-
 
     plotfn <- gsub("xlsx",geneset,opt$outfile)
-    if(nsig > 0)
+    if(make_plot)
     {
 
         plot_fn <- function()
