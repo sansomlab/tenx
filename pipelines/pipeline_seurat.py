@@ -1421,6 +1421,7 @@ def summariseGenesetAnalysis(infile, outfile):
                          --pvaluethreshold=%(genesets_pvalue_threshold)s
                          --padjustmethod=%(genesets_padjust_method)s
                          --useadjusted=%(use_adjusted)s
+                         --minoddsratio=%(genesets_min_odds_ratio)s
                          --showcommon=%(show_common)s
                          --outfile=%(outfile)s
                          --prefix=genesets
