@@ -157,8 +157,10 @@ for(geneset in genesets)
         xx <- contents[[numeric_col]]
 
         nas <- is.na(xx)
-        xx[xx<1000 & !nas] <- signif(xx[xx<1000 & !nas],digits=3)
+        ints <- all((xx - round(xx)) == 0)
+        xx[xx<1000 & !nas & !ints] <- signif(xx[xx<1000 & !nas & !ints],digits=3)
         xx[xx>=1000 & !nas] <- round(xx[xx>=1000 & !nas],digits=0)
+        xx[ints] <- as.integer(xx[ints])
 
         contents[[numeric_col]] <- xx
     }
@@ -300,6 +302,40 @@ for(cluster in names(ltabs))
 }
 
 ltab_file <- gsub("xlsx","table.tex",opt$outfile)
+
+for(col in colnames(out))
+{
+    if(is.numeric(out[[col]]))
+    {
+        xx <- out[[col]]
+        nas <- is.na(xx)
+        ints <- all((xx - round(xx)) == 0)
+
+        ## handle p values
+        xx[xx<1 & !nas & !ints] <- lapply(xx[xx<1 & !nas & !ints],
+                                             sprintf,
+                                             fmt="%0.2g")
+
+        ## handle smaller floats
+        xx[xx>=1 & xx<1000 & !nas & !ints] <- lapply(xx[xx >=1 & xx<1000 & !nas & !ints],
+                                                     sprintf,
+                                                     fmt="%0.2f")
+
+        ## handle large floats
+        xx[xx>=1000 & !nas] <- lapply(xx[xx>=1000 & !nas],
+                                      sprintf,
+                                      fmt="%0.f")
+
+        ## handle ints.
+        xx[ints] <- lapply(xx[ints],
+                           sprintf,
+                           fmt="%i")
+        out[[col]] <- xx
+    }
+
+}
+
+
 xtab <- xtable(out, caption="The top (lowest p-value) genesets found (uniquely) in each cluster")
 print(xtab,
       include.rownames=F,
