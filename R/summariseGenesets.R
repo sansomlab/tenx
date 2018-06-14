@@ -30,6 +30,8 @@ option_list <- list(
                            "be shown in the summary heatmap")),
     make_option(c("--mingenes"), type="integer", default=2,
                 help="min no. genes in foreground set"),
+    make_option(c("--minoddsratio"), type="integer", default=1.5,
+                help="The minimum odds ratio."),
     make_option(c("--gmt_names"), default="none",
                 help="comma separated list of names for the gmt files"),
     make_option(c("--clustertype"),default="cluster",
@@ -185,16 +187,21 @@ for(geneset in genesets)
         ## trim long descriptions
         maxl <- 45
         xx <- temp$description
-        xx[is.na(xx)] <- "n/a"
-        xx[nchar(xx)>maxl] <- paste0(strtrim(xx[nchar(xx)>maxl],maxl),"...")
+
+        xx <- temp$description
+        xx <- formatDescriptions(xx, c("REACTOME_", "BIOCARTA_"), maxl)
         temp$description <- xx
+
 
         temp_names <- colnames(temp)
         temp$type <- geneset
         temp <- temp[,c("type",temp_names)]
 
         temp <- temp[,c("type","description","p.val","p.adj",
-                        "n_clust_sig","odds.ratio","n_fg")]
+                        "n_fg","odds.ratio","n_clust_sig")]
+
+        colnames(temp) <- c("type","description","p.val","p.adj",
+                        "n_fg","odds.ratio","n.clust")
 
         if(clust %in% names(ltabs))
         {
@@ -212,9 +219,11 @@ for(geneset in genesets)
     # catch case where there is nothing to plot.
     if(opt$useadjusted)
     {
-        nsig = nrow(results_table[results_table$p.adj < opt$pvaluethreshold,])
+        nsig = nrow(results_table[results_table$p.adj < opt$pvaluethreshold &
+                                  results_table$odds.ratio >= opt$minoddsratio,])
     } else {
-        nsig =  nrow(results_table[results_table$p.val < opt$pvaluethreshold,])
+        nsig =  nrow(results_table[results_table$p.val < opt$pvaluethreshold &
+                                   results_table$odds.ratio >= opt$minoddsratio,])
     }
 
 
@@ -231,9 +240,11 @@ for(geneset in genesets)
                                     adjust_pvalues=opt$useadjusted,
                                     padjust_method=opt$padjustmethod,
                                     pvalue_threshold=opt$pvaluethreshold,
+                                    min_odds_ratio=opt$minoddsratio,
                                     maxl=45,
                                     show_common=opt$showcommon,
                                     sample_id_col="cluster",
+                                    sample_ids=c(first:last),
                                     title=geneset)
         }
 
