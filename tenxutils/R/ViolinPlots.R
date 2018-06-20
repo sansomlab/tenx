@@ -1,6 +1,8 @@
 #' Get data for a set of violin plots
 #' @param seurat_object A seurat object
-#' @param metadata A vector of metadata columns to retrieve
+#' @param genes The set of genes to retrieve data for (row names of the seurat objects' "data" slot).
+#' @param metadata A vector of meta.data columns to retrieve
+#' @param clusters A vector of clusters to retrieve data for, if NULL all are included.
 #' 
 #' @export
 #' 
@@ -139,7 +141,7 @@ makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
 
 #' Function to draw grob on a new page
 #' 
-#' @param grob A grob.
+#' @param ggGrob A grob.
 #' 
 #' @export
 #' 
@@ -151,20 +153,28 @@ plotGrob <- function(ggGrob)
 }
 
 
-#' @param seurat_object A seurat object
-#' @param ggData melted dataframe ready for plotting
-#' @param title A title for this set of genes
-#' @param ncol  Number of columns, will be passed to facet_wrap
-#' @param group A column on which to group plots by
+#' Make a plot (or return a grob) of a set of horizontal violin plots from a seurat object.
+#' @param seurat_object A seurat object.
+#' @param genes The list of genes to plot (should correspond to row names in the seurat object).
+#' @param clusters The clusters to show - if NULL, plots are made for all clusters.
+#' @param title A title for this set of genes.
+#' @param ncol  Number of columns, will be passed to facet_wrap.
 #' @param xlab The label for the x axis.
+#' @param group A column in the seurat "meta.data" slot on which to group plots by.
 #' @param colors A vector of (fill) colors, one per cluster.
-#' 
+#' @param plot If set to FALSE the grob is returned instead.
+#'   
 #' @export
 #' 
-plotHorizontalViolins <- function(seurat_object, genes, clusters=NULL, 
-                        title=NULL, ncol=8,  
-                        xlab="normalised expression level",
-                        group=NULL,  colors=NULL, plot=TRUE)
+plotHorizontalViolins <- function(seurat_object, 
+                                  genes, 
+                                  clusters=NULL, 
+                                  title=NULL, 
+                                  ncol=8,  
+                                  xlab="normalised expression level",
+                                  group=NULL,  
+                                  colors=NULL, 
+                                  plot=TRUE)
 
 {
   ggData <- getViolinData(seurat_object, 
