@@ -11,7 +11,7 @@ barcode2table(codes)
 }
 \value{
 A data.frame of two columns:
-\describe{
+\described{
   \item{code}{The sequenced cell barcode.}
   \item{agg_id}{The sample aggregation identifier.}
 }

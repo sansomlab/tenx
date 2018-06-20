@@ -30,7 +30,3 @@ from a sparse matrix of UMI counts,
 in the format produced by the CellRanger software suite.
 In addition, write an accompanying metadata file.
 }
-\note{
-Use DropletUtils::write10xCounts, while
-doing the additional work of writing "metadata.tsv".
-}

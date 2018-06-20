@@ -4,14 +4,14 @@
 \alias{downsampleMatrix}
 \title{Downsample a matrix of UMI counts,}
 \usage{
-downsampleMatrix(matrixUMI, downsample_method = "median", sample_ids = c())
+downsampleMatrix(matrixUMI, downsample_method = "median", library_ids = c())
 }
 \arguments{
 \item{matrixUMI}{sparse matrix of umi counts}
 
-\item{downsample_method}{the statistic to normalise per-sample}
+\item{downsample_method}{the statistic to normalise per-library}
 
-\item{sample_ids}{a vector of the sample_ids}
+\item{library_ids}{a vector of the library_ids}
 }
 \description{
 Downsample a matrix of UMI counts,
