@@ -42,7 +42,9 @@ nPCs <- min(dim(s@dr$pca@cell.embeddings)[2],30)
 s <- JackStraw(s, num.replicate=opt$numreplicate,
                num.pc = nPCs)
 
-gp <- JackStrawPlot(s, PCs=1:nPCs)
+s <- JackStrawPlot(s, PCs=1:nPCs)
+
+gp <- s@dr$pca@misc$jackstraw.plot
 
 save_ggplots(paste0(opt$outdir,"/pcaJackStraw"),
            gp,
