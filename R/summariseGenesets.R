@@ -310,40 +310,10 @@ for(cluster in names(ltabs))
 
 ltab_file <- gsub("xlsx","table.tex",opt$outfile)
 
-for(col in colnames(out))
-{
-    if(is.numeric(out[[col]]))
-    {
-        xx <- out[[col]]
-        nas <- is.na(xx)
-        ints <- all((xx - round(xx)) == 0)
-
-        ## handle p values
-        xx[xx<1 & !nas & !ints] <- lapply(xx[xx<1 & !nas & !ints],
-                                             sprintf,
-                                             fmt="%0.2g")
-
-        ## handle smaller floats
-        xx[xx>=1 & xx<1000 & !nas & !ints] <- lapply(xx[xx >=1 & xx<1000 & !nas & !ints],
-                                                     sprintf,
-                                                     fmt="%0.2f")
-
-        ## handle large floats
-        xx[xx>=1000 & !nas] <- lapply(xx[xx>=1000 & !nas],
-                                      sprintf,
-                                      fmt="%0.f")
-
-        ## handle ints.
-        xx[ints] <- lapply(xx[ints],
-                           sprintf,
-                           fmt="%i")
-        out[[col]] <- xx
-    }
-
-}
-
+out <- sprintfResults(out)
 
 xtab <- xtable(out, caption="The top (lowest p-value) genesets found (uniquely) in each cluster")
+
 print(xtab,
       include.rownames=F,
       hline.after=hlines,

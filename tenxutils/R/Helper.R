@@ -20,6 +20,33 @@ tidyNumbers <- function(results_table, nsignif=3, nround=2)
   x
 }
 
+#' format numbers in results tables as character strings
+#'
+#' @param results_table A dataframe or matrix of results that contains some numeric columns.
+#' @param number_fmt Sprintf format for numeric columns
+sprintfResults <- function(results_table,
+                           number_fmt="%0.3g")
+{
+    for(col in colnames(results_table))
+    {
+        if(is.numeric(results_table[[col]]))
+        {
+            xx <- results_table[[col]]
+
+            nas <- is.na(xx)
+
+            xx[!nas] <- sapply(xx[!nas],
+                               sprintf,
+                               fmt=number_fmt)
+
+            results_table[[col]] <- xx
+        }
+    }
+
+    results_table
+}
+
+
 #' Function to add "top" indicator column to degenes
 #' @param data The data
 #' @param m_col The column containing the log2 ratio
@@ -29,7 +56,7 @@ topGenes <- function(data, m_col = "avg_logFC",
                      use_fc = TRUE,
                      id_col="gene", ngenes=7)
 {
-  
+
   tmp <- data[order(data$p.adj),id_col][1:ngenes]
   if(use_fc)
   {
@@ -54,19 +81,18 @@ categoriseGenes <- function(data,m_col="avg_logFC", use_fc=TRUE,
                             ngenes=7,
                             id_col="gene")
 {
-  
+
   tmp <- topGenes(data[data[[m_col]] > 0,],
-                  m_col=m_col, use_fc=use_fc, 
+                  m_col=m_col, use_fc=use_fc,
                   ngenes=ngenes,id_col=id_col)
   tmp2 <- topGenes(data[data[[m_col]] < 0,],
-                   m_col=m_col, use_fc=use_fc, 
+                   m_col=m_col, use_fc=use_fc,
                    ngenes=ngenes,id_col=id_col)
   data$top <- FALSE
   data$top[data[[id_col]] %in% unique(c(tmp,tmp2))] <- TRUE
-  
-  
+
+
   data$sig <- FALSE
   data$sig[data[[p_col]] < p_threshold] <- TRUE
   data
 }
-

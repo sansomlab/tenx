@@ -4,6 +4,7 @@
 # ignore R files
 .Rhistory
 .Rbuildignore
+.RData
 *.Rproj
 
 # ignore temporary files from emacs/vim
