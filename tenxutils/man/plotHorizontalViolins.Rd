@@ -6,7 +6,7 @@
 \usage{
 plotHorizontalViolins(seurat_object, genes, clusters = NULL, title = NULL,
   ncol = 8, xlab = "normalised expression level", group = NULL,
-  colors = NULL, plot = TRUE)
+  colors = NULL, alpha = 1, plot = TRUE)
 }
 \arguments{
 \item{seurat_object}{A seurat object.}
@@ -24,6 +24,8 @@ plotHorizontalViolins(seurat_object, genes, clusters = NULL, title = NULL,
 \item{group}{A column in the seurat "meta.data" slot on which to group plots by.}
 
 \item{colors}{A vector of (fill) colors, one per cluster.}
+
+\item{alpha}{Alpha level for the fill color.}
 
 \item{plot}{If set to FALSE the grob is returned instead.}
 }
