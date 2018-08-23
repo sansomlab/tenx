@@ -5,7 +5,7 @@
 \title{Function to draw a block of horizontal violin lots}
 \usage{
 makeViolins(ggData, title = NULL, ncol = 8, group = NULL, colors = NULL,
-  xlab = NULL)
+  alpha = 1, clusters = NULL, xlab = NULL)
 }
 \arguments{
 \item{ggData}{melted dataframe ready for plotting}
@@ -17,6 +17,10 @@ makeViolins(ggData, title = NULL, ncol = 8, group = NULL, colors = NULL,
 \item{group}{A column on which to group plots by}
 
 \item{colors}{A vector of (fill) colors, one per cluster.}
+
+\item{alpha}{Alpha value for the fill color}
+
+\item{clusters}{Optional list of clusters to plot}
 
 \item{xlab}{The label for the x axis.}
 }

@@ -72,23 +72,34 @@ removeGrobs <- function(gpGrob, ncol, nmissing)
 #' @param ncol  Number of columns, will be passed to facet_wrap
 #' @param group A column on which to group plots by
 #' @param colors A vector of (fill) colors, one per cluster.
+#' @param alpha Alpha value for the fill color
+#' @param clusters Optional list of clusters to plot
 #' @param xlab The label for the x axis.
 #' 
 #' @export
 #' 
 makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
-                        colors=NULL,
+                        colors=NULL, 
+                        alpha=1,
+                        clusters=NULL,
                         xlab=NULL)
 {
   require(ggplot2)
   require(ggstance)
   theme_set(theme_classic(base_size = 8))
   
-  ggData$gene <- factor(ggData$gene)
+  ggData$gene <- factor(ggData$gene, levels=unique(ggData$gene))
   
-  cluster_levels <- unique(ggData$cluster)
+  if(is.null(clusters))
+  {
+    cluster_levels <- unique(ggData$cluster)
+    cluster_levels <- cluster_levels[rev(order(as.numeric(cluster_levels)))]
+  } else {
+    cluster_levels <- unique(clusters)
+  }
+  
   ggData$cluster <- factor(ggData$cluster,
-                           levels=cluster_levels[rev(order(as.numeric(cluster_levels)))])
+                           levels=cluster_levels)
   
   
   nl  <- length(levels(ggData$gene))
@@ -112,7 +123,7 @@ makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
     ggData[[group]] <- factor(ggData[[group]])
     gp <- ggplot(ggData, aes_string("value", "cluster", fill=group)) 
   }
-  gp <- gp + geom_violinh(scale = "width", trim = TRUE) 
+  gp <- gp + geom_violinh(scale = "width", trim = TRUE, alpha=alpha) 
   gp <- gp + facet_wrap(~gene, scales="free_x", ncol=ncol, drop=F)
   if(!is.null(title)) {
     gp <- gp + ggtitle(title)
@@ -162,6 +173,7 @@ plotGrob <- function(ggGrob)
 #' @param xlab The label for the x axis.
 #' @param group A column in the seurat "meta.data" slot on which to group plots by.
 #' @param colors A vector of (fill) colors, one per cluster.
+#' @param alpha Alpha level for the fill color.
 #' @param plot If set to FALSE the grob is returned instead.
 #'   
 #' @export
@@ -173,7 +185,8 @@ plotHorizontalViolins <- function(seurat_object,
                                   ncol=8,  
                                   xlab="normalised expression level",
                                   group=NULL,  
-                                  colors=NULL, 
+                                  colors=NULL,
+                                  alpha=1,
                                   plot=TRUE)
 
 {
@@ -182,12 +195,19 @@ plotHorizontalViolins <- function(seurat_object,
                           clusters=clusters,
                           metadata=group)
   
+  if(!is.null(clusters) & !is.null(colors))
+  {
+   names(colors) <- clusters 
+  }
+  
   ggGrob <- makeViolins(ggData, 
                         title=title, 
                         ncol=ncol, 
                         xlab=xlab,
+                        clusters=clusters,
                         group=group,
-                        colors=colors)
+                        colors=colors,
+                        alpha=alpha)
 
   if(plot)
   {
