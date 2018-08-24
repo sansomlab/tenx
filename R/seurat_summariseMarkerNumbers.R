@@ -76,29 +76,46 @@ clevels <- unique(degenes$cluster)
 ## DE genes per cluster
 ## (rewritten to avoid use of dplyr, which was causing random crashing)
 
-restmp <- c()
-for(cluster in clevels)
-{
-    tmp <- degenes[degenes$p.adj < 0.05 & degenes$cluster==cluster,]
+#restmp <- c()
+#for(cluster in clevels)
+#{
+#    tmp <- degenes[degenes$p.adj < 0.05 & degenes$cluster==cluster,]
 
-    npos <- nrow(tmp[tmp$avg_logFC > log(1),])
-    nneg <- nrow(tmp[tmp$avg_logFC < -log(1),])
+#   npos <- nrow(tmp[tmp$avg_logFC > log(1),])
+#    nneg <- nrow(tmp[tmp$avg_logFC < -log(1),])
 
 
-    restmp <- c(restmp,
-                c(cluster, npos, "positive"),
-                c(cluster, nneg, "negative"))
-}
+#    restmp <- c(restmp,
+#                c(cluster, npos, "positive"),
+#                c(cluster, nneg, "negative"))
+#}
 
-nsummary <- data.frame(matrix(restmp,ncol=3,byrow=TRUE))
-colnames(nsummary) <- c("cluster","n","type")
+#nsummary <- data.frame(matrix(restmp,ncol=3,byrow=TRUE))
+#colnames(nsummary) <- c("cluster","n","type")
 
 message("drawing summary barplot")
 
-gp <- ggplot(nsummary, aes(cluster, n, fill=type))
+#gp <- ggplot(nsummary, aes(cluster, n, fill=type))
+#gp <- gp + geom_bar(stat="identity",position="dodge")
+#gp <- gp + scale_fill_manual(values=c("seagreen4","bisque2"))
+#gp <- gp + ylab("no. genes (p.adj < 0.05, fold change > 2)")
+
+# new summary and plot lk
+tmp2 <- degenes %>%
+    dplyr::group_by(cluster) %>% 
+    dplyr::summarise(
+      positive=length(which(p.adj < 0.05 & avg_logFC > log(1))),
+      negative=length(which(p.adj < 0.05 & avg_logFC < -log(1))))
+
+tmp3 <- melt(tmp2, id=c("cluster"))
+
+gp <- ggplot(tmp3, aes(cluster, value, fill=variable))
 gp <- gp + geom_bar(stat="identity",position="dodge")
-gp <- gp + scale_fill_manual(values=c("seagreen4","bisque2"))
+gp <- gp + scale_fill_manual(values=c("bisque2","seagreen4"))
 gp <- gp + ylab("no. genes (p.adj < 0.05, fold change > 2)")
+gp <- gp + scale_x_continuous(breaks = seq(min(tmp3$cluster), max(tmp3$cluster), by=1))
+
+# end of changes 
 
 nsfn <- paste(c("deNumbers",file_suffix),collapse=".")
 nsfp <- file.path(opt$outdir, nsfn)
