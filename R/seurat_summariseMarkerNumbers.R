@@ -31,8 +31,10 @@ option_list <- list(
                 help="first level of constrast"),
     make_option(c("--b"), default="NULL",
                 help="second level of constrast"),
-    make_option(c("--useminfc"), default=FALSE,
-                help="Use minimum fold change for second page of violin plots"),
+    make_option(c("--minfc"), default=2,
+                help="Fold change threshold for DE genes (absolute)"),
+    make_option(c("--minpadj"), default=0.05,
+                help="The threshold for the adjusted p-value"),
     make_option(c("--outdir"), default="seurat.out.dir",
                 help="outdir")
     )
@@ -70,35 +72,28 @@ message("reading in the DE genes")
 ## read in the de genes
 degenes <- read.table(gzfile(opt$degenes),header=T,as.is=T,sep="\t")
 
-clevels <- unique(degenes$cluster)
+message("summarising and melting the data")
 
-## Make a bar plot summarising the number of
-## DE genes per cluster
-## (rewritten to avoid use of dplyr, which was causing random crashing)
+# Summarise and melt the data
+summarised_data <- degenes %>%
+    dplyr::group_by(cluster) %>%
+    dplyr::summarise(
+      positive=length(which(p.adj < opt$minpadj & avg_logFC >= log(opt$minfc))),
+      negative=length(which(p.adj < opt$minpadj & avg_logFC <= -log(opt$minfc))))
 
-restmp <- c()
-for(cluster in clevels)
-{
-    tmp <- degenes[degenes$p.adj < 0.05 & degenes$cluster==cluster,]
+melted_data <- melt(summarised_data, id=c("cluster"))
 
-    npos <- nrow(tmp[tmp$avg_logFC > log(1),])
-    nneg <- nrow(tmp[tmp$avg_logFC < -log(1),])
-
-
-    restmp <- c(restmp,
-                c(cluster, npos, "positive"),
-                c(cluster, nneg, "negative"))
-}
-
-nsummary <- data.frame(matrix(restmp,ncol=3,byrow=TRUE))
-colnames(nsummary) <- c("cluster","n","type")
+# Set cluster to an ordered factor for plotting
+clevels <- unique(melted_data$cluster)
+melted_data$cluster <- factor(melted_data$cluster, levels=clevels[order(clevels)])
 
 message("drawing summary barplot")
 
-gp <- ggplot(nsummary, aes(cluster, n, fill=type))
+gp <- ggplot(melted_data, aes(cluster, value, fill=variable))
 gp <- gp + geom_bar(stat="identity",position="dodge")
-gp <- gp + scale_fill_manual(values=c("seagreen4","bisque2"))
-gp <- gp + ylab("no. genes (p.adj < 0.05, fold change > 2)")
+gp <- gp + scale_fill_manual(values=c("bisque2","seagreen4"))
+gp <- gp + ylab(paste0("no. genes (p.adj < ", opt$minpadj,
+                       ", fold change > ",  opt$minfc, ")"))
 
 nsfn <- paste(c("deNumbers",file_suffix),collapse=".")
 nsfp <- file.path(opt$outdir, nsfn)
@@ -111,9 +106,11 @@ save_ggplots(nsfp,
 subsectionTitle <- getSubsubsectionTex(paste("Summary of numbers of DE genes per-cluster"))
 tex <- c(tex, subsectionTitle)
 
-deCaption <- "Numbers of differentially expressed genes (adjusted p-value < 0.05, fold change > 2) per cluster"
-tex <- c(tex, getFigureTex(nsfn, deCaption))
+deCaption <- paste0("Numbers of differentially expressed genes ",
+                    "(adjusted p-value < ", opt$minpadj,
+                    ", fold change > ", opt$minfc, ") per cluster")
 
+tex <- c(tex, getFigureTex(nsfn, deCaption))
 
 tex_file <- file.path(opt$outdir,
                       paste(c("characterise.degenes",file_suffix,"tex"),collapse="."))
