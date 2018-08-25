@@ -899,7 +899,8 @@ def plotMarkerNumbers(infile, outfile):
                    --degenes=%(marker_table)s
                    --clusterids=%(cluster_ids)s
                    --outdir=%(outdir)s
-                   --useminfc=TRUE
+                   --minfc=2
+                   --minpadj=0.05
                    &> %(log_file)s
                 '''
 
@@ -1269,7 +1270,8 @@ def plotMarkerNumbersBetweenConditions(infile, outfile):
                    --testfactor=%(findmarkers_between_testfactor)s
                    --a=%(findmarkers_between_a)s
                    --b=%(findmarkers_between_b)s
-                   --useminfc=FALSE
+                   --minfc=2
+                   --minpadj=0.05
                    --outdir=%(outdir)s
                    &> %(log_file)s
                 '''
