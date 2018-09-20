@@ -127,9 +127,9 @@ import sys
 import os
 import glob
 import sqlite3
-import CGATCore.Experiment as E
-from CGATCore import Pipeline as P
-import CGATCore.IOTools as IOTools
+import cgatcore.experiment as E
+from cgatcore import pipeline as P
+import cgatcore.iotools as IOTools
 import pandas as pd
 
 # -------------------------- < parse parameters > --------------------------- #

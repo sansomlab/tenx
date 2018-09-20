@@ -141,9 +141,9 @@ import sqlite3
 import numpy as np
 import pandas as pd
 from scipy.stats.mstats import gmean
-import CGATCore.Experiment as E
-from CGATCore import Pipeline as P
-import CGATCore.IOTools as IOTools
+import cgatcore.experiment as E
+from cgatcore import pipeline as P
+import cgatcore.iotools as IOTools
 
 # -------------------------- < parse parameters > --------------------------- #
 
