@@ -513,71 +513,82 @@ s <- NormalizeData(
 latent.vars <- strsplit(opt$latentvars, ",")[[1]]
 print(latent.vars)
 
-if ( identical(opt$cellcycle, "none") ) {
-    ## vars.to.regress <- latent.vars
+
+ 
+if (!is.null(opt$sgenes) & !is.null(opt$g2mgenes)){
+  cat("There are cell cycle genes")
+  
+  # get the genes representing the cell cycle phases
+  sgenes_ensembl <- read.table(opt$sgenes, header=F, as.is=T)$V1
+  sgenes <- s@misc$seurat_id[s@misc$gene_id %in% sgenes_ensembl]
+  
+  g2mgenes_ensembl <- read.table(opt$g2mgenes, header=F, as.is=T)$V1
+  g2mgenes <- s@misc$seurat_id[s@misc$gene_id %in% g2mgenes_ensembl]
+  
+  # score the cell cycle phases
+  s <- CellCycleScoring(
+    object=s, s.genes=sgenes, g2m.genes=g2mgenes, set.ident=TRUE
+  )
+  
+  if ( identical(opt$cellcycle, "none") ) {
+    ## PCA plot on cell cycle genes without regression     
     s <- ScaleData(object=s, vars.to.regress=latent.vars,
                    model.use=opt$modeluse)
-    cat("Data wil be scaled without correcting for cell cycle\n")
-} else {
-    # get the genes representing the cell cycle phases
-    sgenes_ensembl <- read.table(opt$sgenes, header=F, as.is=T)$V1
-    sgenes <- s@misc$seurat_id[s@misc$gene_id %in% sgenes_ensembl]
-
-    g2mgenes_ensembl <- read.table(opt$g2mgenes, header=F, as.is=T)$V1
-    g2mgenes <- s@misc$seurat_id[s@misc$gene_id %in% g2mgenes_ensembl]
-
-    # score the cell cycle phases
-    s <- CellCycleScoring(
-        object=s, s.genes=sgenes, g2m.genes=g2mgenes, set.ident=TRUE
-        )
-    
-    # PCA plot on cell cycle genes before regression     
-    s <- ScaleData(object=s, vars.to.regress=latent.vars,
-                 model.use=opt$modeluse)    
-
     s <- RunPCA(object = s, pc.genes = c(sgenes, g2mgenes), do.print = FALSE)
     gp <- PCAPlot(object = s)
-
+    
     save_ggplots(
-	file.path(opt$outdir, "cellcycle.pca."), gp,
-  	width=7, height=4
-	)
-
-    if ( identical(opt$cellcycle, "all") ) {
-        ## regress out all cell cycle effects
-        #latent.vars <- c(latent.vars, "S.Score", "G2M.Score")
-        s <- ScaleData(object=s, vars.to.regress=c(latent.vars, "S.Score", "G2M.Score"),
-                      model.use=opt$modeluse)
-    	s <- RunPCA(object = s, pc.genes = c(sgenes, g2mgenes), do.print = FALSE)
-   	gp <- PCAPlot(object = s)
-    	
-	save_ggplots(
-    		file.path(opt$outdir, "cellcycle.regressed.all.pca"), gp,
-    	width=7, height=4
-  	)
-        cat("Scaling will include removal of all cell cycle variation\n")
-    } else if ( identical(opt$cellcycle, "difference") ) {
-        ## regress out the difference between G2M and S phase scores
-        s@meta.data$CC.Difference <- s@meta.data$S.Score - s@meta.data$G2M.Score
-
-        #latent.vars <- c(latent.vars, "CC.Difference")
-        s <- ScaleData(object=s, vars.to.regress=c(latent.vars, "CC.Difference"),
-                       model.use=opt$modeluse)
-	s <- RunPCA(object = s, pc.genes = c(sgenes, g2mgenes), do.print = FALSE)
-        gp <- PCAPlot(object = s)
-        
-        save_ggplots(
-                file.path(opt$outdir, "cellcycle.regressed.cc.difference.pca"), gp,
+      file.path(opt$outdir, "cellcycle.without.regression.pca"), gp,
+      width=7, height=4
+    )
+    cat("Data wil be scaled without correcting for cell cycle\n")
+  } else {
+    ## PCA plot on cell cycle genes before regression     
+    s.tmp <- ScaleData(object=s, vars.to.regress=latent.vars,
+                   model.use=opt$modeluse)
+    s.tmp <- RunPCA(object = s.tmp, pc.genes = c(sgenes, g2mgenes), do.print = FALSE)
+    gp <- PCAPlot(object = s.tmp)
+    
+    save_ggplots(
+      file.path(opt$outdir, "cellcycle.before.regression.pca"), gp,
+      width=7, height=4
+    )
+    
+    ## Regression of cell cycle genes
+        if ( identical(opt$cellcycle, "all") ) {
+      ## regress out all cell cycle effects
+      s <- ScaleData(object=s, vars.to.regress=c(latent.vars, "S.Score", "G2M.Score"),
+                     model.use=opt$modeluse)
+      s <- RunPCA(object = s, pc.genes = c(sgenes, g2mgenes), do.print = FALSE)
+      gp <- PCAPlot(object = s)
+      
+      save_ggplots(
+        file.path(opt$outdir, "cellcycle.regressed.all.pca"), gp,
         width=7, height=4
-        )
-
-        cat("Scaling included removal of difference between G2M and S phase scores\n")
+      )
+      cat("Scaling will include removal of all cell cycle variation\n")
+    } else if ( identical(opt$cellcycle, "difference") ) {
+      ## regress out the difference between G2M and S phase scores
+      s@meta.data$CC.Difference <- s@meta.data$S.Score - s@meta.data$G2M.Score
+      s <- ScaleData(object=s, vars.to.regress=c(latent.vars, "CC.Difference"),
+                     model.use=opt$modeluse)
+      s <- RunPCA(object = s, pc.genes = c(sgenes, g2mgenes), do.print = FALSE)
+      gp <- PCAPlot(object = s)
+      
+      save_ggplots(
+        file.path(opt$outdir, "cellcycle.regressed.difference.pca"), gp,
+        width=7, height=4
+      )
+      
+      cat("Scaling included removal of difference between G2M and S phase scores\n")
     } else {
-        stop("cellcycle regression type not understood")
+      stop("cellcycle regression type not understood")
     }
+  }
+  
+} else {
+  cat("Please provide lists of cell cycle sgenes and g2mgenes")
 }
-
-#s <- ScaleData(object=s, vars.to.regress=latent.vars, model.use=opt$modeluse)
 
 
 ## ######################################################################### ##
