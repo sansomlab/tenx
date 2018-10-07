@@ -209,9 +209,12 @@ print(opt)
 #' @param stage Character value to tag the new entry.
 #'
 #' @return A data.frame
-getCellNumbers <- function(s, cell_numbers="none", stage="input") {
+getCellNumbers <- function(s, cell_numbers="none", stage="input",
+	       	  	   groupby=groupby) {
     ## cell_info <- getCellInfo(s)
-    counts <- as.data.frame(table(s@meta.data$sample_id))
+    if ( is.null(groupby) ) {
+    	groupby <- "sample_id" }
+    counts <- as.data.frame(table(s@meta.data[, groupby]))
     colnames(counts) <- c("sample_id", stage)
     rownames(counts) <- counts$sample_id
     counts$sample_id <- NULL
@@ -437,7 +440,7 @@ save_plots(
     )
 
 # TODO: Document
-cell_numbers <- getCellNumbers(s)
+cell_numbers <- getCellNumbers(s, groupby=groupby)
 
 ## We filter out cells that have unique gene counts over 2,500
 ## Note that accept.high and accept.low can be used to define a 'gate',
@@ -460,7 +463,8 @@ s <- FilterCells(
 
 stats$no_cells_after_qc <- ncol(s@data)
 
-cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers, stage="after_qc_filters")
+cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers, stage="after_qc_filters",
+	     		       groupby=groupby)
 
 cat("Data dimensions after subsetting:\n")
 print(dim(s@data))
@@ -491,7 +495,8 @@ if (as.logical(opt$downsamplecells)) {
     s <- SubsetData(s, cells.use=cells.to.use)
 
     ##cell_info <- getCellInfo(s)
-    cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers, stage="after_downsampling")
+    cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers,
+    		    		   stage="after_downsampling", groupby=groupby)
     cat("Numbers of cells per sample after down-sampling:\n")
     print(cell_numbers)
 }
