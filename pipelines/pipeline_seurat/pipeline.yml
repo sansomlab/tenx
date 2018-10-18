@@ -99,6 +99,26 @@ qc:
 # Regression parameters
 # ---------------------
 
+cellcycle:
+
+  # If lists of cell cycle genes are supplied
+  # cycle-cycle effects will be visualised by the pipeline.
+  # The lists will also be used for regression if specified below.
+  #
+  # > mouse cell cycle genes >
+  #
+  # sgenes: /gfs/archive/sansom/datasets/cell_cycle/mouse/s_genes.txt
+  # g2mgenes: /gfs/archive/sansom/datasets/cell_cycle/mouse/g2m_genes.txt
+  #
+  # > human cell cycle genes >
+  #
+  # sgenes: /gfs/archive/sansom/datasets/cell_cycle/human/wang.g1-s.txt
+  # g2mgenes: /gfs/archive/sansom/datasets/cell_cycle/human/wang.g2-m.txt
+
+  sgenes: none
+  g2mgenes: none
+
+
 regress:
     ## Removal of unwanted variation (see Seurat::ScaleData)
     # Latent variables to regress out
@@ -112,8 +132,6 @@ regress:
     # - Use "difference" to regress out the difference between G2M and S phase scores
     # (i.e. the Alternate Workflow in the link above)
     cellcycle: none
-    sgenes:
-    g2mgenes:
 
 
 # Variable gene identification parameters
@@ -294,6 +312,10 @@ gmt_files:
   # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.gmt
   # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.gmt
   # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.gmt
+  #
+  # > human cell types >
+  #
+  # xCell: /gfs/mirror/xCell/xCell_entrezID.gmt
   #
   # > mouse msigdb sets >
   #
