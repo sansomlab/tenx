@@ -59,7 +59,7 @@ option_list <- list(
     #     ),
     make_option(
         c("--groupby"),
-        default="none",
+        default="sample_id",
         help=paste(
             "The name of a column in the metadata table by which to group samples",
             "(e.g. sample_id)."
@@ -81,8 +81,8 @@ option_list <- list(
         c("--downsamplecells"),
         default=FALSE,
         help=paste(
-            "Whether to randomly downsample cells by sample_id",
-            "to match the sample with the lowest count of cells."
+            "Whether to randomly downsample cells so that each",
+            "group has the sample number of cells."
         )),
     #KRA: note that filtering _could_ be done before downsampling (with some obvious caveats)
     make_option(
@@ -210,14 +210,13 @@ print(opt)
 #'
 #' @return A data.frame
 getCellNumbers <- function(s, cell_numbers="none", stage="input",
-	       	  	   groupby=groupby) {
+	       	  	   groupby=opt$groupby) {
     ## cell_info <- getCellInfo(s)
-    if ( is.null(groupby) ) {
-    	groupby <- "sample_id" }
-    counts <- as.data.frame(table(s@meta.data[, groupby]))
-    colnames(counts) <- c("sample_id", stage)
-    rownames(counts) <- counts$sample_id
-    counts$sample_id <- NULL
+    counts <- as.data.frame(table(s@meta.data[[groupby]]))
+    colnames(counts) <- c(groupby, stage)
+    rownames(counts) <- counts[[groupby]]
+    counts[[groupby]] <- NULL
+
     if ( identical(cell_numbers, "none") ) {
         result <- counts
         colnames(counts) <- stage
@@ -325,20 +324,14 @@ cat("Adding meta data ... ")
 s <- AddMetaData(s, metadata)
 cat("Done.\n")
 
-## optionally add batch metadata
-## if(opt$batch)
-## {
-##     batch <- read.table(file.path(opt$tenxdir, "batch.tsv"),
-##                         header=FALSE, as.is=TRUE)$V1
+# ensure that the grouping factor is present in the metadata
+if (!opt$groupby %in% colnames(s@meta.data)) {
+    stop(paste("The specified grouping factor:",
+               opt$groupby,
+               "was not found in the metadata",
+               sep=" "))
+}
 
-##     barcodes <- read.table(file.path(opt$tenxdir, "barcodes.tsv"),
-##                            header=FALSE, as.is=TRUE)$V1
-
-##     names(batch) <- barcodes
-##     print("Adding batch meta data")
-##     print(head(batch))
-##     s <- AddMetaData(s, batch, "batch")
-## }
 
 ## ######################################################################### ##
 ## ####################### (ii) Subsetting ################################# ##
@@ -397,16 +390,9 @@ percent.mito <- Matrix::colSums(s@data[mito.genes, ]) / Matrix::colSums(s@data)
 ## and is a great place to stash QC stats
 s <- AddMetaData(s, percent.mito, "percent.mito")
 
-
-if ( identical(opt$groupby, "none") ) {
-    groupby <- NULL
-} else {
-    groupby <- opt$groupby
-}
-
 gp <- VlnPlot(
     s, c("nGene", "nUMI", "percent.mito"), size.title.use=14, size.x.use=12,
-    group.by=groupby, x.lab.rot=TRUE, point.size.use=0.1, nCol=3
+    group.by=opt$groupby, x.lab.rot=TRUE, point.size.use=0.1, nCol=3
     )
 
 # TODO: document where this function comes from
@@ -440,7 +426,7 @@ save_plots(
     )
 
 # TODO: Document
-cell_numbers <- getCellNumbers(s, groupby=groupby)
+cell_numbers <- getCellNumbers(s, groupby=opt$groupby)
 
 ## We filter out cells that have unique gene counts over 2,500
 ## Note that accept.high and accept.low can be used to define a 'gate',
@@ -464,7 +450,7 @@ s <- FilterCells(
 stats$no_cells_after_qc <- ncol(s@data)
 
 cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers, stage="after_qc_filters",
-	     		       groupby=groupby)
+	     		       groupby=opt$groupby)
 
 cat("Data dimensions after subsetting:\n")
 print(dim(s@data))
@@ -477,10 +463,6 @@ print(dim(s@data))
 if (as.logical(opt$downsamplecells)) {
 
     ##cell_info <- getCellInfo(s)
-
-    if (!"sample_id" %in% colnames(s@meta.data)) {
-        stop("sample_id must be specified to downsample cells")
-        }
 
     mincells <- min(table(s@meta.data[[opt$groupby]]))
 
@@ -496,7 +478,7 @@ if (as.logical(opt$downsamplecells)) {
 
     ##cell_info <- getCellInfo(s)
     cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers,
-    		    		   stage="after_downsampling", groupby=groupby)
+    		    		   stage="after_downsampling", groupby=opt$groupby)
     cat("Numbers of cells per sample after down-sampling:\n")
     print(cell_numbers)
 }
