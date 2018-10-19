@@ -224,13 +224,22 @@ def beginSeurat(infile, outfile):
     else:
         subset = ""
 
-    if PARAMS["regress_cellcycle"] != "none":
-        cell_cycle = '''--cellcycle=%(regress_cellcycle)s
-                        --sgenes=%(regress_sgenes)s
-                        --g2mgenes=%(regress_g2mgenes)s
-                     ''' % PARAMS
+    if ( os.path.isfile(PARAMS["cellcycle_sgenes"]) and
+         os.path.isfile(PARAMS["cellcycle_g2mgenes"]) ):
+
+        cell_cycle_genes = '''--sgenes=%(cellcycle_sgenes)s
+                              --g2mgenes=%(cellcycle_g2mgenes)s
+                           ''' % PARAMS
+
     else:
-        cell_cycle = ""
+        cell_cycle_genes = ""
+
+
+    if PARAMS["regress_cellcycle"] != "none":
+        cell_cycle_regress = '''--cellcycle=%(regress_cellcycle)s
+                             ''' % PARAMS
+    else:
+        cell_cycle_regress = ""
 
     # Turn Python boolean into R logical
     downsamplecells = str(PARAMS["qc_downsamplecells"]).upper()
@@ -252,7 +261,8 @@ def beginSeurat(infile, outfile):
                    --xlowcutoff=%(vargenes_xlowcutoff)s
                    --xhighcutoff=%(vargenes_xhighcutoff)s
                    %(subset)s
-                   %(cell_cycle)s
+                   %(cell_cycle_genes)s
+                   %(cell_cycle_regress)s
                    &> %(log_file)s
                 '''
 
