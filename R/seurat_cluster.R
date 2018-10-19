@@ -67,4 +67,17 @@ write(nclusters, file=file.path(opt$outdir,"nclusters.txt"))
 message(sprintf("saveRDS"))
 saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 
+## Visualise the relationship between the clusters.
+
+draw_tree <- function() { BuildClusterTree(s) }
+
+save_plots(
+    file.path(opt$outdir, "cluster.dendrogram"),
+    plot_fn=draw_tree,
+    width=8, height=5
+    )
+
+
+
+
 message("Completed")
