@@ -523,7 +523,7 @@ s <- ScaleData(object=s, vars.to.regress=latent.vars,
 tex = ""
 
 ## start building figure latex...
-subsectionTitle <- getSubsubsectionTex("Cell cycle principal components analysis")
+subsectionTitle <- getSubsectionTex("Visualisation of cell cycle effects")
 tex <- c(tex, subsectionTitle)
 
 
@@ -560,7 +560,7 @@ if (!is.null(opt$sgenes) & !is.null(opt$g2mgenes)){
   save_ggplots(cc_plot_path, gp, width=7, height=4)
 
   pcaCaption <- paste0("PCA analysis of cells based on expression of cell cycle genes ",
-                       "prior to regression of cell-cyle effects")
+                       "(without regression of cell-cyle effects)")
 
   tex <- c(tex, getFigureTex(cc_plot_fn,
                              pcaCaption,
