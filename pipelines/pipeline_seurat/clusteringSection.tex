@@ -21,3 +21,12 @@ The parameters chosen for the subsequent tSNE plots are:
 \subsection{Breakdown of cell numbers by factors of interest (e.g. by cluster)}
 
 \input{\clusterDir/number.plots}
+
+\subsection{Exploring the relationship between the clusters}
+
+The distances between the clusters was assessed using the ``BuildClusterTree'' function in the Seurat package, which ``constructs a phylogenetic tree relating the ``average'' cell from each identity class''.
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/cluster.dendrogram}}}
+\caption{Visualisation of inter-cluster distances (gene-based)}
+\end{figure}
