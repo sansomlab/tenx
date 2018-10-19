@@ -431,6 +431,7 @@ save_plots(
     )
 
 # TODO: Document
+
 cell_numbers <- getCellNumbers(s, groupby=opt$groupby)
 
 ## We filter out cells that have unique gene counts over 2,500
@@ -484,6 +485,7 @@ if (as.logical(opt$downsamplecells)) {
     ##cell_info <- getCellInfo(s)
     cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers,
     		    		   stage="after_downsampling", groupby=opt$groupby)
+
     cat("Numbers of cells per sample after down-sampling:\n")
     print(cell_numbers)
 }
