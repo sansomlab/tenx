@@ -297,10 +297,9 @@ metadata <- read.table(opt$metadata, sep="\t", header=TRUE, as.is=TRUE)
 cat("Done.\n")
 
 # ensure that the barcode column is present in the metadata
-if (!"barcode" %in% colnames(s@meta.data)) {
+if (!"barcode" %in% colnames(metadata)) {
     stop('Mandatory "barcode" column missing from the metadata')
 }
-
 
 rownames(metadata) <- metadata$barcode
 metadata$barcode <- NULL
