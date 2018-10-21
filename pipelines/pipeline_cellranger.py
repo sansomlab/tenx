@@ -371,21 +371,27 @@ def loadCellrangerCountMetrics(infiles, outfile):
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
            r"\1-count/cellranger.raw.counts.txt")
-def rawUmiCountPerBarcode(infile, outfile):
+def rawQcMetricsPerBarcode(infile, outfile):
     '''
-    Write the total count of UMIs per barcode to a text file.
+    Compute the total UMI, rank, mitochondrial UMI for each barcode.
+    Write the metrics to a text file later uploaded to the sqlite database.
     '''
-    
-    # Build the path to the raw UMI count matrix
+
     transcriptome = PARAMS["cellranger_transcriptome"]
+
+    # Build the path to the raw UMI count matrix
     genome = os.path.basename(transcriptome).split("-")[2]
     matrixpath = os.path.join(os.path.dirname(outfile), "outs", "raw_gene_bc_matrices", genome)
-    
+
+    # Build the path to the GTF file used by CellRanger
+    gtf = os.path.join(transcriptome, "genes", "genes.gtf")
+
     # Build the path to the log file
     log_file = P.snip(outfile, ".txt") + ".log"
-    
-    statement = '''Rscript %(tenx_dir)s/R/umi_rank.R
+
+    statement = '''Rscript %(tenx_dir)s/R/raw_qc_metrics.R
                    --matrixpath=%(matrixpath)s
+                   --gtf=%(gtf)s
                    --outfile=%(outfile)s
                    &> %(log_file)s
                 '''
@@ -395,7 +401,7 @@ def rawUmiCountPerBarcode(infile, outfile):
 
 @active_if(PARAMS["input"] == "mkfastq")
 @merge(rawUmiCountPerBarcode,
-       "cellranger_umi_rank.load")
+       "cellranger_raw_barcode_metrics.load")
 def loadRawUmiCountPerBarcode(infiles, outfile):
     '''
     load the total UMI and barcode rank into a sqlite database
@@ -412,17 +418,17 @@ def loadRawUmiCountPerBarcode(infiles, outfile):
 @active_if(PARAMS["input"] == "mkfastq")
 @transform(loadRawUmiCountPerBarcode,
        regex(r"(.*).load"),
-       r"\1.pdf")
-def plotRawUmiCountPerBarcodePerSample(infile, outfile):
+       r"\1.umi_rank.pdf")
+def plotUmiRankPerBarcodePerSample(infile, outfile):
     '''
     plot the total UMI and barcode for all samples in the experiment
     '''
-    
+
     tablename = P.snip(infile, ".load")
-    
+
     # Build the path to the log file
     log_file = P.snip(outfile, ".pdf") + ".log"
-    
+
     statement = '''Rscript %(tenx_dir)s/R/plot_umi_rank.R
                    --tablename=%(tablename)s
                    --outfile=%(outfile)s
@@ -435,18 +441,18 @@ def plotRawUmiCountPerBarcodePerSample(infile, outfile):
 @active_if(PARAMS["input"] == "mkfastq")
 @transform(loadRawUmiCountPerBarcode,
        regex(r"(.*).load"),
-       r"\1.frequency.pdf")
-def plotRawUmiCountFrequencyPerSample(infile, outfile):
+       r"\1.umi_frequency.pdf")
+def plotUmiFrequencyPerSample(infile, outfile):
     '''
     plot the total UMI and barcode for all samples in the experiment
     '''
-    
+
     tablename = P.snip(infile, ".load")
-    
+
     # Build the path to the log file
     log_file = P.snip(outfile, ".pdf") + ".log"
-    
-    statement = '''Rscript %(tenx_dir)s/R/barplot_umi.R
+
+    statement = '''Rscript %(tenx_dir)s/R/plot_umi_frequency.R
                    --tablename=%(tablename)s
                    --outfile=%(outfile)s
                    &> %(log_file)s
@@ -544,8 +550,8 @@ def metrics():
 
 
 @active_if(PARAMS["input"] == "mkfastq")
-@merge([plotRawUmiCountPerBarcodePerSample,
-        plotRawUmiCountFrequencyPerSample],
+@merge([plotUmiRankPerBarcodePerSample,
+        plotUmiFrequencyPerSample],
         "plotMetrics.sentinel")
 def plotMetrics(infile, outfile):
     '''
