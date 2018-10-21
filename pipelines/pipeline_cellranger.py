@@ -521,13 +521,13 @@ def metrics():
 
 
 @active_if(PARAMS["input"] == "mkfastq")
-@follows(plotRawUmiCountPerBarcodePerSample)
-def plotMetrics():
+@merge(plotRawUmiCountPerBarcodePerSample, "plotMetrics.sentinel")
+def plotMetrics(infile, outfile):
     '''
     Intermediate target to plot metrics.
     '''
 
-    pass
+    IOTools.touch_file(outfile)
 
 
 @follows(cellrangerCount)
