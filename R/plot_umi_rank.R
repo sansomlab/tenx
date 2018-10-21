@@ -13,13 +13,6 @@ stopifnot(suppressPackageStartupMessages({
     require(cowplot)
 }))
 
-# test options ----
-
-opt <- list(
-  tablename = "cellranger_raw_count",
-  outfile = "cellranger_raw_count.pdf"
-)
-
 # Parse options ----
 
 option_list <- list(

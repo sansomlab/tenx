@@ -12,13 +12,6 @@ stopifnot(suppressPackageStartupMessages({
   require(Matrix)
 }))
 
-# test options ----
-
-opt <- list(
-  matrixpath = "donor1_butyrate-count/outs/raw_gene_bc_matrices/GRCh38",
-  outfile = "donor1_butyrate-count/cellranger.raw.counts.txt"
-)
-
 # Parse options ----
 
 option_list <- list(
