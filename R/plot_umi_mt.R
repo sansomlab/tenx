@@ -62,6 +62,7 @@ gg <- ggplot(tableData, aes(umis_mt_percent, umis)) +
     scale_fill_viridis_c() +
     ylab("Total UMIs") +
     xlab("Fraction of mitochondrial UMIs") +
+    labs(fill=expression("Barcodes ("*log[10]*")")) +
     theme(panel.grid.major = element_line(size=0.2, colour="grey"))
 ggsave(opt$outfile, gg, width=7, height=2*ceiling(numberSamples/2))
 cat("Done.\n")
