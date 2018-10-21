@@ -400,9 +400,9 @@ def rawQcMetricsPerBarcode(infile, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
-@merge(rawUmiCountPerBarcode,
+@merge(rawQcMetricsPerBarcode,
        "cellranger_raw_barcode_metrics.load")
-def loadRawUmiCountPerBarcode(infiles, outfile):
+def loadRawQcMetricsPerBarcode(infiles, outfile):
     '''
     load the total UMI and barcode rank into a sqlite database
     '''
@@ -416,7 +416,7 @@ def loadRawUmiCountPerBarcode(infiles, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
-@transform(loadRawUmiCountPerBarcode,
+@transform(loadRawQcMetricsPerBarcode,
        regex(r"(.*).load"),
        r"\1.umi_rank.pdf")
 def plotUmiRankPerBarcodePerSample(infile, outfile):
@@ -439,7 +439,7 @@ def plotUmiRankPerBarcodePerSample(infile, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
-@transform(loadRawUmiCountPerBarcode,
+@transform(loadRawQcMetricsPerBarcode,
        regex(r"(.*).load"),
        r"\1.umi_frequency.pdf")
 def plotUmiFrequencyPerSample(infile, outfile):
@@ -453,6 +453,29 @@ def plotUmiFrequencyPerSample(infile, outfile):
     log_file = P.snip(outfile, ".pdf") + ".log"
 
     statement = '''Rscript %(tenx_dir)s/R/plot_umi_frequency.R
+                   --tablename=%(tablename)s
+                   --outfile=%(outfile)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+
+@active_if(PARAMS["input"] == "mkfastq")
+@transform(loadRawQcMetricsPerBarcode,
+       regex(r"(.*).load"),
+       r"\1.umi_mitochondrial.pdf")
+def plotUmiMitochondrialPerSample(infile, outfile):
+    '''
+    plot the total UMI and barcode for all samples in the experiment
+    '''
+
+    tablename = P.snip(infile, ".load")
+
+    # Build the path to the log file
+    log_file = P.snip(outfile, ".pdf") + ".log"
+
+    statement = '''Rscript %(tenx_dir)s/R/plot_umi_mt.R
                    --tablename=%(tablename)s
                    --outfile=%(outfile)s
                    &> %(log_file)s
@@ -540,7 +563,7 @@ def loadDuplicationMetrics(infiles, outfile):
 @active_if(PARAMS["input"] == "mkfastq")
 @follows(loadCellrangerCountMetrics,
          loadDuplicationMetrics,
-         loadRawUmiCountPerBarcode)
+         loadRawQcMetricsPerBarcode)
 def metrics():
     '''
     Intermediate target to run metrics tasks.
@@ -551,7 +574,8 @@ def metrics():
 
 @active_if(PARAMS["input"] == "mkfastq")
 @merge([plotUmiRankPerBarcodePerSample,
-        plotUmiFrequencyPerSample],
+        plotUmiFrequencyPerSample,
+        plotUmiMitochondrialPerSample],
         "plotMetrics.sentinel")
 def plotMetrics(infile, outfile):
     '''

@@ -4,27 +4,33 @@
 timestamp()
 message("Started")
 
-# packages ----
+# Packages ----
 
 stopifnot(suppressPackageStartupMessages({
-  require(optparse)
-  require(DropletUtils)
-  require(Matrix)
+    require(optparse)
+    require(DropletUtils)
+    require(rtracklayer)
+    require(Matrix)
 }))
 
 # Parse options ----
 
 option_list <- list(
-  make_option(
-    c("--matrixpath", "-m"), action = "store",
-    type = "character",
-    dest = "matrixpath",
-    help="Description of input option"),
-  make_option(
-      c("--outfile", "-o"), action = "store",
-      type = "character",
-      dest = "outfile",
-      help="Description of input option")
+    make_option(
+        c("--matrixpath", "-m"), action = "store",
+        type = "character",
+        dest = "matrixpath",
+        help="Description of input option"),
+    make_option(
+        c("--gtf", "-g"), action = "store",
+        type = "character",
+        dest = "gtf",
+        help="Description of input option"),
+    make_option(
+        c("--outfile", "-o"), action = "store",
+        type = "character",
+        dest = "outfile",
+        help="Description of input option")
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))

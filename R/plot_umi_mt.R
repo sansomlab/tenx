@@ -11,6 +11,7 @@ stopifnot(suppressPackageStartupMessages({
     require(RSQLite)
     require(ggplot2)
     require(cowplot)
+    require(scales)
 }))
 
 # Parse options ----
@@ -47,18 +48,22 @@ cat("Done.\n")
 dbDisconnect(conn)
 
 cat("Preprocessing data for ggplot ...")
-tableData <- subset(tableData, umis > 0)
+tableData <- subset(tableData, umis > 10)
+tableData$umis_mt_percent <- tableData$umis_mt / tableData$umis
 cat("Done.\n")
 
 cat("Plotting...")
-gg <- ggplot(tableData, aes(rank, umis, color=sample)) +
-    geom_line(size=0.2) +
-    scale_x_log10(breaks=10^seq(0, 6), labels=10^seq(0, 6)) +
-    scale_y_log10(breaks=10^seq(0, 6), labels=10^seq(0, 6)) +
+numberSamples <- length(unique(tableData$sample))
+gg <- ggplot(tableData, aes(umis_mt_percent, umis)) +
+    facet_wrap(~sample, ncol=2) +
+    stat_binhex(aes(fill=log10(..count..))) +
+    scale_x_continuous(labels = percent_format()) +
+    scale_y_log10(breaks=10^seq(1, 6), labels=10^seq(1, 6)) +
+    scale_fill_viridis_c() +
     ylab("Total UMIs") +
-    xlab("Barcode rank") +
+    xlab("Fraction of mitochondrial UMIs") +
     theme(panel.grid.major = element_line(size=0.2, colour="grey"))
-ggsave(opt$outfile, gg, width=7, height=4)
+ggsave(opt$outfile, gg, width=7, height=2*ceiling(numberSamples/2))
 cat("Done.\n")
 
 # Conclusion ---
