@@ -509,10 +509,22 @@ def loadDuplicationMetrics(infiles, outfile):
 # --------------------- < optional metrics target > ------------------------ #
 
 @active_if(PARAMS["input"] == "mkfastq")
-@follows(loadCellrangerCountMetrics, loadDuplicationMetrics)
+@follows(loadCellrangerCountMetrics,
+         loadDuplicationMetrics,
+         loadRawUmiCountPerBarcode)
 def metrics():
     '''
     Intermediate target to run metrics tasks.
+    '''
+
+    pass
+
+
+@active_if(PARAMS["input"] == "mkfastq")
+@follows(plotRawUmiCountPerBarcodePerSample)
+def plotMetrics():
+    '''
+    Intermediate target to plot metrics.
     '''
 
     pass
@@ -753,7 +765,7 @@ def subsetAndDownsample(infiles, outfile):
 # ---------------------------------------------------
 # Generic pipeline tasks
 
-@follows(subsetAndDownsample,  metrics)
+@follows(subsetAndDownsample,  metrics, plotMetrics)
 def full():
     '''
     Run the full pipeline.
