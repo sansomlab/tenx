@@ -413,17 +413,40 @@ def loadRawUmiCountPerBarcode(infiles, outfile):
 @transform(loadRawUmiCountPerBarcode,
        regex(r"(.*).load"),
        r"\1.pdf")
-def plotRawUmiCountPerBarcodePerSample(infiles, outfile):
+def plotRawUmiCountPerBarcodePerSample(infile, outfile):
     '''
     plot the total UMI and barcode for all samples in the experiment
     '''
     
-    tablename = P.snip(outfile, ".pdf")
+    tablename = P.snip(infile, ".load")
     
     # Build the path to the log file
     log_file = P.snip(outfile, ".pdf") + ".log"
     
     statement = '''Rscript %(tenx_dir)s/R/plot_umi_rank.R
+                   --tablename=%(tablename)s
+                   --outfile=%(outfile)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+
+@active_if(PARAMS["input"] == "mkfastq")
+@transform(loadRawUmiCountPerBarcode,
+       regex(r"(.*).load"),
+       r"\1.frequency.pdf")
+def plotRawUmiCountFrequencyPerSample(infile, outfile):
+    '''
+    plot the total UMI and barcode for all samples in the experiment
+    '''
+    
+    tablename = P.snip(infile, ".load")
+    
+    # Build the path to the log file
+    log_file = P.snip(outfile, ".pdf") + ".log"
+    
+    statement = '''Rscript %(tenx_dir)s/R/barplot_umi.R
                    --tablename=%(tablename)s
                    --outfile=%(outfile)s
                    &> %(log_file)s
@@ -521,7 +544,9 @@ def metrics():
 
 
 @active_if(PARAMS["input"] == "mkfastq")
-@merge(plotRawUmiCountPerBarcodePerSample, "plotMetrics.sentinel")
+@merge([plotRawUmiCountPerBarcodePerSample,
+        plotRawUmiCountFrequencyPerSample],
+        "plotMetrics.sentinel")
 def plotMetrics(infile, outfile):
     '''
     Intermediate target to plot metrics.
