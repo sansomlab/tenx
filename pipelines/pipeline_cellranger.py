@@ -367,6 +367,71 @@ def loadCellrangerCountMetrics(infiles, outfile):
         cat="sample")
 
 
+@active_if(PARAMS["input"] == "mkfastq")
+@transform(cellrangerCount,
+           regex(r"(.*)-count/cellranger.count.sentinel"),
+           r"\1-count/cellranger.raw.counts.txt")
+def rawUmiCountPerBarcode(infile, outfile):
+    '''
+    Write the total count of UMIs per barcode to a text file.
+    '''
+    
+    # Build the path to the raw UMI count matrix
+    transcriptome = PARAMS["cellranger_transcriptome"]
+    genome = os.path.basename(transcriptome).split("-")[2]
+    matrixpath = os.path.join(os.path.dirname(outfile), "outs", "raw_gene_bc_matrices", genome)
+    
+    # Build the path to the log file
+    log_file = P.snip(outfile, ".txt") + ".log"
+    
+    statement = '''Rscript %(tenx_dir)s/R/umi_rank.R
+                   --matrixpath=%(matrixpath)s
+                   --outfile=%(outfile)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+
+@active_if(PARAMS["input"] == "mkfastq")
+@merge(rawUmiCountPerBarcode,
+       "cellranger_umi_rank.load")
+def loadRawUmiCountPerBarcode(infiles, outfile):
+    '''
+    load the total UMI and barcode rank into a sqlite database
+    '''
+
+    P.concatenate_and_load(
+        infiles, outfile,
+        regex_filename="(.*)-count/.*.txt",
+        has_titles=True,
+        options="",
+        cat="sample")
+
+
+@active_if(PARAMS["input"] == "mkfastq")
+@transform(loadRawUmiCountPerBarcode,
+       regex(r"(.*).load"),
+       r"\1.pdf")
+def plotRawUmiCountPerBarcodePerSample(infiles, outfile):
+    '''
+    plot the total UMI and barcode for all samples in the experiment
+    '''
+    
+    tablename = P.snip(outfile, ".pdf")
+    
+    # Build the path to the log file
+    log_file = P.snip(outfile, ".pdf") + ".log"
+    
+    statement = '''Rscript %(tenx_dir)s/R/plot_umi_rank.R
+                   --tablename=%(tablename)s
+                   --outfile=%(outfile)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+
 # ########################################################################### #
 # ############## calculate duplication metrics (picard) ##################### #
 # ########################################################################### #
