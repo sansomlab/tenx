@@ -370,7 +370,7 @@ def loadCellrangerCountMetrics(infiles, outfile):
 @active_if(PARAMS["input"] == "mkfastq")
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
-           r"\1-count/cellranger.raw.counts.txt")
+           r"\1-count/cellranger.raw.qc.txt")
 def rawQcMetricsPerBarcode(infile, outfile):
     '''
     Compute the total UMI, rank, mitochondrial UMI for each barcode.
@@ -389,7 +389,7 @@ def rawQcMetricsPerBarcode(infile, outfile):
     # Build the path to the log file
     log_file = P.snip(outfile, ".txt") + ".log"
 
-    statement = '''Rscript %(tenx_dir)s/R/raw_qc_metrics.R
+    statement = '''Rscript %(tenx_dir)s/R/cellranger_rawQcMetrics.R
                    --matrixpath=%(matrixpath)s
                    --gtf=%(gtf)s
                    --outfile=%(outfile)s
@@ -400,7 +400,7 @@ def rawQcMetricsPerBarcode(infile, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
-@merge(rawQcMetricsPerBarcode,
+@files(rawQcMetricsPerBarcode,
        "cellranger_raw_barcode_metrics.load")
 def loadRawQcMetricsPerBarcode(infiles, outfile):
     '''
@@ -430,7 +430,7 @@ def plotUmiRankPerBarcodePerSample(infile, outfile):
     # Build the path to the log file
     log_file = P.snip(outfile, ".pdf") + ".log"
 
-    statement = '''Rscript %(tenx_dir)s/R/plot_umi_rank.R
+    statement = '''Rscript %(tenx_dir)s/R/cellranger_plotUmiRank.R
                    --tablename=%(tablename)s
                    --outfile=%(outfile)s
                    &> %(log_file)s
@@ -454,7 +454,7 @@ def plotUmiFrequencyPerSample(infile, outfile):
     # Build the path to the log file
     log_file = P.snip(outfile, ".pdf") + ".log"
 
-    statement = '''Rscript %(tenx_dir)s/R/plot_umi_frequency.R
+    statement = '''Rscript %(tenx_dir)s/R/cellranger_PlotUmiFrequency.R
                    --tablename=%(tablename)s
                    --outfile=%(outfile)s
                    &> %(log_file)s
@@ -478,7 +478,7 @@ def plotUmiMitochondrialPerSample(infile, outfile):
     # Build the path to the log file
     log_file = P.snip(outfile, ".pdf") + ".log"
 
-    statement = '''Rscript %(tenx_dir)s/R/plot_umi_mt.R
+    statement = '''Rscript %(tenx_dir)s/R/cellranger_plotUmiMitochondrial.R
                    --tablename=%(tablename)s
                    --outfile=%(outfile)s
                    &> %(log_file)s
@@ -564,15 +564,16 @@ def loadDuplicationMetrics(infiles, outfile):
 # --------------------- < optional metrics target > ------------------------ #
 
 @active_if(PARAMS["input"] == "mkfastq")
-@follows(loadCellrangerCountMetrics,
-         loadDuplicationMetrics,
-         loadRawQcMetricsPerBarcode)
-def metrics():
+@merge([loadCellrangerCountMetrics,
+        loadDuplicationMetrics,
+        loadRawQcMetricsPerBarcode],
+        "metrics.sentinel")
+def metrics(infiles, outfile):
     '''
     Intermediate target to run metrics tasks.
     '''
 
-    pass
+    IOTools.touch_file(outfile)
 
 
 @active_if(PARAMS["input"] == "mkfastq")
@@ -823,7 +824,7 @@ def subsetAndDownsample(infiles, outfile):
 # ---------------------------------------------------
 # Generic pipeline tasks
 
-@follows(subsetAndDownsample,  metrics, plotMetrics)
+@follows(subsetAndDownsample, metrics, plotMetrics)
 def full():
     '''
     Run the full pipeline.
