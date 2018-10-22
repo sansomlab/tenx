@@ -59,7 +59,7 @@ gg <- ggplot(tableData, aes(umis_mt_percent, umis)) +
     stat_binhex(aes(fill=log10(..count..))) +
     scale_x_continuous(labels = percent_format()) +
     scale_y_log10(breaks=10^seq(1, 6), labels=10^seq(1, 6)) +
-    scale_fill_viridis_c(labels=function(x){ 10^x })
+    scale_fill_viridis_c(labels=function(x){ 10^x }) +
     ylab("Total UMIs") +
     xlab("Fraction of mitochondrial UMIs") +
     labs(fill=expression("Barcodes ("*log[10]*")")) +
