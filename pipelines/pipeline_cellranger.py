@@ -416,9 +416,10 @@ def loadRawQcMetricsPerBarcode(infiles, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
+@follows(mkdir("qc.dir"))
 @transform(loadRawQcMetricsPerBarcode,
        regex(r"(.*).load"),
-       r"\1.umi_rank.pdf")
+       r"qc.dir/\1.umi_rank.pdf")
 def plotUmiRankPerBarcodePerSample(infile, outfile):
     '''
     plot the total UMI and barcode for all samples in the experiment
@@ -439,9 +440,10 @@ def plotUmiRankPerBarcodePerSample(infile, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
+@follows(mkdir("qc.dir"))
 @transform(loadRawQcMetricsPerBarcode,
        regex(r"(.*).load"),
-       r"\1.umi_frequency.pdf")
+       r"qc.dir/\1.umi_frequency.pdf")
 def plotUmiFrequencyPerSample(infile, outfile):
     '''
     plot the total UMI and barcode for all samples in the experiment
@@ -462,9 +464,10 @@ def plotUmiFrequencyPerSample(infile, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
+@follows(mkdir("qc.dir"))
 @transform(loadRawQcMetricsPerBarcode,
        regex(r"(.*).load"),
-       r"\1.umi_mitochondrial.pdf")
+       r"qc.dir/\1.umi_mitochondrial.pdf")
 def plotUmiMitochondrialPerSample(infile, outfile):
     '''
     plot the total UMI and barcode for all samples in the experiment
