@@ -370,6 +370,63 @@ def loadCellrangerCountMetrics(infiles, outfile):
 @active_if(PARAMS["input"] == "mkfastq")
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
+           r"\1-count/callCells.txt.gz")
+def callCells(infile, outfile):
+    '''
+    Document.
+    '''
+
+    transcriptome = PARAMS["cellranger_transcriptome"]
+
+    genome = os.path.basename(transcriptome).split("-")[2]
+    matrixpath = os.path.join(os.path.dirname(outfile), "outs", "raw_gene_bc_matrices", genome)
+
+    cellcalling_methods = ",".join(PARAMS["cellcalling_methods"])
+
+    emptydropslower = PARAMS["cellcalling_emptydropslower"]
+    emptydropsniters = PARAMS["cellcalling_emptydropsniters"]
+
+    if PARAMS["cellcalling_emptydropsambient"]:
+        emptydropsambient = "--emptydropsambient"
+    else:
+        emptydropsambient = ""
+
+    if PARAMS["cellcalling_emptydropsignore"] == "None":
+        emptydropsignore = ""
+    else:
+        emptydropsignore = "--emptydropsignore=%s" % (PARAMS["cellcalling_emptydropsignore"])
+
+    if PARAMS["cellcalling_emptydropsretain"] == "None":
+        emptydropsretain = ""
+    else:
+        emptydropsretain = "--emptydropsretain=%s" % (PARAMS["cellcalling_emptydropsretain"])
+
+    emptydropsfdr = PARAMS["cellcalling_emptydropsfdr"]
+    job_threads = PARAMS["cellcalling_threads"]
+
+    # Build the path to the log file
+    log_file = P.snip(outfile, ".txt.gz") + ".log"
+
+    statement = '''Rscript %(tenx_dir)s/R/cellranger_callCells.R
+                   --matrixpath=%(matrixpath)s
+                   --methods=%(cellcalling_methods)s
+                   --outfile=%(outfile)s
+                   --emptydropslower=%(emptydropslower)s
+                   --emptydropsniters=%(emptydropsniters)s
+                   %(emptydropsambient)s
+                   %(emptydropsignore)s
+                   %(emptydropsretain)s
+                   --emptydropsfdr=%(emptydropsfdr)s
+                   --threads=%(job_threads)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+
+@active_if(PARAMS["input"] == "mkfastq")
+@transform(cellrangerCount,
+           regex(r"(.*)-count/cellranger.count.sentinel"),
            r"\1-count/cellranger.raw.qc.txt")
 def rawQcMetricsPerBarcode(infile, outfile):
     '''

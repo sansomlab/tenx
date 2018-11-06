@@ -15,24 +15,25 @@ stopifnot(suppressPackageStartupMessages({
 # Test options ----
 
 opt <- list(
-    tenxdir="donor1_butyrate-count/outs/raw_gene_bc_matrices/GRCh38",
+    matrixpath="donor1_butyrate-count/outs/raw_gene_bc_matrices/GRCh38",
     methods="cellranger,emptyDrops",
     outfile="donor1_butyrate-count/callCells.txt",
-    emptydroplower=100,
-    emptydropniters=10000,
-    emptydropambient=FALSE,
-    emptydropignore=NULL,
-    emptydropfdr=0.01,
-    threads=2
+    emptydropslower=100,
+    emptydropsniters=10000,
+    emptydropsambient=FALSE,
+    emptydropsignore=NULL,
+    emptydropsretain=NULL,
+    emptydropsfdr=0.01,
+    threads=4
 )
 
 # Parse options ----
 
 option_list <- list(
     make_option(
-        c("--tenxdir", "-t"), action="store",
+        c("--matrixpath", "-t"), action="store",
         type="character",
-        dest="tenxdir",
+        dest="matrixpath",
         help="Path to the input 10x matrix directory."),
     make_option(
         c("--methods", "-m"), action="store",
@@ -49,32 +50,39 @@ option_list <- list(
         dest="outfile",
         help="Output TAB-separated file."),
     make_option(
-        c("--emptydroplower", "-l"), action="store",
+        c("--emptydropslower", "-l"), action="store",
         type="integer",
-        dest="emptydroplower",
+        dest="emptydropslower",
         default=100,
         help="A numeric scalar specifying the lower bound on the total UMI count, at or below which all barcodes are assumed to correspond to empty droplets."),
     make_option(
-        c("--emptydropniters", "-n"), action="store",
+        c("--emptydropsniters", "-n"), action="store",
         type="integer",
-        dest="emptydropniters",
+        dest="emptydropsniters",
         default=10000,
         help="An integer scalar specifying the number of iterations to use for the Monte Carlo p-value calculations."),
     make_option(
-        c("--emptydropambient", "-a"), action="store_true",
+        c("--emptydropsambient", "-a"), action="store_true",
         type="logical",
-        dest="emptydropambient",
+        dest="emptydropsambient",
+        default = FALSE,
         help="A logical scalar indicating whether results should be returned for barcodes with totals less than or equal to lower."),
     make_option(
-        c("--emptydropignore", "-i"), action="store",
+        c("--emptydropsignore", "-i"), action="store",
         type="integer",
-        dest="emptydropignore",
+        dest="emptydropsignore",
         default=NULL,
         help="A numeric scalar specifying the lower bound on the total UMI count, at or below which barcodes will be ignored (see Details for how this differs from lower)."),
     make_option(
-        c("--emptydropfdr", "-p"), action="store",
+        c("--emptydropsretain", "-r"), action="store",
+        type="integer",
+        dest="emptydropsretain",
+        default=NULL,
+        help="A numeric scalar specifying the threshold for the total UMI count above which all barcodes are assumed to contain cells."),
+    make_option(
+        c("--emptydropsfdr", "-f"), action="store",
         type="double",
-        dest="emptydropfdr",
+        dest="emptydropsfdr",
         default=0.01,
         help="FDR to call cells that differ from ambient profile."),
     make_option(
@@ -97,12 +105,12 @@ use_methods <- str_split(string=opt$methods, pattern=",")[[1]]
 cat("Done.\n")
 
 cat("Import 10x count data ... ")
-sce <- read10xCounts(opt$tenxdir, col.names=TRUE)
+sce <- read10xCounts(opt$matrixpath, col.names=TRUE)
 cat("Done.\n")
 
 cat("Initialize output table ... ")
 cellCallTables <- data.frame(
-    sample=gsub("(.+)-count\\/.*", "\\1", opt$tenxdir),
+    sample=gsub("(.+)-count\\/.*", "\\1", opt$matrixpath),
     barcode=colnames(sce),
     stringsAsFactors=FALSE
 )
@@ -111,7 +119,7 @@ cat("Done.\n")
 currentMethod <- "cellranger"
 if (currentMethod %in% use_methods) {
     cat("Import barcodes from CellRanger filtered matrix ... ")
-    filteredMatrixFolder <- gsub("\\/raw_gene_bc_matrices\\/", "/filtered_gene_bc_matrices/", opt$tenxdir)
+    filteredMatrixFolder <- gsub("\\/raw_gene_bc_matrices\\/", "/filtered_gene_bc_matrices/", opt$matrixpath)
     stopifnot(dir.exists(filteredMatrixFolder))
     # list.files(filteredMatrixFolder)
     infile <- file.path(filteredMatrixFolder, "barcodes.tsv")
@@ -123,15 +131,24 @@ if (currentMethod %in% use_methods) {
 currentMethod <- "emptyDrops"
 if (currentMethod %in% use_methods) {
     cat(sprintf("Call cells using `%s` ... ", currentMethod))
-    out <- emptyDrops(m = assay(sce, "counts"))
-    # table(out$FDR <= opt$emptydropfdr)
-    cellCallTables[, currentMethod] <- (out$FDR <= opt$emptydropfdr)
+    bp <- SerialParam()
+    if (opt$threads > 1) {
+        bp <- MulticoreParam(workers=opt$threads)
+    }
+    out <- emptyDrops(
+        m=assay(sce, "counts"), lower=opt$emptydropslower, retain=opt$emptydropsretain,
+        niters=opt$emptydropsniters, test.ambient=opt$emptydropsambient, ignore=opt$emptydropsignore,
+        BPPARAM=bp)
+    # table(out$FDR <= opt$emptydropsfdr)
+    cellCallTables[, currentMethod] <- (out$FDR <= opt$emptydropsfdr)
     cat("Done.\n")
 }
 # with(cellCallTables, table(cellranger, emptyDrops, useNA="ifany"))
 
 cat(sprintf("Write table of cell calls ... ", currentMethod))
-write.table(x=cellCallTables, file=opt$outfile, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+gzfileOut <- gzfile(opt$outfile, open = "wt")
+write.table(x=cellCallTables, file=gzfileOut, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+close(gzfileOut)
 cat("Done.\n")
 
 # Conclusion ---

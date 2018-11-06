@@ -49,6 +49,35 @@ cellranger:
     memory: 240000
 
 
+# Cell calling options
+# ----------------------------------------
+
+cellcalling:
+    # List of methods to use for cell calling
+    # Choices: cellranger,emptyDrops
+    methods: [cellranger,emptyDrops]
+
+    # emptyDrops options
+
+    # A numeric scalar specifying the lower bound on the total UMI count,
+    # at or below which all barcodes are assumed to correspond to empty droplets.
+    emptydropslower: 100
+    # An integer scalar specifying the number of iterations to use for the Monte Carlo p-value calculations.
+    emptydropsniters: 10000
+    # A logical scalar indicating whether results should be returned for barcodes with totals less than or equal to lower.
+    emptydropsambient: False
+    # A numeric scalar specifying the lower bound on the total UMI count,
+    # at or below which barcodes will be ignored (see Details for how this differs from lower).
+    emptydropsignore: None
+    # A numeric scalar specifying the threshold for the total UMI count
+    # above which all barcodes are assumed to contain cells.
+    emptydropsretain: None
+    # FDR to call cells that differ from ambient profile.
+    emptydropsfdr: 0.01
+    # Number of workers. If set to 1, processes tasks serially.
+    threads: 4
+
+
 # Picard configuration
 # ----------------------------------------------------
 
