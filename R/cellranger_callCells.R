@@ -82,16 +82,10 @@ option_list <- list(
         type="integer",
         dest="threads",
         default=1,
-        help="Number of parallel threads to compute p-values."),
-    make_option(
-        c("--longflag", "-L"), action="store",
-        type=c("character", "integer", "logical", "double", "complex"),
-        dest="long_flag",
-        default="if_applicable",
-        help="Description of input option")
+        help="Number of parallel threads to compute p-values.")
 )
 
-# opt <- parse_args(OptionParser(option_list=option_list))
+opt <- parse_args(OptionParser(option_list=option_list))
 
 message("Running with options:")
 print(opt)
@@ -134,7 +128,7 @@ if (currentMethod %in% use_methods) {
     cellCallTables[, currentMethod] <- (out$FDR <= opt$emptydropfdr)
     cat("Done.\n")
 }
-with(cellCallTables, table(cellranger, emptyDrops, useNA="ifany"))
+# with(cellCallTables, table(cellranger, emptyDrops, useNA="ifany"))
 
 cat(sprintf("Write table of cell calls ... ", currentMethod))
 write.table(x=cellCallTables, file=opt$outfile, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
