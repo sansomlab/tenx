@@ -16,8 +16,14 @@ stopifnot(suppressPackageStartupMessages({
 
 opt <- list(
     tenxdir="donor1_butyrate-count/outs/raw_gene_bc_matrices/GRCh38",
-    methods="cellranger",
-    outfile="donor1_butyrate-count/callCells.txt"
+    methods="cellranger,emptyDrops",
+    outfile="donor1_butyrate-count/callCells.txt",
+    emptydroplower=100,
+    emptydropniters=10000,
+    emptydropambient=FALSE,
+    emptydropignore=NULL,
+    emptydropfdr=0.01,
+    threads=2
 )
 
 # Parse options ----
@@ -35,7 +41,7 @@ option_list <- list(
         default="cellranger",
         help=paste(
             "Comma-separated list of methods required.",
-            "Choices are: cellranger."
+            "Choices are: cellranger, emptyDrops."
         )),
     make_option(
         c("--outfile", "-o"), action="store",
@@ -43,14 +49,49 @@ option_list <- list(
         dest="outfile",
         help="Output TAB-separated file."),
     make_option(
-        c("--longflag", "-s"), action="store",
+        c("--emptydroplower", "-l"), action="store",
+        type="integer",
+        dest="emptydroplower",
+        default=100,
+        help="A numeric scalar specifying the lower bound on the total UMI count, at or below which all barcodes are assumed to correspond to empty droplets."),
+    make_option(
+        c("--emptydropniters", "-n"), action="store",
+        type="integer",
+        dest="emptydropniters",
+        default=10000,
+        help="An integer scalar specifying the number of iterations to use for the Monte Carlo p-value calculations."),
+    make_option(
+        c("--emptydropambient", "-a"), action="store_true",
+        type="logical",
+        dest="emptydropambient",
+        help="A logical scalar indicating whether results should be returned for barcodes with totals less than or equal to lower."),
+    make_option(
+        c("--emptydropignore", "-i"), action="store",
+        type="integer",
+        dest="emptydropignore",
+        default=NULL,
+        help="A numeric scalar specifying the lower bound on the total UMI count, at or below which barcodes will be ignored (see Details for how this differs from lower)."),
+    make_option(
+        c("--emptydropfdr", "-p"), action="store",
+        type="double",
+        dest="emptydropfdr",
+        default=0.01,
+        help="FDR to call cells that differ from ambient profile."),
+    make_option(
+        c("--threads", "-p"), action="store",
+        type="integer",
+        dest="threads",
+        default=1,
+        help="Number of parallel threads to compute p-values."),
+    make_option(
+        c("--longflag", "-L"), action="store",
         type=c("character", "integer", "logical", "double", "complex"),
         dest="long_flag",
         default="if_applicable",
         help="Description of input option")
 )
 
-opt <- parse_args(OptionParser(option_list=option_list))
+# opt <- parse_args(OptionParser(option_list=option_list))
 
 message("Running with options:")
 print(opt)
@@ -85,7 +126,19 @@ if (currentMethod %in% use_methods) {
     cat("Done.\n")
 }
 
+currentMethod <- "emptyDrops"
+if (currentMethod %in% use_methods) {
+    cat(sprintf("Call cells using `%s` ... ", currentMethod))
+    out <- emptyDrops(m = assay(sce, "counts"))
+    # table(out$FDR <= opt$emptydropfdr)
+    cellCallTables[, currentMethod] <- (out$FDR <= opt$emptydropfdr)
+    cat("Done.\n")
+}
+with(cellCallTables, table(cellranger, emptyDrops, useNA="ifany"))
+
+cat(sprintf("Write table of cell calls ... ", currentMethod))
 write.table(x=cellCallTables, file=opt$outfile, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+cat("Done.\n")
 
 # Conclusion ---
 
