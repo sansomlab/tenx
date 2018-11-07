@@ -467,6 +467,31 @@ def plotCellCalls(infile, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
+@files(loadCellCalls,
+           r"whitelist.txt.gz")
+def whiteListCells(infile, outfile):
+    '''
+    White list cells called by one or more methods.
+    '''
+
+    tablename = P.snip(infile, ".load")
+
+    cellcalling_methods = ",".join(PARAMS["cellcalling_methods"])
+
+    # Build the path to the log file
+    log_file = P.snip(outfile, ".txt.gz") + ".log"
+
+    statement = '''Rscript %(tenx_dir)s/R/cellranger_whiteListCells.R
+                   --tablename=%(tablename)s
+                   --methods=%(cellcalling_methods)s
+                   --outfile=%(outfile)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+
+@active_if(PARAMS["input"] == "mkfastq")
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
            r"\1-count/cellranger.raw.qc.txt")
