@@ -373,7 +373,7 @@ def loadCellrangerCountMetrics(infiles, outfile):
            r"\1-count/callCells.txt.gz")
 def callCells(infile, outfile):
     '''
-    Document.
+    Call cells using a range of methods for each 10x sample separately.
     '''
 
     transcriptome = PARAMS["cellranger_transcriptome"]
@@ -422,6 +422,22 @@ def callCells(infile, outfile):
                 '''
 
     P.run(statement)
+
+
+@active_if(PARAMS["input"] == "mkfastq")
+@merge(callCells,
+       "cellranger_cellcalling.load")
+def loadCellCalls(infiles, outfile):
+    '''
+    Load cell calls into the database.
+    '''
+
+    P.concatenate_and_load(
+        infiles, outfile,
+        regex_filename="(.*)-count/.*.txt.gz",
+        has_titles=True,
+        options="--add-index=sample",
+        cat="sample")
 
 
 @active_if(PARAMS["input"] == "mkfastq")
