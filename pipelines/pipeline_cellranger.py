@@ -441,6 +441,32 @@ def loadCellCalls(infiles, outfile):
 
 
 @active_if(PARAMS["input"] == "mkfastq")
+@transform(loadCellCalls,
+           regex(r"(.+).load"),
+           r"\1.pdf")
+def plotCellCalls(infile, outfile):
+    '''
+    Plot count of cells called by each method.
+    '''
+
+    tablename = P.snip(infile, ".load")
+
+    cellcalling_methods = ",".join(PARAMS["cellcalling_methods"])
+
+    # Build the path to the log file
+    log_file = P.snip(outfile, ".pdf") + ".log"
+
+    statement = '''Rscript %(tenx_dir)s/R/cellranger_plotCellCalls.R
+                   --tablename=%(tablename)s
+                   --methods=%(cellcalling_methods)s
+                   --outfile=%(outfile)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+
+@active_if(PARAMS["input"] == "mkfastq")
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
            r"\1-count/cellranger.raw.qc.txt")

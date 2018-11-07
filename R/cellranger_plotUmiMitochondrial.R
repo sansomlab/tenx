@@ -18,7 +18,7 @@ stopifnot(suppressPackageStartupMessages({
 
 option_list <- list(
     make_option(
-        c("--tablename", "-m"), action = "store",
+        c("--tablename", "-t"), action = "store",
         type = "character",
         dest = "tablename",
         help="Description of input option"),
