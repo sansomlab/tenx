@@ -171,6 +171,14 @@ plot:
     # Subgroup used to break down the bar plots and cell counts.
     # Note that it also visualised in t-SNE plots.
     subgroup:
+    # QC variable to be visualised on the tSNE plot
+    qcvars: nUMI,percent.mito
+    # Column in metadata.tsv represented by the shape of data points
+    shape:
+    # Opacity of data points
+    pointalpha: 0.8
+    # Size of data points
+    pointsize: 0.5
 
 
 # tSNE parameters
@@ -185,14 +193,19 @@ tsne:
     maxiter: 10000
     # Choices: True|False
     fast: True
-    # QC variable to be visualised on the tSNE plot
-    qcvars: nUMI,percent.mito
-    # Column in metadata.tsv represented by the shape of data points
-    shape:
-    # Opacity of data points
-    pointalpha: 0.8
-    # Size of data points
-    pointsize: 0.5
+
+
+# UMAP parameters
+# ----------------
+
+umap:
+  # number of neighboring points used for local approximation of the manifold
+  # structure
+  nneighbors: 30
+  # how tightly the embedding is allowed to compress points together
+  mindist: 0.3
+  # the choice of metric used to measure distance in the input space
+  metric: correlation
 
 
 # FindMarkers parameters
@@ -228,7 +241,7 @@ findmarkers:
     # Conserved cluster marker identification (optional)
     # -------------------------------------------------
     # Identify conserved cluster markers
-    conserved: True
+    conserved: False
 
     # Set the below to a colname in seurat@metadata
     # to find cluster markers that are conserved

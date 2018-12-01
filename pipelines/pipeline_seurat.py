@@ -480,11 +480,11 @@ def plotTSNEPerplexities(infile, outfile):
 
     statement = '''Rscript %(tenx_dir)s/R/plot_tsne_hyperparameters.R
                    --table=%(long_table)s
-                   --shapefactor=%(tsne_shape)s
+                   --shapefactor=%(plot_shape)s
                    --colorfactor=cluster
                    --hyperparameter=perplexity
-                   --pointsize=%(tsne_pointsize)s
-                   --pointalpha=%(tsne_pointalpha)s
+                   --pointsize=%(plot_pointsize)s
+                   --pointalpha=%(plot_pointalpha)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
                 '''
@@ -496,7 +496,7 @@ def plotTSNEPerplexities(infile, outfile):
 
 @transform(tSNE,
            regex(r"(.*)/tsne.sentinel"),
-           r"\1/plot.rdims.factor.sentinel")
+           r"\1/plot.rdims.tsne.factor.sentinel")
 def plotTSNEFactors(infile, outfile):
     '''
     Visualise factors of interest on tSNE plots
@@ -518,9 +518,9 @@ def plotTSNEFactors(infile, outfile):
 
     color_factors = ["cluster"]
 
-    if PARAMS["tsne_qcvars"] is not None:
+    if PARAMS["plot_qcvars"] is not None:
         color_factors += [x.strip() for x in
-                          PARAMS["tsne_qcvars"].split(",")]
+                          PARAMS["plot_qcvars"].split(",")]
 
     if PARAMS["plot_groups"] is not None:
         color_factors += [x.strip() for x in
@@ -535,8 +535,8 @@ def plotTSNEFactors(infile, outfile):
 
     color_factors = "--colorfactors=" + ",".join(color_factors)
 
-    if PARAMS["tsne_shape"] is not None:
-        shape_factors = "--shapefactor=%(tsne_shape)s" % PARAMS
+    if PARAMS["plot_shape"] is not None:
+        shape_factors = "--shapefactor=%(plot_shape)s" % PARAMS
     else:
         shape_factors = ""
 
@@ -549,8 +549,8 @@ def plotTSNEFactors(infile, outfile):
                    --rdim2=tSNE_2
                    %(shape_factors)s
                    %(color_factors)s
-                   --pointsize=%(tsne_pointsize)s
-                   --pointalpha=%(tsne_pointalpha)s
+                   --pointsize=%(plot_pointsize)s
+                   --pointalpha=%(plot_pointalpha)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
                 '''
@@ -589,8 +589,8 @@ def plotTSNEGenes(infile, outfile):
             fname = "plot.rdims.genes." + os.path.basename(genelist) + ".log"
             logfile = os.path.join(outdir, fname)
 
-            if PARAMS["tsne_shape"] is not None:
-                shape = "--shapefactor=%(tsne_shape)s" % PARAMS
+            if PARAMS["plot_shape"] is not None:
+                shape = "--shapefactor=%(plot_shape)s" % PARAMS
             else:
                 shape = ""
 
@@ -602,8 +602,8 @@ def plotTSNEGenes(infile, outfile):
                            --rdim2=tSNE_2
                            %(shape)s
                            --genetable=%(genelist)s
-                           --pointsize=%(tsne_pointsize)s
-                           --pointalpha=%(tsne_pointalpha)s
+                           --pointsize=%(plot_pointsize)s
+                           --pointalpha=%(plot_pointalpha)s
                            --outdir=%(outdir)s
                            &> %(logfile)s
                        '''
@@ -637,6 +637,120 @@ def plotTSNEGenes(infile, outfile):
             tex.write("No genelists were specified.\n")
             tex.write("\n")
 
+    IOTools.touch_file(outfile)
+
+
+# ########################################################################### #
+# ############### UMAP analysis and related plots ########################### #
+# ########################################################################### #
+
+@transform(cluster,
+           regex(r"(.*)/cluster.sentinel"),
+           r"\1/umap.sentinel")
+def UMAP(infile, outfile):
+    '''
+    Run the UMAP analysis on a saved seurat object.
+
+    A range of different perplexity choices can be specified.
+    '''
+
+    outdir = os.path.dirname(outfile)
+    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
+
+    seurat_dir = Path(outfile).parents[1]
+    seurat_object = os.path.join(seurat_dir, "begin.rds")
+
+    components, resolution, algorithm, test = outdir.split(
+        "/")[-1][:-len(".cluster.dir")].split("_")
+
+    reductiontype = PARAMS["dimreduction_method"]
+
+    job_memory = "20G"
+
+    tenx_dir = PARAMS["tenx_dir"]
+
+
+    umap_nneighbors = PARAMS["umap_nneighbors"]
+    umap_mindist = PARAMS["umap_mindist"]
+    umap_metric = PARAMS["umap_metric"]
+
+    outname = outfile.replace(".sentinel", ".txt")
+    logfile = outname.replace(".txt", ".log")
+
+    statement = '''Rscript %(tenx_dir)s/R/seurat_umap.R
+                             --seuratobject=%(seurat_object)s
+                             --clusterids=%(cluster_ids)s
+                             --components=%(components)s
+                             --reductiontype=%(reductiontype)s
+                             --nneighbors=%(umap_nneighbors)s
+                             --mindist=%(umap_mindist)s
+                             --metric=%(umap_metric)s
+                             --outfile=%(outname)s
+                             &> %(logfile)s
+                          ''' % locals()
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+
+@transform(UMAP,
+           regex(r"(.*)/umap.sentinel"),
+           r"\1/plot.rdims.umap.factor.sentinel")
+def plotUMAPFactors(infile, outfile):
+    '''
+    Visualise the clusters on the UMAP projection
+
+    '''
+
+    sample = str(Path(outfile).parents[1]).replace(".seurat", "")
+
+    outdir = os.path.dirname(outfile)
+    job_memory = "20G"
+
+    umap_table = infile.replace(
+        "sentinel", "txt")
+
+    color_factors = ["cluster"]
+
+    if PARAMS["plot_qcvars"] is not None:
+        color_factors += [x.strip() for x in
+                          PARAMS["plot_qcvars"].split(",")]
+
+    if PARAMS["plot_groups"] is not None:
+        color_factors += [x.strip() for x in
+                          PARAMS["plot_groups"].split(",")]
+
+    if PARAMS["plot_subgroup"] is not None:
+        color_factors += [x.strip() for x in
+                          PARAMS["plot_subgroup"].split(",")]
+
+    # ensure list is unique whilst preserving order.
+    color_factors = list(dict.fromkeys(color_factors))
+
+    color_factors = "--colorfactors=" + ",".join(color_factors)
+
+
+    if PARAMS["plot_shape"] is not None:
+        shape_factors = "--shapefactor=%(plot_shape)s" % PARAMS
+    else:
+        shape_factors = ""
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    statement = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
+                   --method=umap
+                   --table=%(umap_table)s
+                   --rdim1=UMAP1
+                   --rdim2=UMAP2
+                   %(shape_factors)s
+                   %(color_factors)s
+                   --pointsize=%(plot_pointsize)s
+                   --pointalpha=%(plot_pointalpha)s
+                   --outdir=%(outdir)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
     IOTools.touch_file(outfile)
 
 
@@ -1012,8 +1126,8 @@ def plotTSNEMarkers(infile, outfile):
 
         if(d.shape[0] > 0):
 
-            if PARAMS["tsne_shape"] != "":
-                shape = "--shapefactor=%(tsne_shape)s" % PARAMS
+            if PARAMS["plot_shape"] != "":
+                shape = "--shapefactor=%(plot_shape)s" % PARAMS
             else:
                 shape = ""
 
@@ -1025,8 +1139,8 @@ def plotTSNEMarkers(infile, outfile):
                            --rdim2=tSNE_2
                            %(shape)s
                            --genetable=%(markers_file)s
-                           --pointsize=%(tsne_pointsize)s
-                           --pointalpha=%(tsne_pointalpha)s
+                           --pointsize=%(plot_pointsize)s
+                           --pointalpha=%(plot_pointalpha)s
                            --outdir=%(outdir)s
                            &> %(log_file)s
                        '''
@@ -1585,6 +1699,7 @@ def genesets():
 
 @follows(plotTSNEPerplexities, plotTSNEFactors,
          plotTSNEGenes, plotTSNEMarkers,
+         plotUMAPFactors,
          plotGroupNumbers)
 def plots():
     '''

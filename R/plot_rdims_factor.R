@@ -24,7 +24,7 @@ stopifnot(
   require(optparse),
   require(tenxutils)
 )
-  
+
 # Options ----
 
 option_list <- list(
@@ -148,6 +148,9 @@ print("Writing out latex snippet")
 ## write out latex snippet
 
 tex_file <- file.path(opt$outdir,
-                      "plot.rdims.factor.tex")
+                      paste("plot.rdims",
+                            opt$method,
+                            "factor.tex",
+                            sep="."))
 
 writeTex(tex_file, tex)

@@ -15,13 +15,13 @@ stopifnot(
 
 option_list <- list(
     make_option(c("--seuratobject"), default="begin.Robj",
-                help="A seurat object after PCA"),
+                help="A seurat object containing reduced dimensions"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
     make_option(c("--annotation"), default="none",
                 help="A file containing the mapping of gene_id, gene_name and seurat_id"),
     make_option(c("--components"), type="integer", default=10,
-                help="number of principle components to use"),
+                help="number of reduced dimension components to use"),
     make_option(c("--perplexity"), type="integer", default=30,
                 help="the value of the perplexity hyper-parameter"),
     make_option(c("--maxiter"), type="integer", default=5000,
@@ -31,7 +31,7 @@ option_list <- list(
     make_option(c("--project"), default="SeuratAnalysis",
                 help="project name"),
     make_option(c("--reductiontype"), default="pca",
-                help="Name of dimensional reduction technique to use in construction of SNN graph. (e.g. 'pca', 'ica')"),
+                help="Name of dimensional reduction technique to use in construction of SNN graph. (e.g. 'pca', 'ica', 'zinbwave', etc)"),
     make_option(c("--outfile"), default="tsne.txt",
                 help="the file to which the tSNE coordinates will be written")
     )
