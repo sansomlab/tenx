@@ -650,8 +650,6 @@ def plotTSNEGenes(infile, outfile):
 def UMAP(infile, outfile):
     '''
     Run the UMAP analysis on a saved seurat object.
-
-    A range of different perplexity choices can be specified.
     '''
 
     outdir = os.path.dirname(outfile)
@@ -699,7 +697,6 @@ def UMAP(infile, outfile):
 def plotUMAPFactors(infile, outfile):
     '''
     Visualise the clusters on the UMAP projection
-
     '''
 
     sample = str(Path(outfile).parents[1]).replace(".seurat", "")
@@ -752,6 +749,50 @@ def plotUMAPFactors(infile, outfile):
 
     P.run(statement)
     IOTools.touch_file(outfile)
+
+# ########################################################################### #
+# ############################## Diffusion maps ############################# #
+# ########################################################################### #
+
+@transform(cluster,
+           regex(r"(.*)/cluster.sentinel"),
+           r"\1/dm.sentinel")
+def diffusionMap(infile, outfile):
+    '''
+    Run the diffusion map analysis on a saved seurat object.
+    '''
+
+    outdir = os.path.dirname(outfile)
+    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
+
+    seurat_dir = Path(outfile).parents[1]
+    seurat_object = os.path.join(seurat_dir, "begin.rds")
+
+    components, resolution, algorithm, test = outdir.split(
+        "/")[-1][:-len(".cluster.dir")].split("_")
+
+    reductiontype = PARAMS["dimreduction_method"]
+
+    job_memory = "20G"
+
+    tenx_dir = PARAMS["tenx_dir"]
+
+    outname = outfile.replace(".sentinel", ".txt")
+    logfile = outname.replace(".txt", ".log")
+
+    statement = '''Rscript %(tenx_dir)s/R/seurat_dm.R
+                             --seuratobject=%(seurat_object)s
+                             --clusterids=%(cluster_ids)s
+                             --components=%(components)s
+                             --reductiontype=%(reductiontype)s
+                             --outfile=%(outname)s
+                             --outdir=%(outdir)s
+                             &> %(logfile)s
+                          ''' % locals()
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
 
 
 # ########################################################################### #
@@ -1699,7 +1740,7 @@ def genesets():
 
 @follows(plotTSNEPerplexities, plotTSNEFactors,
          plotTSNEGenes, plotTSNEMarkers,
-         plotUMAPFactors,
+         plotUMAPFactors, diffusionMap,
          plotGroupNumbers)
 def plots():
     '''

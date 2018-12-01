@@ -31,9 +31,9 @@ option_list <- list(
     make_option(c("--project"), default="SeuratAnalysis",
                 help="project name"),
     make_option(c("--reductiontype"), default="pca",
-                help="Name of dimensional reduction technique to use in construction of SNN graph. (e.g. 'pca', 'ica')"),
+                help="Name of dimensional reduction slot to use as the input to UMAP (e.g. 'pca', 'ica')"),
     make_option(c("--outfile"), default="umap.txt",
-                help="the file to which the tSNE coordinates will be written")
+                help="the file to which the UMAP coordinates will be written")
     )
 
 opt <- parse_args(OptionParser(option_list=option_list))
@@ -46,11 +46,6 @@ message("readRDS")
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 s@ident <- cluster_ids
-
-## check that the perplexity value specified is sensible
-ncells <- ncol(s@data)
-message("no. cells:", ncells)
-message("perplexity:", opt$perplexity)
 
 ## run UMAP
 message("RunUMAP")
