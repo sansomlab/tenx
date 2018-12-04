@@ -4,6 +4,7 @@
 * The [cgat-core pipeline system](https://github.com/cgat-developers/cgat-core/) and a compatible queue manager
 * R >= 3.5
 * R libraries:
+  * clustree
   * ComplexHeatmap
   * data.table
   * DESeq2
@@ -18,6 +19,7 @@
   * methods
   * openxlsx
   * optparse
+  * plot3D
   * RColorBrewer
   * reshape2
   * R.utils
