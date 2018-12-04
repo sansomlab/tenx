@@ -8,20 +8,23 @@ stopifnot(
   require(dplyr),
   require(Matrix),
   require(reshape2),
-  require(optparse)
+  require(optparse),
+  require(tenxutils)
 )
 
 # Options ----
 
 option_list <- list(
     make_option(c("--seuratobject"), default="begin.Robj",
-                help="A seurat object after PCA"),
+                help="A seurat object containing reduced dimensions"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
     make_option(c("--annotation"), default="none",
                 help="A file containing the mapping of gene_id, gene_name and seurat_id"),
+    make_option(c("--usesigcomponents"), default=FALSE,
+                help="use significant principle component"),
     make_option(c("--components"), type="integer", default=10,
-                help="number of principle components to use"),
+                help="number of reduced dimension components to use"),
     make_option(c("--perplexity"), type="integer", default=30,
                 help="the value of the perplexity hyper-parameter"),
     make_option(c("--maxiter"), type="integer", default=5000,
@@ -31,7 +34,7 @@ option_list <- list(
     make_option(c("--project"), default="SeuratAnalysis",
                 help="project name"),
     make_option(c("--reductiontype"), default="pca",
-                help="Name of dimensional reduction technique to use in construction of SNN graph. (e.g. 'pca', 'ica')"),
+                help="Name of dimensional reduction technique to use in construction of SNN graph. (e.g. 'pca', 'ica', 'zinbwave', etc)"),
     make_option(c("--outfile"), default="tsne.txt",
                 help="the file to which the tSNE coordinates will be written")
     )
@@ -52,6 +55,16 @@ ncells <- ncol(s@data)
 message("no. cells:", ncells)
 message("perplexity:", opt$perplexity)
 
+## get the principle components to use
+if(opt$usesigcomponents)
+{
+    comps <- getSigPC(s)
+    message("using the following pcas:")
+    print(comps)
+} else {
+    comps <- 1:as.numeric(opt$components)
+}
+
 if(opt$perplexity > floor(ncells/5))
 {
     message("Perplexity > floor(ncells/5), skipping")
@@ -61,7 +74,7 @@ if(opt$perplexity > floor(ncells/5))
     message("RunTSNE")
     s <- RunTSNE(s,
                  reduction.use = opt$reductiontype,
-                 dims.use = 1:opt$components,
+                 dims.use = comps,
                  perplexity = opt$perplexity,
                  max_iter = opt$maxiter,
                  do.fast = as.logical(opt$fast))

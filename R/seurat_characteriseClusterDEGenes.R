@@ -43,6 +43,8 @@ option_list <- list(
                 help="first level of constrast"),
     make_option(c("--b"), default="NULL",
                 help="second level of constrast"),
+    make_option(c("--plotdirvar"), default="clusterMarkerDEPlotsDir",
+                help="latex var containing location of the plots"),
     make_option(c("--useminfc"), default=FALSE,
                 help="Use minimum fold change for second page of violin plots"),
     make_option(c("--outdir"), default="seurat.out.dir",
@@ -149,7 +151,7 @@ subsectionTitle <- getSubsubsectionTex(paste("Differentially expressed genes, cl
 tex <- c(tex, subsectionTitle)
 
 deCaption <- paste("Differential expression summary plots for cluster ",cluster)
-tex <- c(tex, getFigureTex(defn, deCaption))
+tex <- c(tex, getFigureTex(defn, deCaption,plot_dir_var=opt$plotdirvar))
 
 ## make two pages of violin plots for the top average cluster markers:
 ## Page (1) (a) top +ve by p-value
@@ -193,16 +195,18 @@ pos_tex <- violinPlotSection(violin_data, seurat_object, cluster_ids, type="posi
                              ident.include = ident.include, ncol=ncol,
                              outdir = opt$outdir,
                              analysis_title = analysis_title, fc_type = fc_type,
-                             use.minfc = opt$useminfc)
+                             use.minfc = opt$useminfc,
+                             plot_dir_var=opt$plotdirvar)
 
 ## make the -ve plots
 message("making violin plots for -ve genes")
 neg_tex <- violinPlotSection(violin_data, seurat_object, cluster_ids, type="negative",
-                             group.by = opt$testfactor, 
+                             group.by = opt$testfactor,
                              ident.include = ident.include, ncol=ncol,
                              outdir = opt$outdir,
                              analysis_title = analysis_title, fc_type = fc_type,
-                             use.minfc = opt$useminfc)
+                             use.minfc = opt$useminfc,
+                             plot_dir_var=opt$plotdirvar)
 
 tex <- c(tex, pos_tex, neg_tex)
 

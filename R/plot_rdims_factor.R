@@ -24,7 +24,7 @@ stopifnot(
   require(optparse),
   require(tenxutils)
 )
-  
+
 # Options ----
 
 option_list <- list(
@@ -57,6 +57,11 @@ option_list <- list(
       c("--colorfactors"),
       default="none",
       help="Column(s) in the cell metadata to use for deterimining the color of points on the tSNE. One plot will be made per color factor."
+    ),
+    make_option(
+      c("--plotdirvar"),
+      default="tsneDir",
+      help="latex var holding location of plots"
       ),
     make_option(
       c("--pointsize"),
@@ -138,7 +143,8 @@ for(color_var in color_vars)
 
     tex <- paste(tex,
                  getSubsubsectionTex(texCaption),
-                 getFigureTex(plotfilename,texCaption),
+                 getFigureTex(plotfilename,texCaption,
+                              plot_dir_var=opt$plotdirvar),
                  sep="\n")
 
 }
@@ -148,6 +154,9 @@ print("Writing out latex snippet")
 ## write out latex snippet
 
 tex_file <- file.path(opt$outdir,
-                      "plot.rdims.factor.tex")
+                      paste("plot.rdims",
+                            opt$method,
+                            "factor.tex",
+                            sep="."))
 
 writeTex(tex_file, tex)

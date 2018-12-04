@@ -1,6 +1,13 @@
+\subsection{Selection of principal components}
+
+The table shows the principal components that were retained for data visualisation and clustering.
+
+\input{\clusterDir/selected.principal.components.tex}
+
+
 \subsection{Assesment of the tSNE perplexity hyperparameter}
 
-\input{\clusterDir/tSNE.perplexity}
+\input{\tsneDir/tSNE.perplexity}
 \clearpage
 
 \subsection{tSNE parameters}
@@ -15,18 +22,45 @@ The parameters chosen for the subsequent tSNE plots are:
 
 \subsection{tSNE plots colored by factors of interest (e.g. by cluster)}
 
-\input{\clusterDir/plot.rdims.factor}
+\input{\tsneDir/plot.rdims.tsne.factor}
 
+\subsection{UMAP plots colored by factors of interest}
+
+\input{\umapDir/plot.rdims.umap.factor}
+
+\subsection{Diffusion map}
+
+\input{\diffmapDir/plot.diffusion.map}
 
 \subsection{Breakdown of cell numbers by factors of interest (e.g. by cluster)}
 
-\input{\clusterDir/number.plots}
+\input{\groupNumbersDir/number.plots}
 
-\subsection{Exploring the relationship between the clusters}
+\subsection{Exploring the similarities between the clusters}
 
 The distances between the clusters was assessed using the ``BuildClusterTree'' function in the Seurat package, which ``constructs a phylogenetic tree relating the ``average'' cell from each identity class''.
 
 \begin{figure}[H]
 \includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/cluster.dendrogram}}}
-\caption{Visualisation of inter-cluster distances (gene-based)}
+\caption{Visualisation of inter-cluster distances (cluster average, gene-based)}
+\end{figure}
+
+An alternative distance metric is the median pairwise pearson correlation between the cells of each cluster.
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/cluster.correlation.dendrogram}}}
+\caption{Visualisation of inter-cluster distances (pair-wise, correlation based)}
+\end{figure}
+
+The median pairwise pearson correlations between the cells of each cluster are shown in the table below.
+
+\input{\clusterDir/cluster.pairwise.correlations.tex}
+
+\subsection{Comparison of different clustering resolutions}
+
+The clustree algorithm is used to compared the different clustering resolutions.
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/clustree}}}
+\caption{The relationships between the clusters identified at different resolutions}
 \end{figure}

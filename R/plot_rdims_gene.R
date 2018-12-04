@@ -62,6 +62,11 @@ option_list <- list(
       c("--seuratobject"),
       default="none",
       help="The seurat object (e.g. begin.rds)"
+    ),
+    make_option(
+      c("--plotdirvar"),
+      default="clusterMarkerTSNEPlotsDir",
+      help="The name of the latex var specifying the location of the plots"
       ),
     make_option(
       c("--pointsize"),
@@ -219,7 +224,8 @@ for(page in 1:npages)
                  dpi=600)
 
     texCaption <- paste(geneset," genes (",page," of ",npages,")",sep="")
-    tex <- c(tex, getFigureTex(plotfilename, texCaption))
+    tex <- c(tex, getFigureTex(plotfilename, texCaption,
+                               plot_dir_var=opt$plotdirvar))
 }
 
 message("Completed plotting.")
