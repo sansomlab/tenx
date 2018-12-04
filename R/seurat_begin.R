@@ -183,7 +183,30 @@ option_list <- list(
             "A vector of Ensembl gene ids associated with G2M phase.",
             "See Seurat::CellCycleScoring(g2m.genes=...)"
             )
-        )
+    ),
+    make_option(
+        c("--jackstrawnumreplicates"),
+        type="integer",
+        default=100,
+        help="Number of replicates for the jackstraw analysis"
+    ),
+    make_option(
+        c("--numcores"),
+        type="integer",
+        default=12,
+        help="Number of cores to be used for the Jackstraw analysis"
+        ),
+    make_option(c("--usesigcomponents"), default=FALSE,
+                help="use significant principle component"),
+    make_option(c("--components"), type="integer", default=10,
+                help="if usesigcomponents is FALSE, the number of principle components to use"),
+    make_option(
+        c("--plotdirvar"),
+        default="sampleDir",
+        help="latex var containig plot location"
+    )
+
+
     )
 
 opt <- parse_args(OptionParser(option_list=option_list))
@@ -510,7 +533,8 @@ print(latent.vars)
 
 # perform regression without cell cycle correction
 s <- ScaleData(object=s, vars.to.regress=latent.vars,
-               model.use=opt$modeluse)
+               model.use=opt$modeluse,
+               do.par=TRUE, num.cores=opt$numcores)
 
 
 ## initialise the text snippet
@@ -558,7 +582,7 @@ if (!is.null(opt$sgenes) & !is.null(opt$g2mgenes)){
 
   tex <- c(tex, getFigureTex(cc_plot_fn,
                              pcaCaption,
-                             plot_dir_var="runDir"))
+                             plot_dir_var=opt$plotdirvar))
 
 } else {
     tex <- c(tex, "Cell cycle genelists not supplied.")
@@ -580,7 +604,7 @@ if ( identical(opt$cellcycle, "none") ) {
 
       ## regress out all cell cycle effects
       s <- ScaleData(object=s, vars.to.regress=c(latent.vars, "S.Score", "G2M.Score"),
-                     model.use=opt$modeluse)
+                     model.use=opt$modeluse, do.par=TRUE, num.cores=opt$numcores)
 
         cat("Data was scaled to remove all cell cycle variation\n")
 
@@ -589,7 +613,7 @@ if ( identical(opt$cellcycle, "none") ) {
       ## regress out the difference between G2M and S phase scores
       s@meta.data$CC.Difference <- s@meta.data$S.Score - s@meta.data$G2M.Score
       s <- ScaleData(object=s, vars.to.regress=c(latent.vars, "CC.Difference"),
-                     model.use=opt$modeluse)
+                     model.use=opt$modeluse, do.par=TRUE, num.cores=opt$numcores)
 
       cat("Scaling was scaled to remove the difference between G2M and S phase scores\n")
     } else {
@@ -611,7 +635,7 @@ if ( identical(opt$cellcycle, "none") ) {
 
     tex <- c(tex, getFigureTex(cc_plot_fn,
                                pcaCaption,
-                               plot_dir_var="runDir"))
+                               plot_dir_var=opt$plotdirvar))
 
 }
 
@@ -655,7 +679,7 @@ print(
 ## ######################################################################### ##
 
 # perform PCA using the variable genes
-s <- RunPCA(s, pc.genes=s@var.genes, pcs.compute=30, do.print=FALSE)
+s <- RunPCA(s, pc.genes=s@var.genes, pcs.compute=50, do.print=FALSE)
 
 n_cells_pca <- min(1000, length(s@cell.names))
 
@@ -673,13 +697,33 @@ save_plots(
     )
 
 
+nPCs <- min(dim(s@dr$pca@cell.embeddings)[2],50)
+
 # Write out the PCA elbow (scree) plot
 png(
     file.path(opt$outdir, "pcaElbow.png"), width=5, height=4, units="in",
     res=300
     )
-PCElbowPlot(s)
+PCElbowPlot(s, num.pc=nPCs)
 dev.off()
+
+## In Macosko et al, we implemented a resampling test inspired by the jackStraw procedure.
+## We randomly permute a subset of the data (1% by default) and rerun PCA,
+## constructing a 'null distribution' of gene scores, and repeat this procedure. We identify
+## 'significant' PCs as those who have a strong enrichment of low p-value genes.
+
+s <- JackStraw(s, num.replicate=opt$jackstrawnumreplicates,
+               num.pc = nPCs, do.par=TRUE, num.cores=opt$numcores)
+
+s <- JackStrawPlot(s, PCs=1:nPCs)
+
+gp <- s@dr$pca@misc$jackstraw.plot
+
+save_ggplots(paste0(opt$outdir,"/pcaJackStraw"),
+           gp,
+           width=8,
+           height=12)
+
 
 # Save the R object
 saveRDS(s, file=file.path(opt$outdir, "begin.rds"))

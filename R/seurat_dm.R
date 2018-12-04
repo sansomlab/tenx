@@ -22,6 +22,8 @@ option_list <- list(
                 help="A list object containing the cluster identities"),
     make_option(c("--annotation"), default="none",
                 help="A file containing the mapping of gene_id, gene_name and seurat_id"),
+    make_option(c("--usesigcomponents"), default=FALSE,
+                help="use significant principle component"),
     make_option(c("--components"), type="integer", default=10,
                 help="number of principle components to use"),
     make_option(c("--maxdim"), type="integer", default=20,
@@ -30,6 +32,8 @@ option_list <- list(
                 help="project name"),
     make_option(c("--reductiontype"), default="pca",
                 help="Name of dimensional reduction technique to use for building the diffusion map. (e.g. 'pca', 'ica')"),
+    make_option(c("--plotdirvar"), default="diffmapDir",
+                help="name of the latex var containing the directory with the plots"),
     make_option(c("--outfile"), default="dm.txt",
                 help="the file to which the diffusion map coordinates will be written"),
     make_option(c("--outdir"), default="seurat.out.dir",
@@ -47,12 +51,22 @@ s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 s@ident <- cluster_ids
 
+## get the principle components to use
+if(opt$usesigcomponents)
+{
+    comps <- getSigPC(s)
+    message("using the following pcas:")
+    print(comps)
+} else {
+    comps <- 1:as.numeric(opt$components)
+}
 
 ## run the diffusion map algorithm
 message("RunUMAP")
 s <- RunDiffusion(object=s,
-             reduction.use = opt$reductiontype,
-             max.dim=opt$maxdim)
+                  reduction.use = opt$reductiontype,
+                  dims.use=comps,
+                  max.dim=opt$maxdim)
 
 ## extract the DM coordinates from the seurat object
 dm <- as.data.frame(s@dr$dm@cell.embeddings)
@@ -122,7 +136,7 @@ texCaption <- paste("Diffusion map plots (first 3 dimensions, different rotation
 
 
 tex <- paste(getSubsubsectionTex(texCaption),
-             getFigureTex(plotfilename,texCaption),
+             getFigureTex(plotfilename,texCaption,plot_dir_var=opt$plotdirvar),
              sep="\n")
 
 print("Writing out latex snippet")

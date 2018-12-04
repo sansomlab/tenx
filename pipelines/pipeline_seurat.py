@@ -193,6 +193,7 @@ def beginSeurat(infile, outfile):
     sample_name = infile.split("/")[-1].split(".")[0]
 
     job_memory = "20G"
+    job_threads = PARAMS["resources_numcores"]
 
     log_file = outfile.replace(".rds", ".log")
     metadata = os.path.join(infile, "metadata.tsv")
@@ -260,6 +261,9 @@ def beginSeurat(infile, outfile):
                    --sdcutoff=%(vargenes_sdcutoff)s
                    --xlowcutoff=%(vargenes_xlowcutoff)s
                    --xhighcutoff=%(vargenes_xhighcutoff)s
+                   --jackstrawnumreplicates=%(dimreduction_jackstraw_n_replicate)s
+                   --numcores=12
+                   --plotdirvar=sampleDir
                    %(subset)s
                    %(cell_cycle_genes)s
                    %(cell_cycle_regress)s
@@ -268,28 +272,6 @@ def beginSeurat(infile, outfile):
 
     P.run(statement)
 
-
-@transform(beginSeurat,
-           regex("(.*)/.*.rds"),
-           r"\1/pcaJackStraw.pdf")
-def jackStraw(infile, outfile):
-    '''
-    Run a jack straw analysis on the PCAs of a seurat object
-    '''
-
-    outdir = os.path.dirname(outfile)
-
-    job_memory = "20G"
-
-    log_file = outfile.replace(".pdf", ".log")
-
-    statement = '''Rscript %(tenx_dir)s/R/seurat_jackstraw.R
-                   --seuratobject=%(infile)s
-                   --numreplicate=%(dimreduction_jackstraw_n_replicate)s
-                   --outdir=%(outdir)s
-                   &> %(log_file)s
-                '''
-    P.run(statement)
 
 
 # ########################################################################### #
@@ -323,8 +305,12 @@ def genClusterJobs():
     else:
         skip = []
 
-    pcs_str = str(PARAMS["runspecs_n_components"])
-    pcs = pcs_str.strip().replace(" ", "").split(",")
+    pcs = ["sig"]
+
+    if PARAMS["runspecs_n_components"] is not None:
+        pcs_str = str(PARAMS["runspecs_n_components"])
+        pcs = pcs_str.strip().replace(" ", "").split(",")
+        pcs = ["sig"] + pcs
 
     samples = glob.glob("*.seurat.dir")
 
@@ -335,11 +321,12 @@ def genClusterJobs():
                     for test in tests:
                         infile = os.path.join(sample, "begin.rds")
                         spec = "_".join([pca, resolution, algorithm, test])
-                        outdir = spec + ".cluster.dir"
+                        outdir = spec
+                        subdir = "cluster.dir"
                         outname = "cluster.sentinel"
                         if(os.path.join(sample, outdir) in skip):
                             continue
-                        outfile = os.path.join(sample, outdir, outname)
+                        outfile = os.path.join(sample, outdir, subdir, outname)
                         yield [infile, outfile]
 
 
@@ -357,13 +344,18 @@ def cluster(infile, outfile):
     outdir = os.path.dirname(outfile)
 
     if not os.path.exists(outdir):
-        os.mkdir(outdir)
+        os.makedirs(outdir)
 
     outname = os.path.basename(outfile)
     components, resolution, algorithm, test = outdir.split(
-        "/")[-1][:-len(".cluster.dir")].split("_")
+        "/")[-2].split("_")
 
     reductiontype = PARAMS["dimreduction_method"]
+
+    if(components=="sig"):
+        comp="--usesigcomponents=TRUE"
+    else:
+        comp="--components=%(components)s" % locals()
 
     job_memory = "20G"
 
@@ -371,7 +363,7 @@ def cluster(infile, outfile):
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_cluster.R
                    --seuratobject=%(infile)s
-                   --components=%(components)s
+                   %(comp)s
                    --resolution=%(resolution)s
                    --algorithm=%(algorithm)s
                    --outdir=%(outdir)s
@@ -385,12 +377,30 @@ def cluster(infile, outfile):
 
 
 # ########################################################################### #
+# ############### compare the clusters across resolutions ################### #
+# ########################################################################### #
+
+
+@follows(cluster)
+@files(None,
+       None)
+def compareClusterings(infile, outfile):
+    '''
+    Run the tSNE analysis on a saved seurat object.
+
+    A range of different perplexity choices can be specified.
+    '''
+    pass
+
+
+
+# ########################################################################### #
 # ############### tSNE analysis and related plots ########################### #
 # ########################################################################### #
 
 @transform(cluster,
-           regex(r"(.*)/cluster.sentinel"),
-           r"\1/tsne.sentinel")
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/tsne.dir/tsne.sentinel")
 def tSNE(infile, outfile):
     '''
     Run the tSNE analysis on a saved seurat object.
@@ -399,13 +409,19 @@ def tSNE(infile, outfile):
     '''
 
     outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
 
-    seurat_dir = Path(outfile).parents[1]
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    cluster_ids = os.path.join(Path(outdir).parents[0],
+                               "cluster.dir",
+                               "cluster_ids.rds")
+
+    seurat_dir = Path(outdir).parents[1]
     seurat_object = os.path.join(seurat_dir, "begin.rds")
 
     components, resolution, algorithm, test = outdir.split(
-        "/")[-1][:-len(".cluster.dir")].split("_")
+        "/")[-2].split("_")
 
     reductiontype = PARAMS["dimreduction_method"]
 
@@ -421,6 +437,11 @@ def tSNE(infile, outfile):
     tsne_fast = PARAMS["tsne_fast"]
     max_iter = PARAMS["tsne_maxiter"]
 
+    if(components=="sig"):
+        comp="--usesigcomponents=TRUE"
+    else:
+        comp="--components=%(components)s" % locals()
+
     for p in perplexity_values:
 
         outname = outfile.replace(".sentinel", "." + str(p) + ".txt")
@@ -429,7 +450,7 @@ def tSNE(infile, outfile):
         statements.append('''Rscript %(tenx_dir)s/R/seurat_tsne.R
                              --seuratobject=%(seurat_object)s
                              --clusterids=%(cluster_ids)s
-                             --components=%(components)s
+                             %(comp)s
                              --reductiontype=%(reductiontype)s
                              --perplexity=%(p)s
                              --maxiter=%(max_iter)s
@@ -485,6 +506,7 @@ def plotTSNEPerplexities(infile, outfile):
                    --hyperparameter=perplexity
                    --pointsize=%(plot_pointsize)s
                    --pointalpha=%(plot_pointalpha)s
+                   --plotdirvar=tsneDir
                    --outdir=%(outdir)s
                    &> %(log_file)s
                 '''
@@ -508,9 +530,8 @@ def plotTSNEFactors(infile, outfile):
     One additional plot will be made for each coloring factor specifed.
     '''
 
-    sample = str(Path(outfile).parents[1]).replace(".seurat", "")
-
     outdir = os.path.dirname(outfile)
+
     job_memory = "20G"
 
     tsne_table = infile.replace(
@@ -552,6 +573,7 @@ def plotTSNEFactors(infile, outfile):
                    --pointsize=%(plot_pointsize)s
                    --pointalpha=%(plot_pointalpha)s
                    --outdir=%(outdir)s
+                   --plotdirvar=tsneDir
                    &> %(log_file)s
                 '''
 
@@ -561,8 +583,8 @@ def plotTSNEFactors(infile, outfile):
 
 
 @transform(tSNE,
-           regex(r"(.*)/tsne.sentinel"),
-           r"\1/plot.rdims.genes.sentinel")
+           regex(r"(.*)/tsne.dir/tsne.sentinel"),
+           r"\1/genelists.dir/plot.rdims.genes.sentinel")
 def plotTSNEGenes(infile, outfile):
     '''
     Visualise gene expression levels on tSNE plots.
@@ -570,9 +592,13 @@ def plotTSNEGenes(infile, outfile):
     The @data slot of the seurat object is used.
     '''
 
-    sample_dir = str(Path(outfile).parents[1])
-    seurat_object = os.path.join(sample_dir, "begin.rds")
     outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    sample_dir = str(Path(outdir).parents[1])
+    seurat_object = os.path.join(sample_dir, "begin.rds")
+
     tex_path = os.path.join(outdir, "plot.rdims.known.genes.tex")
 
     if PARAMS["exprsreport_genelists"]:
@@ -605,6 +631,7 @@ def plotTSNEGenes(infile, outfile):
                            --pointsize=%(plot_pointsize)s
                            --pointalpha=%(plot_pointalpha)s
                            --outdir=%(outdir)s
+                           --plotdirvar=genelistsDir
                            &> %(logfile)s
                        '''
             P.run(statement)
@@ -645,28 +672,36 @@ def plotTSNEGenes(infile, outfile):
 # ########################################################################### #
 
 @transform(cluster,
-           regex(r"(.*)/cluster.sentinel"),
-           r"\1/umap.sentinel")
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/umap.dir/umap.sentinel")
 def UMAP(infile, outfile):
     '''
     Run the UMAP analysis on a saved seurat object.
     '''
 
     outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
 
-    seurat_dir = Path(outfile).parents[1]
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    cluster_ids = infile.replace(".sentinel","_ids.rds")
+
+    seurat_dir = Path(outdir).parents[1]
     seurat_object = os.path.join(seurat_dir, "begin.rds")
 
     components, resolution, algorithm, test = outdir.split(
-        "/")[-1][:-len(".cluster.dir")].split("_")
+        "/")[-2].split("_")
 
     reductiontype = PARAMS["dimreduction_method"]
+
+    if(components=="sig"):
+        comp="--usesigcomponents=TRUE"
+    else:
+        comp="--components=%(components)s" % locals()
 
     job_memory = "20G"
 
     tenx_dir = PARAMS["tenx_dir"]
-
 
     umap_nneighbors = PARAMS["umap_nneighbors"]
     umap_mindist = PARAMS["umap_mindist"]
@@ -678,7 +713,7 @@ def UMAP(infile, outfile):
     statement = '''Rscript %(tenx_dir)s/R/seurat_umap.R
                              --seuratobject=%(seurat_object)s
                              --clusterids=%(cluster_ids)s
-                             --components=%(components)s
+                             %(comp)s
                              --reductiontype=%(reductiontype)s
                              --nneighbors=%(umap_nneighbors)s
                              --mindist=%(umap_mindist)s
@@ -698,8 +733,6 @@ def plotUMAPFactors(infile, outfile):
     '''
     Visualise the clusters on the UMAP projection
     '''
-
-    sample = str(Path(outfile).parents[1]).replace(".seurat", "")
 
     outdir = os.path.dirname(outfile)
     job_memory = "20G"
@@ -744,6 +777,7 @@ def plotUMAPFactors(infile, outfile):
                    --pointsize=%(plot_pointsize)s
                    --pointalpha=%(plot_pointalpha)s
                    --outdir=%(outdir)s
+                   --plotdirvar=umapDir
                    &> %(log_file)s
                 '''
 
@@ -755,23 +789,27 @@ def plotUMAPFactors(infile, outfile):
 # ########################################################################### #
 
 @transform(cluster,
-           regex(r"(.*)/cluster.sentinel"),
-           r"\1/dm.sentinel")
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/diffmap.dir/dm.sentinel")
 def diffusionMap(infile, outfile):
     '''
     Run the diffusion map analysis on a saved seurat object.
     '''
 
     outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
+    cluster_ids = infile.replace(".sentinel","_ids.rds")
 
-    seurat_dir = Path(outfile).parents[1]
+    seurat_dir = Path(outdir).parents[1]
     seurat_object = os.path.join(seurat_dir, "begin.rds")
 
     components, resolution, algorithm, test = outdir.split(
-        "/")[-1][:-len(".cluster.dir")].split("_")
+        "/")[-2].split("_")
 
     reductiontype = PARAMS["dimreduction_method"]
+    if(components=="sig"):
+        comp="--usesigcomponents=TRUE"
+    else:
+        comp="--components=%(components)s" % locals()
 
     job_memory = "20G"
 
@@ -783,10 +821,11 @@ def diffusionMap(infile, outfile):
     statement = '''Rscript %(tenx_dir)s/R/seurat_dm.R
                              --seuratobject=%(seurat_object)s
                              --clusterids=%(cluster_ids)s
-                             --components=%(components)s
+                             %(comp)s
                              --reductiontype=%(reductiontype)s
                              --outfile=%(outname)s
                              --outdir=%(outdir)s
+                             --plotdirvar=diffmapDir
                              &> %(logfile)s
                           ''' % locals()
 
@@ -800,16 +839,17 @@ def diffusionMap(infile, outfile):
 # ########################################################################### #
 
 @transform(tSNE,
-           regex(r"(.*)/tsne.sentinel"),
-           r"\1/plot.group.numbers.sentinel")
+           regex(r"(.*)/tsne.dir/tsne.sentinel"),
+           r"\1/group.numbers.dir/plot.group.numbers.sentinel")
 def plotGroupNumbers(infile, outfile):
     '''
     Plot statistics on cells by group, e.g. numbers of cells per cluster.
     '''
 
-    sample_dir = str(Path(outfile).parents[1])
-    seurat_object = os.path.join(sample_dir, "begin.rds")
     outdir = os.path.dirname(outfile)
+
+    sample_dir = str(Path(outdir).parents[1])
+    seurat_object = os.path.join(sample_dir, "begin.rds")
 
     job_memory = "20G"
 
@@ -843,6 +883,7 @@ def plotGroupNumbers(infile, outfile):
                     %(groupfactors)s
                     %(subgroupfactor)s
                    --outdir=%(outdir)s
+                   --plotdirvar=groupNumbersDir
                    &> %(log_file)s
                 '''
 
@@ -892,8 +933,8 @@ def getGenesetAnnotations(infile, outfile):
 
 @follows(getGenesetAnnotations)
 @transform(cluster,
-           regex(r"(.*)/cluster.sentinel"),
-           r"\1/findMarkers.sentinel")
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/cluster.markers.dir/findMarkers.sentinel")
 def findMarkers(infile, outfile):
     '''
     Identification of cluster marker genes.
@@ -901,16 +942,19 @@ def findMarkers(infile, outfile):
     This analysis is run in parallel for each cluster.
     '''
 
+    indir = os.path.dirname(infile)
     outdir = os.path.dirname(outfile)
 
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
-    with open(os.path.join(outdir, "nclusters.txt"), "r") as nclust:
+    cluster_ids = infile.replace(".sentinel","_ids.rds")
+
+    with open(os.path.join(indir, "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
 
-    seurat_object = "/".join(outdir.split("/")[:-1]) + "/begin.rds"
+    seurat_object = os.path.join(Path(outdir).parents[1],
+                                 "begin.rds")
 
     components, resolution, algorithm, test = outdir.split(
-        "/")[-1][:-len(".cluster.dir")].split("_")
+        "/")[-2].split("_")
 
     threshuse = PARAMS["findmarkers_threshuse"]
     minpct = PARAMS["findmarkers_minpct"]
@@ -964,9 +1008,14 @@ def summariseMarkers(infile, outfile):
     '''
 
     outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
 
-    seurat_object = "/".join(outdir.split("/")[:-1]) + "/begin.rds"
+    cluster_ids = os.path.join(Path(outdir).parents[0],
+                               "cluster.dir",
+                               "cluster_ids.rds")
+
+    seurat_object = os.path.join(Path(outdir).parents[1],
+                               "begin.rds")
+
 
     job_memory = "50G"
 
@@ -986,8 +1035,8 @@ def summariseMarkers(infile, outfile):
 
 
 @transform(summariseMarkers,
-           regex(r"(.*)/summariseMarkers.sentinel"),
-           r"\1/characteriseClusterMarkers.tex")
+           regex(r"(.*)/cluster.markers.dir/summariseMarkers.sentinel"),
+           r"\1/cluster.marker.de.plots.dir/characteriseClusterMarkers.tex")
 def characteriseClusterMarkers(infile, outfile):
     '''
     Characterise cluster marker genes.
@@ -998,13 +1047,20 @@ def characteriseClusterMarkers(infile, outfile):
     Parallelised per-cluster.
     '''
 
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
     marker_table = os.path.join(os.path.dirname(infile),
                                 "markers.summary.table.txt.gz")
 
-    outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
 
-    seurat_object = "/".join(outdir.split("/")[:-1]) + "/begin.rds"
+    cluster_ids = os.path.join(Path(outdir).parents[0],
+                               "cluster.dir",
+                               "cluster_ids.rds")
+
+    seurat_object = os.path.join(Path(outdir).parents[1],
+                               "begin.rds")
 
     job_memory = "10G"
 
@@ -1028,11 +1084,12 @@ def characteriseClusterMarkers(infile, outfile):
                     --cluster=%(i)s
                     --outdir=%(outdir)s
                     --useminfc=TRUE
+                    --plotdirvar=clusterMarkerDEPlotsDir
                     &> %(log_file)s
                     ''' % locals()
 
         cluster_tex_file = ".".join(["characterise.degenes", str(i), "tex"])
-        tex.append("\\input{\\plotDir/" + cluster_tex_file + "}")
+        tex.append("\\input{\\clusterMarkerDEPlotsDir/" + cluster_tex_file + "}")
         statements.append(statement)
 
     P.run(statements)
@@ -1043,8 +1100,8 @@ def characteriseClusterMarkers(infile, outfile):
 
 
 @transform(summariseMarkers,
-           regex(r"(.*)/(.*).sentinel"),
-           r"\1/plotMarkerNumbers.sentinel")
+           regex(r"(.*)/cluster.markers.dir/(.*).sentinel"),
+           r"\1/cluster.marker.de.plots.dir/plotMarkerNumbers.sentinel")
 def plotMarkerNumbers(infile, outfile):
     '''
     Summarise the numbers of per-cluster marker genes.
@@ -1054,7 +1111,10 @@ def plotMarkerNumbers(infile, outfile):
                                 "markers.summary.table.txt.gz")
 
     outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
+
+    cluster_ids = os.path.join(Path(outdir).parents[0],
+                               "cluster.dir",
+                               "cluster_ids.rds")
 
     job_memory = "10G"
 
@@ -1066,6 +1126,7 @@ def plotMarkerNumbers(infile, outfile):
                    --outdir=%(outdir)s
                    --minfc=2
                    --minpadj=0.05
+                   --plotdirvar=clusterMarkerDEPlotsDir
                    &> %(log_file)s
                 '''
 
@@ -1076,8 +1137,8 @@ def plotMarkerNumbers(infile, outfile):
 
 @follows(summariseMarkers)
 @transform(tSNE,
-           regex(r"(.*)/tsne.sentinel"),
-           r"\1/plot.rdims.markers.sentinel")
+           regex(r"(.*)/tsne.dir/tsne.sentinel"),
+           r"\1/cluster.marker.tsne.plots.dir/plot.rdims.markers.sentinel")
 def plotTSNEMarkers(infile, outfile):
     '''
     Visualise expression of discovered markers on tSNE plots.
@@ -1087,11 +1148,17 @@ def plotTSNEMarkers(infile, outfile):
     and fold change.
     '''
 
-    sample_dir = str(Path(outfile).parents[1])
-    seurat_object = os.path.join(sample_dir, "begin.rds")
     outdir = os.path.dirname(outfile)
 
-    marker_summary_file = os.path.join(outdir, "markers.summary.table.txt.gz")
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    seurat_object = os.path.join(Path(outdir).parents[1],
+                                 "begin.rds")
+
+    marker_summary_file = os.path.join(Path(outdir).parents[0],
+                                       "cluster.markers.dir",
+                                       "markers.summary.table.txt.gz")
 
     data = pd.read_csv(marker_summary_file, sep="\t")
 
@@ -1183,6 +1250,7 @@ def plotTSNEMarkers(infile, outfile):
                            --pointsize=%(plot_pointsize)s
                            --pointalpha=%(plot_pointalpha)s
                            --outdir=%(outdir)s
+                           --plotdirvar=clusterMarkerTSNEPlotsDir
                            &> %(log_file)s
                        '''
             P.run(statement)
@@ -1228,8 +1296,8 @@ def plotTSNEMarkers(infile, outfile):
 @active_if(PARAMS["findmarkers_between"])
 @follows(getGenesetAnnotations)
 @transform(cluster,
-           regex(r"(all.*|agg.*|aligned.*)/cluster.sentinel"),
-           r"\1/findMarkersBetweenConditions.sentinel")
+           regex(r"(all.*|agg.*|aligned.*)/cluster.dir/cluster.sentinel"),
+           r"\1/condition.markers.dir/findMarkersBetweenConditions.sentinel")
 def findMarkersBetweenConditions(infile, outfile):
     '''
     Identification of genes differentially expressed within-cluster.
@@ -1239,16 +1307,19 @@ def findMarkersBetweenConditions(infile, outfile):
     This analysis is run in parallel for each cluster.
     '''
 
+    indir = os.path.dirname(infile)
     outdir = os.path.dirname(outfile)
 
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
-    with open(os.path.join(outdir, "nclusters.txt"), "r") as nclust:
+    cluster_ids = infile.replace(".sentinel", "_ids.rds")
+
+    with open(os.path.join(indir, "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
 
-    seurat_object = "/".join(outdir.split("/")[:-1]) + "/begin.rds"
+    seurat_object = os.path.join(Path(outdir).parents[1],
+                                 "begin.rds")
 
     components, resolution, algorithm, test = outdir.split(
-        "/")[-1][:-len(".cluster.dir")].split("_")
+        "/")[-2].split("_")
 
     threshuse = PARAMS["findmarkers_threshuse"]
     minpct = PARAMS["findmarkers_minpct"]
@@ -1311,9 +1382,13 @@ def summariseMarkersBetweenConditions(infile, outfile):
     '''
 
     outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
 
-    seurat_object = "/".join(outdir.split("/")[:-1]) + "/begin.rds"
+    cluster_ids = os.path.join(Path(outdir).parents[0],
+                               "cluster.dir",
+                               "cluster_ids.rds")
+
+    seurat_object = os.path.join(Path(outdir).parents[1],
+                               "begin.rds")
 
     job_memory = "20G"
 
@@ -1339,8 +1414,8 @@ def summariseMarkersBetweenConditions(infile, outfile):
 
 @active_if(PARAMS["findmarkers_between"])
 @transform(summariseMarkersBetweenConditions,
-           regex(r"(.*)/summariseMarkersBetweenConditions.sentinel"),
-           r"\1/characteriseClusterMarkersBetween.tex")
+           regex(r"(.*)/condition.markers.dir/summariseMarkersBetweenConditions.sentinel"),
+           r"\1/condition.marker.de.plots.dir/characteriseClusterMarkersBetween.tex")
 def characteriseClusterMarkersBetweenConditions(infile, outfile):
     '''
     Characterise within-cluster DE genes.
@@ -1357,18 +1432,19 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
                                 ".summary.table.txt.gz")
 
     outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
 
-    seurat_object = "/".join(outdir.split("/")[:-1]) + "/begin.rds"
+    cluster_ids = os.path.join(Path(outdir).parents[0],
+                               "cluster.dir",
+                               "cluster_ids.rds")
+
+    seurat_object = os.path.join(Path(outdir).parents[1],
+                               "begin.rds")
 
     job_memory = "10G"
 
     # not all clusters may have degenes
     degenes = pd.read_csv(marker_table, sep="\t")
     clusters = [x for x in set(degenes["cluster"].values)]
-
-    with open(os.path.join(outdir, "nclusters.txt"), "r") as nclust:
-        nclusters = nclust.readline().strip()
 
     tenx_dir = PARAMS["tenx_dir"]
     testfactor = PARAMS["findmarkers_between_testfactor"]
@@ -1392,13 +1468,14 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
                     --b=%(b)s
                     --useminfc=FALSE
                     --outdir=%(outdir)s
+                    --plotdirvar=conditionMarkerDEPlotsDir
                     &> %(log_file)s
                     ''' % locals()
 
         cluster_tex_file = ".".join(["characterise.degenes", str(i),
                                      "between.tex"])
 
-        tex.append("\\input{\\plotDir/" + cluster_tex_file + "}")
+        tex.append("\\input{\\conditionMarkerDEPlotsDir/" + cluster_tex_file + "}")
         statements.append(statement)
 
     P.run(statements)
@@ -1410,8 +1487,8 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
 
 @active_if(PARAMS["findmarkers_between"])
 @transform(summariseMarkersBetweenConditions,
-           regex(r"(.*)/(.*).sentinel"),
-           r"\1/plotMarkerNumbersBetween.sentinel")
+           regex(r"(.*)/condition.markers.dir/(.*).sentinel"),
+           r"\1/condition.marker.de.plots.dir/plotMarkerNumbersBetween.sentinel")
 def plotMarkerNumbersBetweenConditions(infile, outfile):
     '''
     Summarise the numbers of within-cluster DE genes.
@@ -1423,7 +1500,10 @@ def plotMarkerNumbersBetweenConditions(infile, outfile):
                                 ".summary.table.txt.gz")
 
     outdir = os.path.dirname(outfile)
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
+
+    cluster_ids = os.path.join(Path(outdir).parents[0],
+                               "cluster.dir",
+                               "cluster_ids.rds")
 
     job_memory = "10G"
 
@@ -1438,6 +1518,7 @@ def plotMarkerNumbersBetweenConditions(infile, outfile):
                    --minfc=2
                    --minpadj=0.05
                    --outdir=%(outdir)s
+                   --plotdirvar=conditionMarkerDEPlotsDir
                    &> %(log_file)s
                 '''
 
@@ -1485,9 +1566,9 @@ def parseGMTs():
 
 @follows(summariseMarkers)
 @transform(findMarkers,
-           regex(r"(.*)/.*.sentinel"),
+           regex(r"(.*)/cluster.markers.dir/.*.sentinel"),
            add_inputs(getGenesetAnnotations),
-           r"\1/genesetAnalysis.sentinel")
+           r"\1/cluster.genesets.dir/genesetAnalysis.sentinel")
 def genesetAnalysis(infiles, outfile):
     '''
     Naive geneset over-enrichment analysis of cluster marker genes.
@@ -1502,6 +1583,13 @@ def genesetAnalysis(infiles, outfile):
 
     findMarkersLog, genesetAnno = infiles
 
+    indir = os.path.dirname(findMarkersLog)
+
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+
     anno = os.path.join(os.path.dirname(genesetAnno),
                         "ensembl.to.entrez.txt.gz")
 
@@ -1510,9 +1598,10 @@ def genesetAnalysis(infiles, outfile):
 
     gmt_names, gmt_files = parseGMTs()
 
-    outdir = os.path.dirname(outfile)
 
-    with open(os.path.join(outdir, "nclusters.txt"), "r") as nclust:
+    with open(os.path.join(Path(outdir).parents[0],
+                           "cluster.dir",
+                           "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
 
     job_memory = "20G"
@@ -1526,10 +1615,10 @@ def genesetAnalysis(infiles, outfile):
 
         logfile = os.path.join(outdir, "geneset.analysis." + str(i) + ".log")
 
-        markers = os.path.join(outdir, "markers.summary.table.txt.gz")
+        markers = os.path.join(indir, "markers.summary.table.txt.gz")
 
         universe = os.path.join(
-            outdir, "markers.cluster." + str(i) + ".universe.txt.gz")
+            indir, "markers.cluster." + str(i) + ".universe.txt.gz")
 
         if not os.path.exists(universe):
             E.warn("Skipping geneset analysis: %s does not exist" % universe)
@@ -1565,12 +1654,16 @@ def summariseGenesetAnalysis(infile, outfile):
     Enriched pathways are summarised in an Excel table and a heatmap.
     '''
 
+    outdir = os.path.dirname(outfile)
+
     # need to sort out the dependencies properly!
     genesetdir = os.path.dirname(infile)
 
     gmt_names, gmt_files = parseGMTs()
 
-    with open(os.path.join(genesetdir, "nclusters.txt"), "r") as nclust:
+    with open(os.path.join(Path(outdir).parents[0],
+                           "cluster.dir",
+                           "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
 
     job_memory = "20G"
@@ -1592,6 +1685,7 @@ def summariseGenesetAnalysis(infile, outfile):
                          --showcommon=%(show_common)s
                          --outfile=%(outfile)s
                          --prefix=genesets
+                         --plotdirvar=clusterGenesetsDir
                     &> %(logfile)s
                       '''
 
@@ -1603,9 +1697,9 @@ def summariseGenesetAnalysis(infile, outfile):
 @active_if(PARAMS["findmarkers_between"])
 @follows(summariseMarkersBetweenConditions)
 @transform(findMarkersBetweenConditions,
-           regex(r"(.*)/.*.sentinel"),
+           regex(r"(.*)/condition.markers.dir/.*.sentinel"),
            add_inputs(getGenesetAnnotations),
-           r"\1/genesetAnalysisBetweenConditions.sentinel")
+           r"\1/condition.genesets.dir/genesetAnalysisBetweenConditions.sentinel")
 def genesetAnalysisBetweenConditions(infiles, outfile):
     '''
     Naive geneset over-enrichment analysis of genes DE within-cluster.
@@ -1620,6 +1714,12 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     findMarkersLog, genesetAnno = infiles
 
+    indir = os.path.dirname(findMarkersLog)
+
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
     anno = os.path.join(os.path.dirname(genesetAnno),
                         "ensembl.to.entrez.txt.gz")
 
@@ -1630,10 +1730,13 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     gmt_names, gmt_files = parseGMTs()
 
-    outdir = os.path.dirname(outfile)
 
-    with open(os.path.join(outdir, "nclusters.txt"), "r") as nclust:
+
+    with open(os.path.join(Path(outdir).parents[0],
+                           "cluster.dir",
+                           "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
+
 
     job_memory = "20G"
 
@@ -1648,12 +1751,12 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
             outdir, "geneset.analysis.between." + str(i) + ".log")
 
         markers = os.path.join(
-            outdir, "markers.between." +
+            indir, "markers.between." +
             PARAMS["findmarkers_between_testfactor"] +
             ".summary.table.txt.gz")
 
         universe = os.path.join(
-            outdir, "markers.between." +
+            indir, "markers.between." +
             PARAMS["findmarkers_between_testfactor"] +
             ".cluster." + str(i) + ".universe.txt.gz")
 
@@ -1693,10 +1796,15 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
     Enriched pathways are summarised in an Excel table and a heatmap.
     '''
 
+    outdir = os.path.dirname(outfile)
+
     genesetdir = os.path.dirname(infile)
 
-    with open(os.path.join(genesetdir, "nclusters.txt"), "r") as nclust:
+    with open(os.path.join(Path(outdir).parents[0],
+                           "cluster.dir",
+                           "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
+
 
     job_memory = "20G"
 
@@ -1720,6 +1828,7 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
                          --showcommon=%(show_common)s
                          --outfile=%(outfile)s
                          --prefix=genesets.between
+                         --plotdirvar=conditionGenesetsDir
                     &> %(logfile)s
                       '''
 
@@ -1759,28 +1868,77 @@ def plots():
 # The reports incorporate raster (png) graphics. PDF versions of each graphic
 # are also avaliable in the individual run folders.
 
-@follows(jackStraw,
-         markers,
+@follows(markers,
          genesets,
          plots)
 @transform(summariseGenesetAnalysis,
-           regex("(.*)/geneset.analysis.xlsx"),
-           r"\1/report.vars.sty")
+           regex("(.*)/cluster.genesets.dir/geneset.analysis.xlsx"),
+           r"\1/latex.dir/report.vars.sty")
 def latexVars(infile, outfile):
     '''
     Prepare a file containing the latex variable definitions.
     '''
 
+    outdir = os.path.dirname(outfile)
+
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    runDir = Path(outdir).parents[0]
+
     outfile_name = os.path.basename(outfile)
 
-    clusterDir = os.path.dirname(infile)
-    runDir = "/".join(clusterDir.split("/")[:-1])
+    clusterDir = os.path.join(runDir,
+                              "cluster.dir")
 
-    runName = Path(outfile).parts[1]
-    nPCs, resolution, algorithm, deTest = runName.replace(
-        '.cluster.dir', '').split("_")
+    clusterGenesetsDir = os.path.join(runDir,
+                              "cluster.genesets.dir")
 
-    runName = runName.replace("_", "\\_")
+    clusterMarkerDEPlotsDir = os.path.join(runDir,
+                              "cluster.marker.de.plots.dir")
+
+    clusterMarkerTSNEPlotsDir = os.path.join(runDir,
+                                             "cluster.marker.tsne.plots.dir")
+
+    clusterMarkersDir = os.path.join(runDir,
+                                     "cluster.markers.dir")
+
+    conditionGenesetsDir = os.path.join(runDir,
+                              "condition.genesets.dir")
+
+    conditionMarkerDEPlotsDir = os.path.join(runDir,
+                              "condition.marker.de.plots.dir")
+
+    conditionMarkerTSNEPlotsDir = os.path.join(runDir,
+                                             "condition.marker.tsne.plots.dir")
+
+    conditionMarkersDir = os.path.join(runDir,
+                                     "condition.markers.dir")
+
+    genelistsDir = os.path.join(runDir,
+                                "genelists.dir")
+
+    diffmapDir = os.path.join(runDir,
+                              "diffmap.dir")
+
+    groupNumbersDir = os.path.join(runDir,
+                                   "group.numbers.dir")
+
+    tsneDir = os.path.join(runDir,
+                           "tsne.dir")
+
+    umapDir = os.path.join(runDir,
+                           "umap.dir")
+
+
+    # runDir is the directory containing the begin.rds object.
+    sampleDir = Path(outdir).parents[1]
+
+    runDirBaseName = os.path.basename(runDir)
+
+    nPCs, resolution, algorithm, deTest = runDirBaseName.split("_")
+
+    runName = runDirBaseName.replace("_", "\\_")
 
     runDetails = ("no. components: " + str(nPCs) +
                   ", cluster resolution: " + str(resolution) +
@@ -1812,8 +1970,21 @@ def latexVars(infile, outfile):
             "projectName": "%(projectname)s" % PARAMS,
             "reportAuthor": "%(author)s" % PARAMS,
             "runDir": "%(runDir)s" % locals(),
+            "sampleDir": "%(sampleDir)s" % locals(),
             "clusterDir": "%(clusterDir)s" % locals(),
-            "plotDir": "%(clusterDir)s" % locals(),
+            "tsneDir": "%(tsneDir)s" % locals(),
+            "clusterGenesetsDir": "%(clusterGenesetsDir)s" % locals(),
+            "clusterMarkerDEPlotsDir": "%(clusterMarkerDEPlotsDir)s" % locals(),
+            "clusterMarkerTSNEPlotsDir": "%(clusterMarkerTSNEPlotsDir)s" % locals(),
+            "clusterMarkersDir": "%(clusterMarkersDir)s" % locals(),
+            "conditionGenesetsDir": "%(conditionGenesetsDir)s" % locals(),
+            "conditionMarkerDEPlotsDir": "%(conditionMarkerDEPlotsDir)s" % locals(),
+            "conditionMarkerTSNEPlotsDir": "%(conditionMarkerTSNEPlotsDir)s" % locals(),
+            "conditionMarkersDir": "%(conditionMarkersDir)s" % locals(),
+            "genelistsDir": "%(genelistsDir)s" % locals(),
+            "diffmapDir": "%(diffmapDir)s" % locals(),
+            "groupNumbersDir": "%(groupNumbersDir)s" % locals(),
+            "umapDir": "%(umapDir)s" % locals(),
             "runName": "%(runName)s" % locals(),
             "runDetails": "%(runDetails)s" % locals(),
             "tenxDir": "%(tenx_dir)s" % PARAMS,
@@ -1898,6 +2069,8 @@ def summaryReport(infile, outfile):
     jobName = outfile_name[:-len(".pdf")]
 
     outdir = os.path.dirname(outfile)
+    rundir = Path(outdir).parents[0]
+
     compilation_dir = os.path.join(outdir, ".latex_compilation.dir")
 
     latexVars = os.path.join(outdir, "report.vars.sty")
@@ -1929,7 +2102,7 @@ def summaryReport(infile, outfile):
     # When relevant, add section that compares
     # two conditions within each cluster
     if os.path.exists(
-            os.path.join(outdir, "findMarkersBetweenConditions.sentinel")):
+            os.path.join(rundir, "condition.markers.dir", "findMarkersBetweenConditions.sentinel")):
 
         wcc_section_name = "withinClusterComparisonSection.tex"
         statement += '''
@@ -1950,7 +2123,7 @@ def summaryReport(infile, outfile):
 
 @follows(mkdir("reports.dir"), geneExpressionReport)
 @transform(summaryReport,
-           regex(r"(.*).seurat.dir/(.*).cluster.dir/summaryReport.pdf"),
+           regex(r"(.*).seurat.dir/(.*)/latex.dir/summaryReport.pdf"),
            r"reports.dir/\1.\2/export.sentinel")
 def export(infile, outfile):
     '''
@@ -1960,13 +2133,15 @@ def export(infile, outfile):
     and geneset tables for each analysis.
     '''
 
+
     sample = Path(infile).parts[0].split(".")[0]
-    cluster_run = Path(infile).parts[1][:-len(".cluster.dir")]
+
+    cluster_run = Path(infile).parts[1]
 
     out_dir = os.path.join("reports.dir",
                            ".".join([sample, cluster_run]))
 
-    in_dir = os.path.dirname(infile)
+    run_dir = Path(os.path.dirname(infile)).parents[0]
 
     try:
         os.stat(out_dir)
@@ -1977,18 +2152,19 @@ def export(infile, outfile):
                    str(PARAMS["findmarkers_between_testfactor"]) + \
                    ".summary.table.xlsx"
 
-    targets = ["geneExpressionReport.pdf",
-               "summaryReport.pdf",
-               "markers.summary.table.xlsx",
-               between_xlsx,
-               "geneset.analysis.xlsx",
-               "geneset.analysis.between.xlsx"]
+    targets = [os.path.join(run_dir,"latex.dir","geneExpressionReport.pdf"),
+               os.path.join(run_dir,"latex.dir","summaryReport.pdf"),
+               os.path.join(run_dir,"cluster.markers.dir","markers.summary.table.xlsx"),
+               os.path.join(run_dir,"condition.markers.dir",between_xlsx),
+               os.path.join(run_dir, "cluster.genesets.dir","geneset.analysis.xlsx"),
+               os.path.join(run_dir, "condition.genesets.dir","geneset.analysis.between.xlsx")]
 
-    for target in targets:
+    for target_file in targets:
 
-        target_file = os.path.join(in_dir, target)
 
         if os.path.exists(target_file):
+
+            target = os.path.basename(target_file)
 
             link_name = os.path.join(out_dir, target)
 

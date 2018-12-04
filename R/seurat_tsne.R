@@ -8,7 +8,8 @@ stopifnot(
   require(dplyr),
   require(Matrix),
   require(reshape2),
-  require(optparse)
+  require(optparse),
+  require(tenxutils)
 )
 
 # Options ----
@@ -20,6 +21,8 @@ option_list <- list(
                 help="A list object containing the cluster identities"),
     make_option(c("--annotation"), default="none",
                 help="A file containing the mapping of gene_id, gene_name and seurat_id"),
+    make_option(c("--usesigcomponents"), default=FALSE,
+                help="use significant principle component"),
     make_option(c("--components"), type="integer", default=10,
                 help="number of reduced dimension components to use"),
     make_option(c("--perplexity"), type="integer", default=30,
@@ -52,6 +55,16 @@ ncells <- ncol(s@data)
 message("no. cells:", ncells)
 message("perplexity:", opt$perplexity)
 
+## get the principle components to use
+if(opt$usesigcomponents)
+{
+    comps <- getSigPC(s)
+    message("using the following pcas:")
+    print(comps)
+} else {
+    comps <- 1:as.numeric(opt$components)
+}
+
 if(opt$perplexity > floor(ncells/5))
 {
     message("Perplexity > floor(ncells/5), skipping")
@@ -61,7 +74,7 @@ if(opt$perplexity > floor(ncells/5))
     message("RunTSNE")
     s <- RunTSNE(s,
                  reduction.use = opt$reductiontype,
-                 dims.use = 1:opt$components,
+                 dims.use = comps,
                  perplexity = opt$perplexity,
                  max_iter = opt$maxiter,
                  do.fast = as.logical(opt$fast))

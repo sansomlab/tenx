@@ -35,6 +35,8 @@ option_list <- list(
                 help="Fold change threshold for DE genes (absolute)"),
     make_option(c("--minpadj"), default=0.05,
                 help="The threshold for the adjusted p-value"),
+    make_option(c("--plotdirvar"), default="clusterMarkerDEPlotsDir",
+                help="latex var containing the locaiton of the plots"),
     make_option(c("--outdir"), default="seurat.out.dir",
                 help="outdir")
     )
@@ -110,7 +112,8 @@ deCaption <- paste0("Numbers of differentially expressed genes ",
                     "(adjusted p-value < ", opt$minpadj,
                     ", fold change > ", opt$minfc, ") per cluster")
 
-tex <- c(tex, getFigureTex(nsfn, deCaption))
+tex <- c(tex, getFigureTex(nsfn, deCaption,
+                           plot_dir_var=opt$plotdirvar))
 
 tex_file <- file.path(opt$outdir,
                       paste(c("characterise.degenes",file_suffix,"tex"),collapse="."))

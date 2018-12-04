@@ -43,7 +43,13 @@ option_list <- list(
       c("--hyperparameter"),
       default="perplexity",
       help="The column containing the hyperparameter to facet on"
+    ),
+    make_option(
+      c("--plotdirvar"),
+      default="tsneDir",
+      help="latex var for plot location"
       ),
+
     make_option(
       c("--pointsize"),
       default=0.5,
@@ -114,7 +120,8 @@ save_ggplots(file.path(opt$outdir, plotfilename),
 texCaption <- paste("Effect of",opt$hyperparameter,"on the tSNE projection (plots are colored by cluster)")
 
 tex <- paste(tex,
-             getFigureTex(plotfilename,texCaption),
+             getFigureTex(plotfilename,texCaption,
+             plot_dir_var=opt$plotdirvar),
              sep="\n")
 
 print("Writing out latex snippet")

@@ -7,7 +7,7 @@
 ## For the given grouping variables, make plots of
 ## (i) numbers of cells
 ## (ii) fractions of cells
-## (iii) ngenes/cell 
+## (iii) ngenes/cell
 ## (iv) ncounts/cell.
 ##
 ## Details ----
@@ -39,11 +39,11 @@ stopifnot(
 
 option_list <- list(
     make_option(
-      c("--table"), 
+      c("--table"),
       default="none",
       help="A table containing the grouping information"),
     make_option(
-      c("--seuratobject"), 
+      c("--seuratobject"),
       default="none",
       help="The seurat object (typically begin.rds)"
       ),
@@ -56,9 +56,14 @@ option_list <- list(
       c("--groupfactors"),
       default="none",
       help="Column(s) in the cell metadata to use for grouping, e.g. cluster or State"
+    ),
+    make_option(
+      c("--plotdirvar"),
+      default="groupNumbersDir",
+      help="the latex var holding the name of the dir with the plots"
       ),
     make_option(
-      c("--outdir"), 
+      c("--outdir"),
       default="seurat.out.dir",
       help="outdir")
     )
@@ -155,8 +160,10 @@ for(group_var in group_vars)
                 quote=FALSE,
                 sep="\t")
 
-    tex <- paste(tex, 
-                 getFigureTex(plotfilename, plot_title),
+    tex <- paste(tex,
+                 getFigureTex(plotfilename,
+                              plot_title,
+                              plot_dir_var=opt$plotdirvar),
                  sep="\n")
 
 }
@@ -211,8 +218,9 @@ for(group_var in group_vars)
                  width=6,
                  height=8)
 
-    tex <- paste(tex, 
-                 getFigureTex(plotfilename, plot_title),
+    tex <- paste(tex,
+                 getFigureTex(plotfilename, plot_title,
+                              plot_dir_var=opt$plotdirvar),
                  sep="\n")
 
 }
@@ -220,4 +228,3 @@ for(group_var in group_vars)
 ## write out latex snippet
 writeTex(file.path(opt$outdir, paste("number","plots","tex", sep=".")),
          tex)
-

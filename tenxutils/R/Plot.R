@@ -268,6 +268,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
                               ident.include=opt$identinclude, ncol=ncol,
                               outdir=opt$outdir,
                               analysis_title="violin plots", fc_type="fold change",
+                              plot_dir_var="plotsDir",
                               use.minfc=FALSE)
 {
 
@@ -304,7 +305,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
         caption <- paste0("Top ", type, analysis_title,
                           " ordered by p-value, cluster: ",cluster)
 
-        tex <- c(tex, getSubFigureTex(violin_fn, caption))
+        tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var))
 
         if(violin_plots$gpb_exists)
         {
@@ -321,7 +322,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
                          height=h)
 
             caption <- paste0("Additional ", type, analysis_title, " ordered by ", fc_type, ", cluster: ",cluster)
-            tex <- c(tex, getSubFigureTex(violin_fn, caption))
+            tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var))
         }
 
     } else {

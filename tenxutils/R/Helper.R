@@ -96,3 +96,42 @@ categoriseGenes <- function(data,m_col="avg_logFC", use_fc=TRUE,
   data$sig[data[[p_col]] < p_threshold] <- TRUE
   data
 }
+
+#' Function to get the significant principle components following
+#' a jackstraw analysis
+#' @param ncomp If set, the max. number of significant components to return
+#' @param adjust_p Should p values be adjusted
+#' @param p_adjust_method Method for adjusting p values
+#' @param p_threshold The significance threshold
+#' @param order_by_sig If true, PCs are selected based on significance
+#' @param seurat_object A seurat object on which JackStraw and JackStrawPlot have been run
+getSigPC <- function(seurat_oject=NULL,
+                     ncomp=Inf,
+                     adjust_p=TRUE,
+                     p_adjust_method="BH",
+                     p_threshold=0.05,
+                     order_by_sig=FALSE)
+{
+    x <- as.data.frame(s@dr$pca@jackstraw@overall.p.values)
+
+    ## adjust the p values
+    if(adjust_p)
+        {
+            x$p <- p.adjust(x$Score, method=p_adjust_method)
+        } else { x$p <- x$Score}
+
+    ## subset to significant
+    x <- x[x$p < p_threshold,]
+
+    ## reorder by significance
+    if(order_by_sig)
+    {
+        x<-x[order(x$p),]
+    }
+
+    ## return the significant components (ensuring logical order...)
+    ntake <- min(nrow(x),ncomp)
+
+    x$PC[1:ntake]
+
+}

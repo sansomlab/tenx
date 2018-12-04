@@ -8,7 +8,8 @@ stopifnot(
   require(dplyr),
   require(Matrix),
   require(reshape2),
-  require(tenxutils)
+  require(tenxutils),
+  require(xtable)
 )
 
 # Options ----
@@ -16,8 +17,10 @@ stopifnot(
 option_list <- list(
     make_option(c("--seuratobject"), default="begin.Robj",
                 help="A seurat object after PCA"),
+    make_option(c("--usesigcomponents"), default=FALSE,
+                help="use significant principle component"),
     make_option(c("--components"), type="integer", default=10,
-                help="number of principle components to use"),
+                help="if usesigcomponents is FALSE, the number of principle components to use"),
     make_option(c("--resolution"), type="double", default=1,
                 help="cluster resolution"),
     make_option(c("--algorithm"), type="integer", default=3,
@@ -49,10 +52,36 @@ s <- readRDS(opt$seuratobject)
 ## good results for single cell datasets of around 3K cells. Optimal resolution
 ## often increases for larger datasets. The clusters are saved in the object\@ident slot.
 
+if(opt$usesigcomponents)
+{
+    comps <- getSigPC(s)
+    message("using the following pcas:")
+    print(comps)
+} else {
+    comps <- 1:as.numeric(opt$components)
+}
+
+## Make a table of the retained principle components
+x <- as.data.frame(s@dr$pca@jackstraw@overall.p.values)
+x$p.adj <- p.adjust(x$Score, method="BH")
+x$significant <- "no"
+x$significant[x$p.adj < 0.05] <- "yes"
+x <- x[x$PC %in% comps,]
+x$sdev <- s@dr$pca@sdev[x$PC]
+
+print(
+    xtable(sprintfResults(x), caption=paste("Table of the selected (n=",
+                                            nrow(x),
+                                            ") principle components",
+                                            sep="")),
+    file=file.path(opt$outdir, "selected.principal.components.tex")
+    )
+
+
 message(sprintf("FindClusters"))
 s <- FindClusters(s,
                   reduction.type=opt$reductiontype,
-                  dims.use = 1:opt$components,
+                  dims.use = comps,
                   resolution = opt$resolution,
                   algorithm = opt$algorithm,
                   print.output = 0,
@@ -69,6 +98,9 @@ saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 
 ## Visualise the relationship between the clusters.
 
+## 1. Using the Seurat default function
+## which computes distance between clusters averages
+## using the expression levels of the variable genes
 draw_tree <- function() { BuildClusterTree(s) }
 
 save_plots(
@@ -78,6 +110,30 @@ save_plots(
     )
 
 
+## 2. By the median pair-wise pearson correlation
+## of cells in the clusters.
+cluster_cor <- clusterCor(s,
+                          comps,
+                          cor_method="pearson",
+                          cluster_average=FALSE)
+
+den <- as.dendrogram(hclust(as.dist(1 - cluster_cor)))
+
+draw_cor_tree <- function() { plot(den) }
+
+save_plots(
+    file.path(opt$outdir, "cluster.correlation.dendrogram"),
+    plot_fn=draw_cor_tree,
+    width=8, height=5
+    )
+
+## The diagonal of the correlation matrix is interesting
+## because it is a measure of with-cluster heterogenity
+## so we write the table out
+print(
+    xtable(sprintfResults(as.data.frame(cluster_cor)), caption="Pairwise correlations between clusters"),
+    file=file.path(opt$outdir, "cluster.pairwise.correlations.tex")
+    )
 
 
 message("Completed")

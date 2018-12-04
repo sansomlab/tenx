@@ -13,6 +13,14 @@ projectname: 10x single cell analysis
 author: Sansom group
 
 
+# compute resource options
+# ------------------------
+resources:
+  # Number of cores used for parallel jobs
+  # (ScaleData and JackStraw)
+  numcores: 12
+
+
 # Gene annotations
 # ----------------
 
@@ -55,7 +63,10 @@ subsetcells:
 runspecs:
     # Number(s) of components for initial dimensions reduction
     # (see Seurat::FindClusters)
-    n_components: 15,25
+    # a "sig" run using (up to 30) significant components is performed automatically
+    # additional runs with the given numbers of components (no significance filtering)
+    # can be specified here:
+    n_components:
 
     # Clustering resolution(s)
     # (see Seurat::FindClusters)

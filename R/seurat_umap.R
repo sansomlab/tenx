@@ -8,7 +8,8 @@ stopifnot(
   require(dplyr),
   require(Matrix),
   require(reshape2),
-  require(optparse)
+  require(optparse),
+  require(tenxutils)
 )
 
 # Options ----
@@ -20,6 +21,8 @@ option_list <- list(
                 help="A list object containing the cluster identities"),
     make_option(c("--annotation"), default="none",
                 help="A file containing the mapping of gene_id, gene_name and seurat_id"),
+    make_option(c("--usesigcomponents"), default=FALSE,
+                help="use significant principle component"),
     make_option(c("--components"), type="integer", default=10,
                 help="number of principle components to use"),
     make_option(c("--nneighbors"), type="integer", default=30L,
@@ -47,12 +50,22 @@ s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 s@ident <- cluster_ids
 
+## get the principle components to use
+if(opt$usesigcomponents)
+{
+    comps <- getSigPC(s)
+    message("using the following pcas:")
+    print(comps)
+} else {
+    comps <- 1:as.numeric(opt$components)
+}
+
 ## run UMAP
 message("RunUMAP")
 s <- RunUMAP(s,
              cells.use = NULL,
              reduction.use = opt$reductiontype,
-             dims.use = 1:opt$components,
+             dims.use = comps,
              genes.use = NULL,
              assay.use = "RNA",
              max.dim = 2L,

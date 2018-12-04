@@ -40,6 +40,8 @@ option_list <- list(
                 help="project name"),
     make_option(c("--prefix"), default="genesets",
                 help="expected prefix for source files"),
+    make_option(c("--plotdirvar"), default="clusterGenesetsDir",
+                help="latex var containing name of the directory with the plots"),
     make_option(c("--outfile"), default="none",
                 help="outfile")
     )
@@ -273,7 +275,8 @@ for(geneset in genesets)
 
     caption <- paste("Heatmap of the top", geneset, "genesets", sep=" ")
     tex <- c(tex,getSubsectionTex(geneset))
-    tex <- c(tex,getFigureTex(basename(plotfn), caption)) #,plot_dir_var="."))
+    tex <- c(tex,getFigureTex(basename(plotfn), caption,
+                              plot_dir_var=opt$plotdirvar))
     tex <- c(tex,"\n")
 }
 
