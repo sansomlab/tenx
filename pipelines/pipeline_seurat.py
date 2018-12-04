@@ -381,18 +381,52 @@ def cluster(infile, outfile):
 # ########################################################################### #
 
 
-@follows(cluster)
-@files(None,
-       None)
-def compareClusterings(infile, outfile):
+@transform(cluster,
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/cluster.dir/clustree.sentinel")
+def clustree(infile, outfile):
     '''
-    Run the tSNE analysis on a saved seurat object.
 
-    A range of different perplexity choices can be specified.
     '''
-    pass
 
+    indir = os.path.dirname(infile)
+    outdir = os.path.dirname(outfile)
 
+    resolutions_str = str(PARAMS["runspecs_cluster_resolutions"])
+    resolutions = resolutions_str.strip().replace(" ", "").split(",")
+
+    cluster_ids = os.path.join(indir, "cluster_ids.rds")
+
+    sampleDir = Path(cluster_ids).parts[0]
+    runDir = Path(cluster_ids).parts[1]
+    print("********")
+    print(runDir)
+
+    pcs, res, algo, de = runDir.split("_")
+
+    id_files = [ os.path.join(sampleDir,
+                              "_".join([pcs,r,algo,de]),
+                              "cluster.dir",
+                              "cluster_ids.rds")
+                 for r in resolutions ]
+
+    res_str = ",".join(resolutions)
+    id_files_str = ",".join(id_files)
+
+    print(id_files)
+
+    log_file = outfile.replace("sentinel","log")
+
+    statement = '''Rscript %(tenx_dir)s/R/seurat_clustree.R
+                   --resolutions=%(res_str)s
+                   --clusteridfiles=%(id_files_str)s
+                   --outdir=%(outdir)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+    IOTools.touch_file(outfile)
 
 # ########################################################################### #
 # ############### tSNE analysis and related plots ########################### #
@@ -1847,7 +1881,8 @@ def genesets():
 # ##################### Target to collect plots ############################# #
 # ########################################################################### #
 
-@follows(plotTSNEPerplexities, plotTSNEFactors,
+@follows(clustree,
+         plotTSNEPerplexities, plotTSNEFactors,
          plotTSNEGenes, plotTSNEMarkers,
          plotUMAPFactors, diffusionMap,
          plotGroupNumbers)
