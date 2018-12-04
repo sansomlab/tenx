@@ -305,12 +305,9 @@ def genClusterJobs():
     else:
         skip = []
 
-    pcs = ["sig"]
+    pcs_str = str(PARAMS["runspecs_n_components"])
+    pcs = pcs_str.strip().replace(" ", "").split(",")
 
-    if PARAMS["runspecs_n_components"] is not None:
-        pcs_str = str(PARAMS["runspecs_n_components"])
-        pcs = pcs_str.strip().replace(" ", "").split(",")
-        pcs = ["sig"] + pcs
 
     samples = glob.glob("*.seurat.dir")
 

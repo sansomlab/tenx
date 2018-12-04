@@ -45,20 +45,20 @@ The distances between the clusters was assessed using the ``BuildClusterTree'' f
 \caption{Visualisation of inter-cluster distances (cluster average, gene-based)}
 \end{figure}
 
-An alternative distance metric is the median pairwise pearson correlation between the cells of each cluster.
+An alternative distance metric is the median pairwise pearson correlation between the cells of each cluster in pca space.
 
 \begin{figure}[H]
 \includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/cluster.correlation.dendrogram}}}
-\caption{Visualisation of inter-cluster distances (pair-wise, correlation based)}
+\caption{Visualisation of inter-cluster distances (median pairwise pearson correlation in pca space)}
 \end{figure}
 
-The median pairwise pearson correlations between the cells of each cluster are shown in the table below.
+The median pairwise pearson correlations between the cells of each cluster (in pca space) are shown in the table below.
 
 \input{\clusterDir/cluster.pairwise.correlations.tex}
 
 \subsection{Comparison of different clustering resolutions}
 
-The clustree algorithm is used to compared the different clustering resolutions.
+The clustree algorithm is used to compare the different clustering resolutions.
 
 \begin{figure}[H]
 \includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/clustree}}}

@@ -63,10 +63,10 @@ subsetcells:
 runspecs:
     # Number(s) of components for initial dimensions reduction
     # (see Seurat::FindClusters)
-    # a "sig" run using (up to 30) significant components is performed automatically
-    # additional runs with the given numbers of components (no significance filtering)
-    # can be specified here:
-    n_components:
+    #
+    # To use automatically identified significant pca components
+    # use "sig" (this uses BH adjusted p-values from the JackStraw analysis).
+    n_components: 25,sig
 
     # Clustering resolution(s)
     # (see Seurat::FindClusters)
