@@ -63,10 +63,10 @@ subsetcells:
 runspecs:
     # Number(s) of components for initial dimensions reduction
     # (see Seurat::FindClusters)
-    # a "sig" run using (up to 30) significant components is performed automatically
-    # additional runs with the given numbers of components (no significance filtering)
-    # can be specified here:
-    n_components:
+    #
+    # To use automatically identified significant pca components
+    # use "sig" (this uses BH adjusted p-values from the JackStraw analysis).
+    n_components: 25,sig
 
     # Clustering resolution(s)
     # (see Seurat::FindClusters)
@@ -149,6 +149,11 @@ regress:
 # ---------------------------------------
 
 vargenes:
+    # Either "mean.var.plot" or "dispersion"
+    method: mean.var.plot
+    # The number of top genes
+    # (for "dispersion" selection method, othewise ignored).
+    topgenes: 1000
     ## Identification of variable genes (see Seurat::FindVariableGenes)
     # Bottom cutoff on y-axis for identifying variable genes (see y.cutoff=...)
     sdcutoff: 1
@@ -217,6 +222,16 @@ umap:
   mindist: 0.3
   # the choice of metric used to measure distance in the input space
   metric: correlation
+
+# Diffusion map parameters
+# ------------------------
+
+diffmap:
+  # if set to True, the significantly variable genes are used
+  # instead of the reduced dimensions - slower but may give better
+  # results.
+  usegenes: False
+  maxdim: 10
 
 
 # FindMarkers parameters

@@ -258,6 +258,8 @@ def beginSeurat(infile, outfile):
                    --downsamplecells=%(downsamplecells)s
                    --latentvars=%(regress_latentvars)s
                    --modeluse=%(regress_modeluse)s
+                   --vargenesmethod=%(vargenes_method)s
+                   --topgenes=%(vargenes_topgenes)s
                    --sdcutoff=%(vargenes_sdcutoff)s
                    --xlowcutoff=%(vargenes_xlowcutoff)s
                    --xhighcutoff=%(vargenes_xhighcutoff)s
@@ -305,12 +307,9 @@ def genClusterJobs():
     else:
         skip = []
 
-    pcs = ["sig"]
+    pcs_str = str(PARAMS["runspecs_n_components"])
+    pcs = pcs_str.strip().replace(" ", "").split(",")
 
-    if PARAMS["runspecs_n_components"] is not None:
-        pcs_str = str(PARAMS["runspecs_n_components"])
-        pcs = pcs_str.strip().replace(" ", "").split(",")
-        pcs = ["sig"] + pcs
 
     samples = glob.glob("*.seurat.dir")
 
@@ -845,9 +844,16 @@ def diffusionMap(infile, outfile):
     else:
         comp="--components=%(components)s" % locals()
 
+    if PARAMS["diffmap_usegenes"]:
+        usegenes="--usegenes=TRUE"
+    else:
+        usegenes="--usegenes=FALSE"
+
     job_memory = "20G"
 
     tenx_dir = PARAMS["tenx_dir"]
+
+    diffmap_maxdim = PARAMS["diffmap_maxdim"]
 
     outname = outfile.replace(".sentinel", ".txt")
     logfile = outname.replace(".txt", ".log")
@@ -855,8 +861,10 @@ def diffusionMap(infile, outfile):
     statement = '''Rscript %(tenx_dir)s/R/seurat_dm.R
                              --seuratobject=%(seurat_object)s
                              --clusterids=%(cluster_ids)s
+                             %(usegenes)s
                              %(comp)s
                              --reductiontype=%(reductiontype)s
+                             --maxdim=%(diffmap_maxdim)s
                              --outfile=%(outname)s
                              --outdir=%(outdir)s
                              --plotdirvar=diffmapDir
