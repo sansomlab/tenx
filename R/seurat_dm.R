@@ -69,7 +69,7 @@ s <- RunDiffusion(object=s,
         comps <- getSigPC(s)
         message("using the following pcas:")
         print(comps)
-    } else {xs
+    } else {
         comps <- 1:as.numeric(opt$components)
     }
 
