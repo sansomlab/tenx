@@ -120,6 +120,22 @@ option_list <- list(
             )
         ),
     make_option(
+        c("--vargenesmethod"),
+        default="mean.var.plot",
+        help=paste(
+            "Method for variable gene selection.",
+            "Either top.genes or mean.var.plot"
+            )
+        ),
+    make_option(
+        c("--topgenes"),
+        type="integer",
+        default=1000,
+        help=paste(
+            "Number of highly variable genes to retain"
+            )
+        ),
+    make_option(
         c("--sdcutoff"),
         type="double",
         default=0.5,
@@ -658,6 +674,7 @@ png(
     )
 s <- FindVariableGenes(
     s, mean.function=ExpMean, dispersion.function=LogVMR,
+    selection.method=opt$vargenesmethod, top.genes=opt$topgenes,
     x.low.cutoff=opt$xlowcutoff, x.high.cutoff=opt$xhighcutoff,
     y.cutoff=opt$sdcutoff, plot.both=TRUE, do.text=FALSE, do.contour=FALSE
     )
