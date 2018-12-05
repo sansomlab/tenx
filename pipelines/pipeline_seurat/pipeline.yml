@@ -149,18 +149,30 @@ regress:
 # ---------------------------------------
 
 vargenes:
-    # Either "mean.var.plot" or "dispersion"
+    # Either "mean.var.plot" or "dispersion" (experimental: "trendvar")
     method: mean.var.plot
-    # The number of top genes
-    # (for "dispersion" selection method, othewise ignored).
-    topgenes: 1000
-    ## Identification of variable genes (see Seurat::FindVariableGenes)
+    #
+    # options for mean.var.plot method
+    # --------------------------------
     # Bottom cutoff on y-axis for identifying variable genes (see y.cutoff=...)
     sdcutoff: 1
     # Bottom cutoff on x-axis for identifying variable genes (see x.low.cutoff=...)
     xlowcutoff: 0.1
     # Top cutoff on x-axis for identifying variable genes (see x.high.cutoff=...)
     xhighcutoff: 8
+    #
+    # options for dispersion method
+    # -----------------------------
+    # The number of top genes
+    topgenes: 1000
+    #
+    # options for trendvar method
+    # ---------------------------
+    # Implementation experimental, use at own risk!
+    # threshold for identification of genes with significant biological variation
+    padjust: 0.05
+    # recommeded to leave this at 0 to allow identification of weak signals
+    minmean: 0
 
 
 # Dimension reduction parameters

@@ -263,6 +263,8 @@ def beginSeurat(infile, outfile):
                    --sdcutoff=%(vargenes_sdcutoff)s
                    --xlowcutoff=%(vargenes_xlowcutoff)s
                    --xhighcutoff=%(vargenes_xhighcutoff)s
+                   --minmean=%(vargenes_minmean)s
+                   --vargenespadjust=%(vargenes_padjust)s
                    --jackstrawnumreplicates=%(dimreduction_jackstraw_n_replicate)s
                    --numcores=12
                    --plotdirvar=sampleDir
