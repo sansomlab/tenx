@@ -25,6 +25,8 @@
   * R.utils
   * S4Vectors
   * Seurat
+  * scran
+  * scater
   * xtable
   * gsfisher (see [INSTALL](INSTALL.md))
   * tenxutils (see [INSTALL](INSTALL.md))

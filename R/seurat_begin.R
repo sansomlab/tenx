@@ -23,7 +23,8 @@ stopifnot(
   require(dplyr),
   require(Matrix),
   require(xtable),
-  require(tenxutils)
+  require(tenxutils),
+  require(reshape2)
 )
 
 # Options ----
@@ -160,6 +161,22 @@ option_list <- list(
         help=paste(
             "Top cutoff on x-axis for identifying variable genes",
             "See Seurat::FindVariableGenes(x.low.cutoff=...)"
+            )
+    ),
+        make_option(
+        c("--minmean"),
+        type="double",
+        default=0,
+        help=paste(
+            "minimum mean of log counts when using trendvar method"
+            )
+        ),
+        make_option(
+        c("--vargenespadjust"),
+        type="double",
+        default=0.05,
+        help=paste(
+            "significance threshold for trendvar method"
             )
         ),
     make_option(
@@ -668,17 +685,79 @@ writeTex(tex_file, tex)
 ## ######################################################################### ##
 
 ## identify variable genes and output the plots
-png(
-    file.path(opt$outdir, "varGenesPlot.png"), width=8, height=5, unit="in",
-    res=300
-    )
+
+## We need to run FindVariableGenes to set s@hvg.info
+## even if "trendvar" method is specified...
+if(opt$vargenesmethod=="trendvar")
+{
+    fvg_method="mean.var.plot"
+} else {
+    fvg_method=opt$vargenesmethod
+}
+
 s <- FindVariableGenes(
     s, mean.function=ExpMean, dispersion.function=LogVMR,
-    selection.method=opt$vargenesmethod, top.genes=opt$topgenes,
+    selection.method=fvg_method, top.genes=opt$topgenes,
     x.low.cutoff=opt$xlowcutoff, x.high.cutoff=opt$xhighcutoff,
-    y.cutoff=opt$sdcutoff, plot.both=TRUE, do.text=FALSE, do.contour=FALSE
-    )
-dev.off()
+    y.cutoff=opt$sdcutoff, do.plot=FALSE, do.text=FALSE, do.contour=FALSE
+)
+
+xthreshold <- opt$xlowcutoff
+
+if(opt$vargenesmethod=="trendvar")
+{
+    message("setting variable genes using the trendvar method")
+    require(scran)
+    require(scater)
+    ss <- as.SingleCellExperiment(s)
+
+    var.fit.nospike <- trendVar(ss, parametric=TRUE,
+                                use.spikes=FALSE, loess.args=list(span=0.2))
+    var.out.nospike <- decomposeVar(ss, var.fit.nospike,
+                                    subset.row=rowMeans(as.matrix(logcounts(ss))) > opt$minmean)
+
+
+    # TODO: some plots should be made.
+    # plot(var.out.nospike$mean, var.out.nospike$total, pch=16, cex=0.6,
+    #     xlab="Mean log-expression", ylab="Variance of log-expression")
+    # curve(var.fit.nospike$trend(x), col="dodgerblue", lwd=2, add=TRUE)
+    # points(var.out.nospike$mean[cur.spike], var.out.nospike$total[cur.spike], col="red", pch=16)
+    hvg.out <- var.out.nospike[which(var.out.nospike$FDR <= opt$vargenespadjust),]
+    hvg.out <- hvg.out[order(hvg.out$bio, decreasing=TRUE),]
+
+    # overwrite the slot!
+    s@var.genes <- row.names(hvg.out)
+    ## s@hvg.info <- var.out.nospike
+
+    xthreshold <- opt$minmean
+}
+
+
+## make a plot that shows the variable genes.
+xx <- s@hvg.info
+
+xx$var.gene = FALSE
+xx$var.gene[rownames(xx) %in% s@var.genes] <- TRUE
+
+xxm <- melt(xx, id.vars=c("var.gene","gene.mean"))
+
+gp <- ggplot(xxm, aes(gene.mean, value,color=var.gene))
+gp <- gp + scale_color_manual(values=c("black","red"))
+gp <- gp + geom_point(alpha = 1, size=0.5)
+gp <- gp + facet_wrap(~variable, scales="free")
+gp <- gp + theme_classic()
+
+if(xthreshold > 0)
+{
+    gp <- gp + geom_vline(xintercept=xthreshold, linetype="dashed", color="blue")
+}
+
+save_ggplots(file.path(opt$outdir, "varGenesPlot"),
+             gp=gp,
+             width=8,
+             height=5)
+
+
 
 cat("no. variable genes: ", length(s@var.genes), "\n")
 stats$no_variable_genes <- length(s@var.genes)

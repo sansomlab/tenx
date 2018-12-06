@@ -263,6 +263,8 @@ def beginSeurat(infile, outfile):
                    --sdcutoff=%(vargenes_sdcutoff)s
                    --xlowcutoff=%(vargenes_xlowcutoff)s
                    --xhighcutoff=%(vargenes_xhighcutoff)s
+                   --minmean=%(vargenes_minmean)s
+                   --vargenespadjust=%(vargenes_padjust)s
                    --jackstrawnumreplicates=%(dimreduction_jackstraw_n_replicate)s
                    --numcores=12
                    --plotdirvar=sampleDir
@@ -2049,6 +2051,7 @@ def latexVars(infile, outfile):
             "modelType": "%(regress_modeluse)s" % PARAMS,
             "latentVariables": "%(latentvars)s" % locals(),
             "cellCycle": "%(regress_cellcycle)s" % PARAMS,
+            "varGeneMethod": "%(vargenes_method)s" % PARAMS,
             "sdCutOff": "%(vargenes_sdcutoff)s" % PARAMS,
             "conservedFactor": "%(conservedFactor)s" % locals(),
             "conservedBetweenFactor": "%(conservedBetweenFactor)s" % locals()}
