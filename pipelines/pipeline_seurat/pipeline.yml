@@ -149,8 +149,10 @@ regress:
 # ---------------------------------------
 
 vargenes:
-    # Either "mean.var.plot" or "dispersion" (experimental: "trendvar")
-    method: mean.var.plot
+    # Either "mean.var.plot" or "dispersion" or "trendvar"
+    # use of trendvar is recommended and requires the
+    # bioconductor packages "scran" and "scater"
+    method: trendvar
     #
     # options for mean.var.plot method
     # --------------------------------
@@ -171,9 +173,10 @@ vargenes:
     # Implementation experimental, use at own risk!
     # threshold for identification of genes with significant biological variation
     padjust: 0.05
-    # recommeded to leave this at 0 to allow identification of weak signals
-    minmean: 0
-
+    # Minimum average expression for inclusion as a variable gene
+    # It is has been recommeded to leave this at 0 to allow identification of weak signals
+    # from rare cell types. Equivalent to "xlowcutoff" for seurat.
+    minmean: 0.01
 
 # Dimension reduction parameters
 # ------------------------------

@@ -702,6 +702,8 @@ s <- FindVariableGenes(
     y.cutoff=opt$sdcutoff, do.plot=FALSE, do.text=FALSE, do.contour=FALSE
 )
 
+xthreshold <- opt$xlowcutoff
+
 if(opt$vargenesmethod=="trendvar")
 {
     message("setting variable genes using the trendvar method")
@@ -725,7 +727,9 @@ if(opt$vargenesmethod=="trendvar")
 
     # overwrite the slot!
     s@var.genes <- row.names(hvg.out)
-    #s@hvg.info <- var.out.nospike
+    ## s@hvg.info <- var.out.nospike
+
+    xthreshold <- opt$minmean
 }
 
 
@@ -743,7 +747,12 @@ gp <- gp + geom_point(alpha = 1, size=0.5)
 gp <- gp + facet_wrap(~variable, scales="free")
 gp <- gp + theme_classic()
 
-save_ggplots(file.path(opt$outdir, "varGenesPlot.png"),
+if(xthreshold > 0)
+{
+    gp <- gp + geom_vline(xintercept=xthreshold, linetype="dashed", color="blue")
+}
+
+save_ggplots(file.path(opt$outdir, "varGenesPlot"),
              gp=gp,
              width=8,
              height=5)
