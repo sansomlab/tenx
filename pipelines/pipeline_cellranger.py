@@ -678,16 +678,100 @@ def cellrangerAggr(infile, outfile):
 
     IOTools.touch_file(outfile)
 
+# ########################################################################### #
+# #################### Run dropEst for RNA velocity analysis ################ #
+# ########################################################################### #
+
+
+@transform(cellrangerCount,
+           regex(r"(.*)-count/cellranger.count.sentinel"),
+           r"\1-dropest/dropest.sentinel")
+def dropEst(infile, outfile):
+    '''
+       Run dropEst to enable RNA velocity analysis.
+    '''
+
+    sample_name = outfile.split("-dropest")[0]
+
+    gtf = os.path.join(PARAMS["cellranger_transcriptome"],
+                       "genes",
+                       "genes.gtf")
+
+    config = PARAMS["dropest_config"]
+
+    log_file = outfile.replace(".sentinel",".log")
+
+    indir = os.path.dirname(infile)
+    outdir= os.path.dirname(outfile)
+
+    out_path = os.path.join(outdir, sample_name)
+
+    tagged_bam = os.path.join(indir,
+                              "outs",
+                              "possorted_genome_bam.bam")
+
+    job_memory = "20000M"
+
+    statement = '''dropest -V
+                          -g %(gtf)s
+                          -c %(config)s
+                          -o %(out_path)s
+                          -w
+                          -l %(out_path)s
+                          -f %(tagged_bam)s
+                    &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+    IOTools.touch_file(outfile)
+
+
+@follows(dropEst,
+         mkdir("dropEst-aggr"))
+@files(writeSampleInformation,
+       "dropEst-aggr/dropEst.aggr.sentinel")
+def dropEstAggr(infile, outfile):
+    '''
+       Mimic the cellranger aggr step...
+    '''
+
+    outdir = os.path.dirname(outfile)
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    mexdir = PARAMS["postprocess_mexdir"]
+
+    if mexdir is None:
+        raise ValueError('"postprocess_mexdir" parameter not set'
+                         ' in file "pipeline.yml"')
+
+    tenxdir = os.path.join(outdir, mexdir)
+
+    if not os.path.exists(tenxdir):
+        os.makedirs(tenxdir)
+
+    job_memory = "50G"
+
+    statement='''Rscript %(tenx_dir)s/R/dropest_aggr.R
+                 --sampletable=%(infile)s
+                 --outdir=%(tenxdir)s
+                 &> %(log_file)s
+              '''
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
 
 # ########################################################################### #
 # ################### post-process cellranger matrices  ##################### #
 # ########################################################################### #
 
-@follows(mkdir("all-processed.dir"))
-@transform(cellrangerAggr,
-           regex(r"all-aggr/.*"),
+#@follows(mkdir("all-processed.dir"))
+@transform([cellrangerAggr, dropEstAggr],
+           regex(r"(.*)-aggr/.*"),
            add_inputs(collectSampleInformation),
-           r"all-processed.dir/postprocess.sentinel")
+           r"\1-processed.dir/postprocess.sentinel")
 def postprocessAggrMatrix(infiles, outfile):
     '''
     Post-process the cellranger aggr count matrix.
@@ -697,6 +781,10 @@ def postprocessAggrMatrix(infiles, outfile):
     Optionally cells with barcodes shared (within sequencing batch)
     between samples can be removed (known index hopping on Illumina 4000).
     '''
+
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
 
     infile = infiles[0]
 
@@ -748,17 +836,20 @@ def postprocessAggrMatrix(infiles, outfile):
     IOTools.touch_file(outfile)
 
 
-@follows(mkdir("datasets.dir"))
 @transform(postprocessAggrMatrix,
-           regex(r".*/postprocess.sentinel"),
+           regex(r"(.*)-processed.dir/postprocess.sentinel"),
            add_inputs(collectSampleInformation),
-           "datasets.dir/subsetAndDownsample.sentinel")
+           r"\1-datasets.dir/subsetAndDownsample.sentinel")
 def subsetAndDownsample(infiles, outfile):
     '''
     Generate datasets that include subsets of the 10x samples.
 
     Optionally downsample UMI counts to normalise between samples.
     '''
+
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
 
     agg_matrix_dir = os.path.join(os.path.dirname(infiles[0]),
                                   "agg.processed.dir")
@@ -777,6 +868,8 @@ def subsetAndDownsample(infiles, outfile):
         downsampling_function = "no"
 
     downsampling_apply = PARAMS["downsampling_apply"]
+
+    job_memory = PARAMS["postprocess_memory"]
 
     statements = []
 
@@ -819,6 +912,8 @@ def subsetAndDownsample(infiles, outfile):
     P.run(statements)
 
     IOTools.touch_file(outfile)
+
+
 
 
 # ---------------------------------------------------
