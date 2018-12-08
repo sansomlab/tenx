@@ -1,11 +1,23 @@
-\section{Data pre-processing}
+\section{Data quality control}
 \input{\tenxDir/pipelines/pipeline_seurat/qcSection.tex}
+
+\clearpage
+
+\section{Removal of unwanted variation}
 \input{\tenxDir/pipelines/pipeline_seurat/ruvSection.tex}
 \input{\sampleDir/cell.cycle.tex}
 \input{\tenxDir/pipelines/pipeline_seurat/summaryStatsSection.tex}
 
+\clearpage
 
-\section{Feature (gene) selection and dimension reduction}
+\section{Highly variable gene identification}
 
 \input{\tenxDir/pipelines/pipeline_seurat/variableGeneSection.tex}
+
+\clearpage
+
+\section{Dimension reduction}
+
 \input{\tenxDir/pipelines/pipeline_seurat/dimensionReductionSection.tex}
+
+\clearpage

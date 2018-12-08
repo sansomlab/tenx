@@ -343,6 +343,15 @@ g_legend<-function(a.ggplot){
     legend
 }
 
+#' function to return colors matching ggplot2
+#' see: https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
+#' @param n Number of colours to return.
+gg_color_hue <- function(n) {
+    hues = seq(15, 375, length = n + 1)
+    hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+
 ## save png and pdf version of base graphics plots
 #' Wrapper function for saving base R plots in both pdf and png format
 #' @param filepath The name of the file to write to (without .pdf or .png extension)

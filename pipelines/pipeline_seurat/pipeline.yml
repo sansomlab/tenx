@@ -241,12 +241,38 @@ umap:
 # Diffusion map parameters
 # ------------------------
 
-diffmap:
-  # if set to True, the significantly variable genes are used
+diffusionmap:
+  run: False
+  # if usegenes is set to True, the significantly variable genes are used
   # instead of the reduced dimensions - slower but may give better
   # results.
   usegenes: False
   maxdim: 10
+
+
+# RNA Velocity
+# ------------
+
+velocity:
+  run: False
+
+  ncores: 8
+  minmaxclustavemat: 0.2
+  minmaxclustavnmat: 0.05
+  deltat: 1
+  kcells: 15
+  fitquantile: 0.02
+  neighbourhoodsize: 100
+  velocityscale: log
+  arrowscale: 3
+  arrowlwd: 1.3
+  gridflow: TRUE
+  mingridcellmass: 0.5
+  gridn: 40
+  cellalpha: 1
+  cellborderalpha: 0.5
+  showaxes: TRUE
+  plotcex: 1
 
 
 # FindMarkers parameters
@@ -351,7 +377,7 @@ genesets:
   # be shown in the summary heatmaps?
   show_common: True
 
-gmt_files:
+gmt_pathway_files:
 
   # Arbitrary genesets can be specified here using gmt files.
   # the key is taken as the set name, and the value as the path to the gmt file, i.e.
@@ -367,10 +393,6 @@ gmt_files:
   # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.gmt
   # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.gmt
   #
-  # > human cell types >
-  #
-  # xCell: /gfs/mirror/xCell/xCell_entrezID.gmt
-  #
   # > mouse msigdb sets >
   #
   # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.mouse.gmt
@@ -378,3 +400,9 @@ gmt_files:
   # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.mouse.gmt
   # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.mouse.gmt
   # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.mouse.gmt
+
+gmt_celltype_files:
+  # > human cell types >
+  #
+  # xCell: /gfs/mirror/xCell/xCell_entrezID.gmt
+  #

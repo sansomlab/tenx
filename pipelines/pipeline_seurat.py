@@ -617,91 +617,6 @@ def plotTSNEFactors(infile, outfile):
     IOTools.touch_file(outfile)
 
 
-@transform(tSNE,
-           regex(r"(.*)/tsne.dir/tsne.sentinel"),
-           r"\1/genelists.dir/plot.rdims.genes.sentinel")
-def plotTSNEGenes(infile, outfile):
-    '''
-    Visualise gene expression levels on tSNE plots.
-
-    The @data slot of the seurat object is used.
-    '''
-
-    outdir = os.path.dirname(outfile)
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    sample_dir = str(Path(outdir).parents[1])
-    seurat_object = os.path.join(sample_dir, "begin.rds")
-
-    tex_path = os.path.join(outdir, "plot.rdims.known.genes.tex")
-
-    if PARAMS["exprsreport_genelists"]:
-        genelists = glob.glob(
-            os.path.join(PARAMS["exprsreport_genelist_dir"], "*.txt"))
-
-        job_memory = "20G"
-
-        tsne_table = infile.replace(
-            "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-
-        for genelist in genelists:
-
-            fname = "plot.rdims.genes." + os.path.basename(genelist) + ".log"
-            logfile = os.path.join(outdir, fname)
-
-            if PARAMS["plot_shape"] is not None:
-                shape = "--shapefactor=%(plot_shape)s" % PARAMS
-            else:
-                shape = ""
-
-            statement = '''Rscript %(tenx_dir)s/R/plot_rdims_gene.R
-                           --method=tsne
-                           --table=%(tsne_table)s
-                           --seuratobject=%(seurat_object)s
-                           --rdim1=tSNE_1
-                           --rdim2=tSNE_2
-                           %(shape)s
-                           --genetable=%(genelist)s
-                           --pointsize=%(plot_pointsize)s
-                           --pointalpha=%(plot_pointalpha)s
-                           --outdir=%(outdir)s
-                           --plotdirvar=genelistsDir
-                           &> %(logfile)s
-                       '''
-            P.run(statement)
-
-        # prepare a summary tex snippet for inclusion in the report.
-
-        with(open(tex_path, "w")) as tex:
-
-            for genelist in genelists:
-
-                texf = os.path.join(
-                    outdir,
-                    "plot.rdims.genes." +
-                    os.path.basename(genelist).replace(".txt", ""))
-
-                gsname = os.path.basename(
-                    genelist)[:-len(".txt")].replace("_", "\\_")
-
-                tex.write(
-                    "\\subsection{Expression of known genes: %s}\n" % gsname)
-                tex.write(
-                    "\\input{%(texf)s}\n" % locals())
-
-            tex.write("\n")
-
-    else:
-
-        with(open(tex_path, "w")) as tex:
-
-            tex.write("No genelists were specified.\n")
-            tex.write("\n")
-
-    IOTools.touch_file(outfile)
-
-
 # ########################################################################### #
 # ############### UMAP analysis and related plots ########################### #
 # ########################################################################### #
@@ -823,9 +738,10 @@ def plotUMAPFactors(infile, outfile):
 # ############################## Diffusion maps ############################# #
 # ########################################################################### #
 
+@active_if(PARAMS["diffusionmap_run"])
 @transform(cluster,
            regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/diffmap.dir/dm.sentinel")
+           r"\1/diffusionmap.dir/dm.sentinel")
 def diffusionMap(infile, outfile):
     '''
     Run the diffusion map analysis on a saved seurat object.
@@ -846,7 +762,7 @@ def diffusionMap(infile, outfile):
     else:
         comp="--components=%(components)s" % locals()
 
-    if PARAMS["diffmap_usegenes"]:
+    if PARAMS["diffusionmap_usegenes"]:
         usegenes="--usegenes=TRUE"
     else:
         usegenes="--usegenes=FALSE"
@@ -855,7 +771,7 @@ def diffusionMap(infile, outfile):
 
     tenx_dir = PARAMS["tenx_dir"]
 
-    diffmap_maxdim = PARAMS["diffmap_maxdim"]
+    diffmap_maxdim = PARAMS["diffusionmap_maxdim"]
 
     outname = outfile.replace(".sentinel", ".txt")
     logfile = outname.replace(".txt", ".log")
@@ -876,6 +792,156 @@ def diffusionMap(infile, outfile):
     P.run(statement)
     IOTools.touch_file(outfile)
 
+
+# ########################################################################### #
+# ########################### RNA Velocity ################################## #
+# ########################################################################### #
+
+@active_if(PARAMS["velocity_run"])
+@transform(UMAP,
+           regex(r"(.*)/umap.dir/umap.sentinel"),
+           r"\1/velocity.dir/plot.velocity.sentinel")
+def velocity(infile, outfile):
+    '''
+       Plot the RNA velocity.
+       This analysis is highly parameterised and different configurations can
+       suggest different interpretations of the data: it is strong recommended
+       to determine the best settings manually!
+    '''
+
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    rdimstable = infile.replace(".sentinel", ".txt")
+    sample = infile.split(".seurat.dir")[0]
+
+    matrixdir = os.path.join("data.velocity.dir",
+                             sample + ".dir")
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    job_threads = PARAMS["velocity_ncores"]
+    job_memory = "10G"
+
+    statement = '''Rscript %(tenx_dir)s/R/plot_velocity.R
+                --ncores=%(velocity_ncores)s
+                --rdimstable=%(rdimstable)s
+                --rdim1=UMAP1
+                --rdim2=UMAP2
+                --matrixdir=%(matrixdir)s
+                --minmaxclustavemat=%(velocity_minmaxclustavemat)s
+                --minmaxclustavnmat=%(velocity_minmaxclustavnmat)s
+                --deltat=%(velocity_deltat)s
+                --kcells=%(velocity_kcells)s
+                --fitquantile=%(velocity_fitquantile)s
+                --neighbourhoodsize=%(velocity_neighbourhoodsize)s
+                --velocityscale=%(velocity_velocityscale)s
+                --arrowscale=%(velocity_arrowscale)s
+                --arrowlwd=%(velocity_arrowlwd)s
+                --gridflow=%(velocity_gridflow)s
+                --mingridcellmass=%(velocity_mingridcellmass)s
+                --gridn=%(velocity_gridn)s
+                --cellalpha=%(velocity_cellalpha)s
+                --cellborderalpha=%(velocity_cellborderalpha)s
+                --showaxes=%(velocity_showaxes)s
+                --plotdirvar=velocityDir
+                --plotcex=%(velocity_plotcex)s
+                --outdir=%(outdir)s
+                &> %(log_file)s
+                '''
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+
+# ########################################################################### #
+# ###### Visualise gene expression across cells in reduced dimensions ####### #
+# ########################################################################### #
+
+@transform(UMAP,
+           regex(r"(.*)/umap.dir/umap.sentinel"),
+           r"\1/genelists.dir/plot.rdims.genes.sentinel")
+def plotUMAPGenes(infile, outfile):
+    '''
+    Visualise gene expression levels on reduced dimension coordinates
+
+    The @data slot of the seurat object is used.
+    '''
+
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    sample_dir = str(Path(outdir).parents[1])
+    seurat_object = os.path.join(sample_dir, "begin.rds")
+
+    tex_path = os.path.join(outdir, "plot.rdims.known.genes.tex")
+
+    if PARAMS["exprsreport_genelists"]:
+        genelists = glob.glob(
+            os.path.join(PARAMS["exprsreport_genelist_dir"], "*.txt"))
+
+        job_memory = "20G"
+
+        rdims_table = infile.replace(
+            ".sentinel", ".txt")
+
+        for genelist in genelists:
+
+            fname = "plot.rdims.genes." + os.path.basename(genelist) + ".log"
+            logfile = os.path.join(outdir, fname)
+
+            if PARAMS["plot_shape"] is not None:
+                shape = "--shapefactor=%(plot_shape)s" % PARAMS
+            else:
+                shape = ""
+
+            statement = '''Rscript %(tenx_dir)s/R/plot_rdims_gene.R
+                           --method=umap
+                           --table=%(rdims_table)s
+                           --seuratobject=%(seurat_object)s
+                           --rdim1=UMAP1
+                           --rdim2=UMAP2
+                           %(shape)s
+                           --genetable=%(genelist)s
+                           --pointsize=%(plot_pointsize)s
+                           --pointalpha=%(plot_pointalpha)s
+                           --outdir=%(outdir)s
+                           --plotdirvar=genelistsDir
+                           &> %(logfile)s
+                       '''
+            P.run(statement)
+
+        # prepare a summary tex snippet for inclusion in the report.
+
+        with(open(tex_path, "w")) as tex:
+
+            for genelist in genelists:
+
+                texf = os.path.join(
+                    outdir,
+                    "plot.rdims.genes." +
+                    os.path.basename(genelist).replace(".txt", ""))
+
+                gsname = os.path.basename(
+                    genelist)[:-len(".txt")].replace("_", "\\_")
+
+                tex.write(
+                    "\\subsection{Expression of known genes: %s}\n" % gsname)
+                tex.write(
+                    "\\input{%(texf)s}\n" % locals())
+
+            tex.write("\n")
+
+    else:
+
+        with(open(tex_path, "w")) as tex:
+
+            tex.write("No genelists were specified.\n")
+            tex.write("\n")
+
+    IOTools.touch_file(outfile)
 
 
 # ########################################################################### #
@@ -1587,23 +1653,28 @@ def markers():
 # ######################### Geneset Analysis ################################ #
 # ########################################################################### #
 
-def parseGMTs():
-    '''Helper function for parsing the list of GMT files'''
+def parseGMTs(param_keys=["gmt_pathway_files_"]):
+    '''Helper function for parsing the lists of GMT files'''
 
-    gmts = [x for x in PARAMS.keys()
-            if x.startswith("gmt_files_")]
+    for param_key in param_keys:
 
-    if len(gmts) > 0:
-        gmt_files = ",".join([PARAMS[x] for x in gmts])
+        all_files=""
+        all_names=""
 
-        gmt_names = ",".join([x.replace("gmt_files_", "")
+        gmts = [x for x in PARAMS.keys()
+                if x.startswith(param_key)]
+
+        if len(gmts) > 0:
+            all_files += ",".join([PARAMS[x] for x in gmts])
+
+            all_names += ",".join([x.replace(param_key, "")
                               for x in gmts])
 
-    else:
-        gmt_files = "none"
-        gmt_names = "none"
+    if all_files == "":
+        all_files = "none"
+        all_names = "none"
 
-    return gmt_names, gmt_files
+    return all_names, all_files
 
 
 # ------------------- < between cluster geneset analysis > ------------------ #
@@ -1640,8 +1711,9 @@ def genesetAnalysis(infiles, outfile):
     kegg_pathways = os.path.join(os.path.dirname(genesetAnno),
                                  "kegg_pathways.rds")
 
-    gmt_names, gmt_files = parseGMTs()
-
+    param_keys = ["gmt_celltype_files_",
+                  "gmt_pathway_files_"]
+    gmt_names, gmt_files = parseGMTs(param_keys=param_keys)
 
     with open(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
@@ -1703,7 +1775,9 @@ def summariseGenesetAnalysis(infile, outfile):
     # need to sort out the dependencies properly!
     genesetdir = os.path.dirname(infile)
 
-    gmt_names, gmt_files = parseGMTs()
+    param_keys = ["gmt_celltype_files_",
+                  "gmt_pathway_files_"]
+    gmt_names, gmt_files = parseGMTs(param_keys=param_keys)
 
     with open(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
@@ -1770,9 +1844,8 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
     kegg_pathways = os.path.join(os.path.dirname(genesetAnno),
                                  "kegg_pathways.rds")
 
-    genesets = [x for x in PARAMS.keys() if x.startswith("genesets_")]
 
-    gmt_names, gmt_files = parseGMTs()
+    gmt_names, gmt_files = parseGMTs(param_keys=["gmt_pathway_files_"])
 
 
 
@@ -1854,9 +1927,7 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
 
     logfile = outfile + ".log"
 
-    genesets = [x for x in PARAMS.keys() if x.startswith("genesets_")]
-
-    gmt_names, gmt_files = parseGMTs()
+    gmt_names, gmt_files = parseGMTs(param_keys=["gmt_pathway_files_"])
 
     use_adjusted = str(PARAMS["genesets_use_adjusted_pvalues"]).upper()
     show_common = str(PARAMS["genesets_show_common"]).upper()
@@ -1893,9 +1964,9 @@ def genesets():
 
 @follows(clustree,
          plotTSNEPerplexities, plotTSNEFactors,
-         plotTSNEGenes, plotTSNEMarkers,
+         plotUMAPGenes, plotTSNEMarkers,
          plotUMAPFactors, diffusionMap,
-         plotGroupNumbers)
+         plotGroupNumbers, velocity)
 def plots():
     '''
     Intermediate target to collect plots.
@@ -1975,6 +2046,8 @@ def latexVars(infile, outfile):
     umapDir = os.path.join(runDir,
                            "umap.dir")
 
+    velocityDir = os.path.join(runDir,
+                               "velocity.dir")
 
     # runDir is the directory containing the begin.rds object.
     sampleDir = Path(outdir).parents[1]
@@ -2030,6 +2103,7 @@ def latexVars(infile, outfile):
             "diffmapDir": "%(diffmapDir)s" % locals(),
             "groupNumbersDir": "%(groupNumbersDir)s" % locals(),
             "umapDir": "%(umapDir)s" % locals(),
+            "velocityDir": "%(velocityDir)s" % locals(),
             "runName": "%(runName)s" % locals(),
             "runDetails": "%(runDetails)s" % locals(),
             "tenxDir": "%(tenx_dir)s" % PARAMS,
@@ -2143,6 +2217,20 @@ def summaryReport(infile, outfile):
 
     statement += '''
       \\input %(tenx_dir)s/pipelines/pipeline_seurat/clusterReport.tex
+      '''
+
+    if(PARAMS["diffusionmap_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/velocitySection.tex
+        '''
+
+    if(PARAMS["velocity_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/velocitySection.tex
+        '''
+
+    statement += '''
+      \\input %(tenx_dir)s/pipelines/pipeline_seurat/markerReport.tex
       '''
 
     # When relevant, add section that compares
