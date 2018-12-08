@@ -154,7 +154,11 @@ for(geneset in genesets)
         contents <- contents[order(contents$cluster,contents$p.val),]
 
         ## Tidy up the frame
-        firstcols <- c("cluster","geneset_id","description","p.adj","p.val","odds.ratio","n_clust_sig","n_fg","n_bg")
+        firstcols <- c("cluster","geneset_id","description",
+                       "p.adj","p.val",
+                       "odds.ratio",
+                       "n_clust_sig","n_fg","n_bg")
+
         firstcols <- firstcols[firstcols %in% colnames(contents)]
         othercols <- colnames(contents)[!colnames(contents) %in% firstcols]
         contents <- contents[,c(firstcols,othercols)]
@@ -167,9 +171,15 @@ for(geneset in genesets)
             xx <- contents[[numeric_col]]
 
             nas <- is.na(xx)
-            ints <- all((xx - round(xx)) == 0)
+            if(any(abs(xx)==Inf))
+            {
+                ints <- FALSE
+            } else {
+                ints <- all((xx - round(xx)) == 0)
+            }
             xx[xx<1000 & !nas & !ints] <- signif(xx[xx<1000 & !nas & !ints],digits=3)
             xx[xx>=1000 & !nas] <- round(xx[xx>=1000 & !nas],digits=0)
+
             xx[ints] <- as.integer(xx[ints])
 
             contents[[numeric_col]] <- xx

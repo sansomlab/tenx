@@ -142,7 +142,7 @@ for(color_var in color_vars)
     texCaption <- paste(opt$method,"plot colored by",color_var)
 
     tex <- paste(tex,
-                 getSubsubsectionTex(texCaption),
+                 getSubsectionTex(texCaption),
                  getFigureTex(plotfilename,texCaption,
                               plot_dir_var=opt$plotdirvar),
                  sep="\n")
@@ -155,7 +155,6 @@ print("Writing out latex snippet")
 
 tex_file <- file.path(opt$outdir,
                       paste("plot.rdims",
-                            opt$method,
                             "factor.tex",
                             sep="."))
 

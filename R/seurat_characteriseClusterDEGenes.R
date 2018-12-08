@@ -147,7 +147,7 @@ save_ggplots(defpath,
              height=10)
 
 ## start building figure latex...
-subsectionTitle <- getSubsubsectionTex(paste("Differentially expressed genes, cluster:",cluster))
+subsectionTitle <- getSubsectionTex(paste0("Cluster ",cluster,": summary plots"))
 tex <- c(tex, subsectionTitle)
 
 deCaption <- paste("Differential expression summary plots for cluster ",cluster)

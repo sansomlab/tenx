@@ -186,7 +186,7 @@ option_list <- list(
             "A file containing the list of barcode ids to retain",
             "(no header, 1 per line)."
             )
-        ),
+    ),
     make_option(
         c("--subsetfactor"),
         default=NULL,
@@ -196,6 +196,14 @@ option_list <- list(
         c("--subsetlevel"),
         default="none",
         help="The desired level of the sub-setting factor"),
+    make_option(
+        c("--blacklist"),
+        default=NULL,
+        help=paste(
+            "A file containing a list of barcode ids to remove (if present)",
+            "(no header, 1 per line)."
+            )
+        ),
     make_option(
         c("--cellcycle"),
         default="none",
@@ -398,13 +406,36 @@ if (!opt$groupby %in% colnames(s@meta.data)) {
 ## ####################### (ii) Subsetting ################################# ##
 ## ######################################################################### ##
 
+getSubset <- function(seurat_object, cells_to_retain)
+{
+        if ( identical(length(cells_to_retain), 0L) ) {
+            stop("No cells present in subset")
+        }
+
+        message("Number of cells before subsetting:")
+        print(length(s@cell.names))
+
+        s <- SubsetData(s,
+                        cells.use=cells_to_retain,
+                        subset.raw=TRUE)
+
+        message("Number of cells after subsetting:")
+        print(length(s@cell.names))
+
+        s
+}
+
+
 
 # KRA: pipeline.yml says "to retain all the cells for a sample use the
 # string "use.all".. why is it used for subsetting here?!
 # TODO: use comments to explain what is done
 if (opt$subsetcells!="use.all") {
+
+    message("subsetting to whitelisted cells")
     cells_to_retain <- scan(opt$subsetcells, "character")
-    s <- SubsetData(s, cells.use=cells_to_retain)
+    s <- getSubset(s, cells_to_retain)
+
 } else {
     if (!is.null(opt$subsetfactor)) {
         if(!opt$subsetfactor %in% colnames(s@meta.data)) {
@@ -415,17 +446,27 @@ if (opt$subsetcells!="use.all") {
             stop("The specified level of the subsetting factor does not exist")
         }
 
+        message("subsetting by factor")
         cells_to_retain <- rownames(s@meta.data)[
             s@meta.data[, opt$subsetfactor] == opt$subsetlevel
             ]
 
-        if ( identical(length(cells_to_retain), 0L) ) {
-            stop("No cells present in subset")
-        }
+        s <- getSubset(s, cells_to_retain)
 
-        s <- SubsetData(s, cells.use=cells_to_retain)
     }
 }
+
+# Remove blacklisted cells.
+if(!is.null(opt$blacklist))
+{
+    message("removing blacklisted cells")
+
+    blacklist <- scan(opt$blacklist, "character")
+
+    cells_to_retain <- s@cell.names[!s@cell.names %in% blacklist]
+
+    s <- getSubset(s, cells_to_retain)
+    }
 
 ## ######################################################################### ##
 ## ##################### (iii) QC filtering ################################ ##
