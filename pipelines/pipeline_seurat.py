@@ -225,6 +225,16 @@ def beginSeurat(infile, outfile):
     else:
         subset = ""
 
+
+    # Deal with blacklist
+    if PARAMS["blacklist_active"]:
+        blacklist = '''--blacklist=%(blacklist_path)s
+                    ''' % PARAMS
+    else:
+        blacklist = ""
+
+
+    # Deal with cell-cycle options
     if ( os.path.isfile(PARAMS["cellcycle_sgenes"]) and
          os.path.isfile(PARAMS["cellcycle_g2mgenes"]) ):
 
@@ -269,6 +279,7 @@ def beginSeurat(infile, outfile):
                    --numcores=12
                    --plotdirvar=sampleDir
                    %(subset)s
+                   %(blacklist)s
                    %(cell_cycle_genes)s
                    %(cell_cycle_regress)s
                    &> %(log_file)s
@@ -496,7 +507,6 @@ def tSNE(infile, outfile):
     P.run(statements)
     IOTools.touch_file(outfile)
 
-
 @transform(tSNE,
            regex(r"(.*)/tsne.sentinel"),
            r"\1/plot.tsne.perplexities.sentinel")
@@ -543,72 +553,6 @@ def plotTSNEPerplexities(infile, outfile):
                    --pointalpha=%(plot_pointalpha)s
                    --plotdirvar=tsneDir
                    --outdir=%(outdir)s
-                   &> %(log_file)s
-                '''
-
-    P.run(statement)
-
-    IOTools.touch_file(outfile)
-
-
-@transform(tSNE,
-           regex(r"(.*)/tsne.sentinel"),
-           r"\1/plot.rdims.tsne.factor.sentinel")
-def plotTSNEFactors(infile, outfile):
-    '''
-    Visualise factors of interest on tSNE plots
-
-    Make tSNE plots coloring cells by e.g. QC variables, batch and cluster.
-    Plots for cluster, seq_id and agg_id are made when these factors
-    have more than one level. The shape factor will be used for all plots.
-
-    One additional plot will be made for each coloring factor specifed.
-    '''
-
-    outdir = os.path.dirname(outfile)
-
-    job_memory = "20G"
-
-    tsne_table = infile.replace(
-        "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-
-    color_factors = ["cluster"]
-
-    if PARAMS["plot_qcvars"] is not None:
-        color_factors += [x.strip() for x in
-                          PARAMS["plot_qcvars"].split(",")]
-
-    if PARAMS["plot_groups"] is not None:
-        color_factors += [x.strip() for x in
-                          PARAMS["plot_groups"].split(",")]
-
-    if PARAMS["plot_subgroup"] is not None:
-        color_factors += [x.strip() for x in
-                          PARAMS["plot_subgroup"].split(",")]
-
-    # ensure list is unique whilst preserving order.
-    color_factors = list(dict.fromkeys(color_factors))
-
-    color_factors = "--colorfactors=" + ",".join(color_factors)
-
-    if PARAMS["plot_shape"] is not None:
-        shape_factors = "--shapefactor=%(plot_shape)s" % PARAMS
-    else:
-        shape_factors = ""
-
-    log_file = outfile.replace(".sentinel", ".log")
-
-    statement = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
-                   --method=tsne
-                   --table=%(tsne_table)s
-                   --rdim1=tSNE_1
-                   --rdim2=tSNE_2
-                   %(shape_factors)s
-                   %(color_factors)s
-                   --pointsize=%(plot_pointsize)s
-                   --pointalpha=%(plot_pointalpha)s
-                   --outdir=%(outdir)s
-                   --plotdirvar=tsneDir
                    &> %(log_file)s
                 '''
 
@@ -675,64 +619,6 @@ def UMAP(infile, outfile):
     P.run(statement)
     IOTools.touch_file(outfile)
 
-
-@transform(UMAP,
-           regex(r"(.*)/umap.sentinel"),
-           r"\1/plot.rdims.umap.factor.sentinel")
-def plotUMAPFactors(infile, outfile):
-    '''
-    Visualise the clusters on the UMAP projection
-    '''
-
-    outdir = os.path.dirname(outfile)
-    job_memory = "20G"
-
-    umap_table = infile.replace(
-        "sentinel", "txt")
-
-    color_factors = ["cluster"]
-
-    if PARAMS["plot_qcvars"] is not None:
-        color_factors += [x.strip() for x in
-                          PARAMS["plot_qcvars"].split(",")]
-
-    if PARAMS["plot_groups"] is not None:
-        color_factors += [x.strip() for x in
-                          PARAMS["plot_groups"].split(",")]
-
-    if PARAMS["plot_subgroup"] is not None:
-        color_factors += [x.strip() for x in
-                          PARAMS["plot_subgroup"].split(",")]
-
-    # ensure list is unique whilst preserving order.
-    color_factors = list(dict.fromkeys(color_factors))
-
-    color_factors = "--colorfactors=" + ",".join(color_factors)
-
-
-    if PARAMS["plot_shape"] is not None:
-        shape_factors = "--shapefactor=%(plot_shape)s" % PARAMS
-    else:
-        shape_factors = ""
-
-    log_file = outfile.replace(".sentinel", ".log")
-
-    statement = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
-                   --method=umap
-                   --table=%(umap_table)s
-                   --rdim1=UMAP1
-                   --rdim2=UMAP2
-                   %(shape_factors)s
-                   %(color_factors)s
-                   --pointsize=%(plot_pointsize)s
-                   --pointalpha=%(plot_pointalpha)s
-                   --outdir=%(outdir)s
-                   --plotdirvar=umapDir
-                   &> %(log_file)s
-                '''
-
-    P.run(statement)
-    IOTools.touch_file(outfile)
 
 # ########################################################################### #
 # ############################## Diffusion maps ############################# #
@@ -854,15 +740,105 @@ def velocity(infile, outfile):
     P.run(statement)
     IOTools.touch_file(outfile)
 
+# ########################################################################### #
+# ################## Set the DR visualisation method ######################## #
+# ########################################################################### #
+
+# Used to show clusters, factors of interest and gene expression levels
+# in various downstream functions
+
+if PARAMS["dimreduction_visualisation"].lower() == "tsne":
+    RDIMS_VIS_TASK = tSNE
+    RDIMS_VIS_METHOD = "tsne"
+    RDIMS_VIS_COMP_1 = "tSNE_1"
+    RDIMS_VIS_COMP_2 = "tSNE_2"
+
+elif PARAMS["dimreduction_visualisation"].lower() == "umap":
+    RDIMS_VIS_TASK = UMAP
+    RDIMS_VIS_METHOD = "umap"
+    RDIMS_VIS_COMP_1 = "UMAP1"
+    RDIMS_VIS_COMP_2 = "UMAP2"
+
+else:
+    raise ValueError('dimreduction_visualisation must be either "tsne" or "umap"')
+
 
 # ########################################################################### #
 # ###### Visualise gene expression across cells in reduced dimensions ####### #
 # ########################################################################### #
 
-@transform(UMAP,
-           regex(r"(.*)/umap.dir/umap.sentinel"),
+@transform(RDIMS_VIS_TASK,
+           regex(r"(.*)/(.*).dir/(.*).sentinel"),
+           r"\1/rdims.visualisation.dir/plot.rdims.factor.sentinel")
+def plotRdimsFactors(infile, outfile):
+    '''
+    Visualise the clusters on the chosen projection
+    '''
+
+    outdir = os.path.dirname(outfile)
+    job_memory = "20G"
+
+    if RDIMS_VIS_METHOD == "tsne":
+        rdims_table = infile.replace(
+            "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+    elif RDIMS_VIS_METHOD == "umap":
+        rdims_table = infile.replace(
+            ".sentinel", ".txt")
+
+    color_factors = ["cluster"]
+
+    if PARAMS["plot_qcvars"] is not None:
+        color_factors += [x.strip() for x in
+                          PARAMS["plot_qcvars"].split(",")]
+
+    if PARAMS["plot_groups"] is not None:
+        color_factors += [x.strip() for x in
+                          PARAMS["plot_groups"].split(",")]
+
+    if PARAMS["plot_subgroup"] is not None:
+        color_factors += [x.strip() for x in
+                          PARAMS["plot_subgroup"].split(",")]
+
+    # ensure list is unique whilst preserving order.
+    color_factors = list(dict.fromkeys(color_factors))
+
+    color_factors = "--colorfactors=" + ",".join(color_factors)
+
+
+    if PARAMS["plot_shape"] is not None:
+        shape_factors = "--shapefactor=%(plot_shape)s" % PARAMS
+    else:
+        shape_factors = ""
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    # bring vars into local scope..
+    rdims_vis_method = RDIMS_VIS_METHOD
+    rdim1 = RDIMS_VIS_COMP_1
+    rdim2 = RDIMS_VIS_COMP_2
+
+    statement = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
+                   --method=%(rdims_vis_method)s
+                   --table=%(rdims_table)s
+                   --rdim1=%(rdim1)s
+                   --rdim2=%(rdim2)s
+                   %(shape_factors)s
+                   %(color_factors)s
+                   --pointsize=%(plot_pointsize)s
+                   --pointalpha=%(plot_pointalpha)s
+                   --outdir=%(outdir)s
+                   --plotdirvar=rdimsVisDir
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+
+@transform(RDIMS_VIS_TASK,
+           regex(r"(.*)/(.*).dir/(.*).sentinel"),
            r"\1/genelists.dir/plot.rdims.genes.sentinel")
-def plotUMAPGenes(infile, outfile):
+def plotRdimsGenes(infile, outfile):
     '''
     Visualise gene expression levels on reduced dimension coordinates
 
@@ -878,14 +854,22 @@ def plotUMAPGenes(infile, outfile):
 
     tex_path = os.path.join(outdir, "plot.rdims.known.genes.tex")
 
+    rdims_vis_method = RDIMS_VIS_METHOD
+    rdim1 = RDIMS_VIS_COMP_1
+    rdim2 = RDIMS_VIS_COMP_2
+
     if PARAMS["exprsreport_genelists"]:
         genelists = glob.glob(
             os.path.join(PARAMS["exprsreport_genelist_dir"], "*.txt"))
 
         job_memory = "20G"
 
-        rdims_table = infile.replace(
-            ".sentinel", ".txt")
+        if RDIMS_VIS_METHOD == "tsne":
+            rdims_table = infile.replace(
+                "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+        elif RDIMS_VIS_METHOD == "umap":
+            rdims_table = infile.replace(
+                ".sentinel", ".txt")
 
         for genelist in genelists:
 
@@ -898,11 +882,11 @@ def plotUMAPGenes(infile, outfile):
                 shape = ""
 
             statement = '''Rscript %(tenx_dir)s/R/plot_rdims_gene.R
-                           --method=umap
+                           --method=%(rdims_vis_method)s
                            --table=%(rdims_table)s
                            --seuratobject=%(seurat_object)s
-                           --rdim1=UMAP1
-                           --rdim2=UMAP2
+                           --rdim1=%(rdim1)s
+                           --rdim2=%(rdim2)s
                            %(shape)s
                            --genetable=%(genelist)s
                            --pointsize=%(plot_pointsize)s
@@ -948,8 +932,8 @@ def plotUMAPGenes(infile, outfile):
 # ################# plot per-cluster summary statistics ##################### #
 # ########################################################################### #
 
-@transform(tSNE,
-           regex(r"(.*)/tsne.dir/tsne.sentinel"),
+@transform(RDIMS_VIS_TASK,
+           regex(r"(.*)/(.*).dir/(.*).sentinel"),
            r"\1/group.numbers.dir/plot.group.numbers.sentinel")
 def plotGroupNumbers(infile, outfile):
     '''
@@ -963,8 +947,12 @@ def plotGroupNumbers(infile, outfile):
 
     job_memory = "20G"
 
-    tsne_table = infile.replace(
-        "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+    if RDIMS_VIS_METHOD == "tsne":
+        rdims_table = infile.replace(
+            "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+    elif RDIMS_VIS_METHOD == "umap":
+        rdims_table = infile.replace(
+            ".sentinel", ".txt")
 
     if PARAMS["plot_subgroup"] is not None:
         subgroupfactor = "--subgroupfactor=%(plot_subgroup)s" % PARAMS
@@ -988,7 +976,7 @@ def plotGroupNumbers(infile, outfile):
     log_file = outfile.replace(".sentinel", ".log")
 
     statement = '''Rscript %(tenx_dir)s/R/plot_group_numbers.R
-                   --table=%(tsne_table)s
+                   --table=%(rdims_table)s
                    --seuratobject=%(seurat_object)s
                     %(groupfactors)s
                     %(subgroupfactor)s
@@ -1246,12 +1234,12 @@ def plotMarkerNumbers(infile, outfile):
 
 
 @follows(summariseMarkers)
-@transform(tSNE,
-           regex(r"(.*)/tsne.dir/tsne.sentinel"),
-           r"\1/cluster.marker.tsne.plots.dir/plot.rdims.markers.sentinel")
-def plotTSNEMarkers(infile, outfile):
+@transform(RDIMS_VIS_TASK,
+           regex(r"(.*)/(.*).dir/(.*).sentinel"),
+           r"\1/cluster.marker.rdims.plots.dir/plot.rdims.markers.sentinel")
+def plotRdimsMarkers(infile, outfile):
     '''
-    Visualise expression of discovered markers on tSNE plots.
+    Visualise expression of discovered markers on rdims plots.
 
     An effort is made to prioritise the strongest cluster markers
     based on significance, expression frequency, expression level
@@ -1338,9 +1326,16 @@ def plotTSNEMarkers(infile, outfile):
 
         log_name = ".".join(["plot.rdims.top", name, "cluster.markers.log"])
         log_file = os.path.join(outdir, log_name)
+        rdims_vis_method = RDIMS_VIS_METHOD
+        rdim1 = RDIMS_VIS_COMP_1
+        rdim2 = RDIMS_VIS_COMP_2
 
-        tsne_table = infile.replace(
-            "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+        if rdims_vis_method == "tsne":
+            rdims_table = infile.replace(
+                "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+        elif rdims_vis_method == "umap":
+            rdims_table = infile.replace(
+                ".sentinel", ".txt")
 
         if(d.shape[0] > 0):
 
@@ -1350,17 +1345,17 @@ def plotTSNEMarkers(infile, outfile):
                 shape = ""
 
             statement = '''Rscript %(tenx_dir)s/R/plot_rdims_gene.R
-                           --method=tsne
-                           --table=%(tsne_table)s
+                           --method=%(rdims_vis_method)s
+                           --table=%(rdims_table)s
                            --seuratobject=%(seurat_object)s
-                           --rdim1=tSNE_1
-                           --rdim2=tSNE_2
+                           --rdim1=%(rdim1)s
+                           --rdim2=%(rdim2)s
                            %(shape)s
                            --genetable=%(markers_file)s
                            --pointsize=%(plot_pointsize)s
                            --pointalpha=%(plot_pointalpha)s
                            --outdir=%(outdir)s
-                           --plotdirvar=clusterMarkerTSNEPlotsDir
+                           --plotdirvar=clusterMarkerRdimsPlotsDir
                            &> %(log_file)s
                        '''
             P.run(statement)
@@ -1656,23 +1651,27 @@ def markers():
 def parseGMTs(param_keys=["gmt_pathway_files_"]):
     '''Helper function for parsing the lists of GMT files'''
 
+    all_files = []
+    all_names = []
+
     for param_key in param_keys:
 
-        all_files=""
-        all_names=""
 
         gmts = [x for x in PARAMS.keys()
                 if x.startswith(param_key)]
 
         if len(gmts) > 0:
-            all_files += ",".join([PARAMS[x] for x in gmts])
+            all_files += [PARAMS[x] for x in gmts]
 
-            all_names += ",".join([x.replace(param_key, "")
-                              for x in gmts])
+            all_names += [x.replace(param_key, "")
+                              for x in gmts]
 
-    if all_files == "":
+    if len(all_files) == 0:
         all_files = "none"
         all_names = "none"
+    else:
+        all_files = ",".join(all_files)
+        all_names = ",".join(all_names)
 
     return all_names, all_files
 
@@ -1963,10 +1962,13 @@ def genesets():
 # ########################################################################### #
 
 @follows(clustree,
-         plotTSNEPerplexities, plotTSNEFactors,
-         plotUMAPGenes, plotTSNEMarkers,
-         plotUMAPFactors, diffusionMap,
-         plotGroupNumbers, velocity)
+         plotTSNEPerplexities,
+         plotRdimsFactors,
+         plotRdimsGenes,
+         plotRdimsMarkers,
+         diffusionMap,
+         plotGroupNumbers,
+         velocity)
 def plots():
     '''
     Intermediate target to collect plots.
@@ -2013,8 +2015,9 @@ def latexVars(infile, outfile):
     clusterMarkerDEPlotsDir = os.path.join(runDir,
                               "cluster.marker.de.plots.dir")
 
-    clusterMarkerTSNEPlotsDir = os.path.join(runDir,
-                                             "cluster.marker.tsne.plots.dir")
+    clusterMarkerRdimsPlotsDir = os.path.join(runDir,
+                                             "cluster.marker.rdims" +\
+                                             ".plots.dir")
 
     clusterMarkersDir = os.path.join(runDir,
                                      "cluster.markers.dir")
@@ -2045,6 +2048,11 @@ def latexVars(infile, outfile):
 
     umapDir = os.path.join(runDir,
                            "umap.dir")
+
+    rdimsVisDir = os.path.join(runDir,
+                               "rdims.visualisation.dir")
+
+    rdimsVisMethod = RDIMS_VIS_METHOD
 
     velocityDir = os.path.join(runDir,
                                "velocity.dir")
@@ -2093,16 +2101,17 @@ def latexVars(infile, outfile):
             "tsneDir": "%(tsneDir)s" % locals(),
             "clusterGenesetsDir": "%(clusterGenesetsDir)s" % locals(),
             "clusterMarkerDEPlotsDir": "%(clusterMarkerDEPlotsDir)s" % locals(),
-            "clusterMarkerTSNEPlotsDir": "%(clusterMarkerTSNEPlotsDir)s" % locals(),
+            "clusterMarkerRdimsPlotsDir": "%(clusterMarkerRdimsPlotsDir)s" % locals(),
             "clusterMarkersDir": "%(clusterMarkersDir)s" % locals(),
             "conditionGenesetsDir": "%(conditionGenesetsDir)s" % locals(),
             "conditionMarkerDEPlotsDir": "%(conditionMarkerDEPlotsDir)s" % locals(),
-            "conditionMarkerTSNEPlotsDir": "%(conditionMarkerTSNEPlotsDir)s" % locals(),
             "conditionMarkersDir": "%(conditionMarkersDir)s" % locals(),
             "genelistsDir": "%(genelistsDir)s" % locals(),
             "diffmapDir": "%(diffmapDir)s" % locals(),
             "groupNumbersDir": "%(groupNumbersDir)s" % locals(),
             "umapDir": "%(umapDir)s" % locals(),
+            "rdimsVisDir": "%(rdimsVisDir)s" % locals(),
+            "rdimsVisMethod": "%(rdimsVisMethod)s" % locals() ,
             "velocityDir": "%(velocityDir)s" % locals(),
             "runName": "%(runName)s" % locals(),
             "runDetails": "%(runDetails)s" % locals(),
@@ -2200,23 +2209,41 @@ def summaryReport(infile, outfile):
     except FileNotFoundError:
         os.mkdir(compilation_dir)
 
+    # get the latex variables
     statement = '''pdflatex -output-directory=%(compilation_dir)s
                             -jobname=%(jobName)s
       '\\input %(latexVars)s
        \\def\\reportTitle{pipeline\\_seurat.py: summary report}
                 '''
-
+    # get the intro
     statement += '''
       \\input %(tenx_dir)s/pipelines/pipeline_seurat/introReport.tex
       '''
 
+    # begin the report (qc, hvg, pca dimension reduction)
     if(os.path.exists("data.dir")):
         statement += '''
           \\input %(tenx_dir)s/pipelines/pipeline_seurat/beginReport.tex
           '''
 
+    # add the section with plots of cell and gene numbers etc.
     statement += '''
-      \\input %(tenx_dir)s/pipelines/pipeline_seurat/clusterReport.tex
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/numbersSection.tex
+        '''
+
+    # add the tSNE paramaeter analysis section
+    statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/tsneSection.tex
+        '''
+
+    # add the section to visualise clusters and factors in reduced dimensions
+    # (plots made by tsne or umap)
+    statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/rdimsVisSection.tex
+        '''
+
+    statement += '''
+      \\input %(tenx_dir)s/pipelines/pipeline_seurat/clusteringSection.tex
       '''
 
     if(PARAMS["diffusionmap_run"]):

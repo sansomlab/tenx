@@ -1,43 +1,6 @@
-\section{tSNE analysis}
+\section{Cluster dissimilarity}
 
-\subsection{Assesment of the tSNE perplexity hyperparameter}
-
-\input{\tsneDir/tSNE.perplexity}
-\clearpage
-
-\subsection{tSNE parameters}
-
-The parameters chosen for the subsequent tSNE plots are:
-
-\begin{itemize}
-\item Perplexity: \tSNEPerplexity
-\item Maximum number of iterations: \tSNEMaxIter
-\item Use fast approximation: \tSNEFast
-\end{itemize}
-
-\subsection{tSNE plots colored by factors of interest (e.g. by cluster)}
-
-\input{\tsneDir/plot.rdims.tsne.factor}
-
-\clearpage
-
-\section{UMAP projection}
-
-UMAP is a newer algorithm that often provides a superior projection to tSNE.
-
-\input{\umapDir/plot.rdims.umap.factor}
-
-\clearpage
-
-\section{Numbers: plots of cell numbers by factors of interest (e.g. by cluster)}
-
-\input{\groupNumbersDir/number.plots}
-
-\clearpage
-
-\section{Cluster relationships}
-
-\subsection{Cluster distances in gene expression space}
+\subsection{Dissimilarity by gene expression}
 
 The distances between the clusters was assessed using the ``BuildClusterTree'' function in the Seurat package, which ``constructs a phylogenetic tree relating the ``average'' cell from each identity class''.
 
@@ -46,7 +9,7 @@ The distances between the clusters was assessed using the ``BuildClusterTree'' f
 \caption{Visualisation of inter-cluster distances (cluster average, gene-based)}
 \end{figure}
 
-\subsection{Cluster distances by cell pair-wise correlation in reduced dimension space}
+\subsection{Dissimilarity by cell pair-wise correlation (in reduced dimensions)}
 
 An alternative distance metric is the median pairwise pearson correlation between the cells of each cluster in reduced dimension space (e.g. PCA).
 

@@ -85,7 +85,11 @@ tex = ""
 group_vars <- c()
 for(group_var in group_vars_all)
 {
+    print(group_var)
+
     data[[group_var]] <- as.factor(data[[group_var]])
+
+    print(levels(data[[group_var]]))
 
     if(length(levels(data[[group_var]]))>1)
     {
@@ -97,6 +101,7 @@ for(group_var in group_vars_all)
 ## Make one whole-page plot per grouping variable
 for(group_var in group_vars)
 {
+    message("doing cell counts and fractions plots for group ",group_var)
 
     if(opt$subgroupfactor=="none" | !(opt$subgroupfactor %in% colnames(data)))
     {
@@ -160,7 +165,10 @@ for(group_var in group_vars)
                 quote=FALSE,
                 sep="\t")
 
-    tex <- paste(tex,
+    tex <- c(tex,
+             getSubsectionTex(paste("Cell numbers by",group_var)))
+
+    tex <- c(tex,
                  getFigureTex(plotfilename,
                               plot_title,
                               plot_dir_var=opt$plotdirvar),
@@ -183,6 +191,7 @@ data <- merge(data,cinfo,by=0)
 ## Make one whole-page plot per grouping variable
 for(group_var in group_vars)
 {
+    message("doing genes and counts per-cell plots for group ",group_var)
 
     if(opt$subgroupfactor=="none" | !(opt$subgroupfactor %in% colnames(data)))
     {
@@ -218,7 +227,10 @@ for(group_var in group_vars)
                  width=6,
                  height=8)
 
-    tex <- paste(tex,
+    tex <- c(tex,
+             getSubsectionTex(paste("Gene and UMIs by",group_var)))
+
+    tex <- c(tex,
                  getFigureTex(plotfilename, plot_title,
                               plot_dir_var=opt$plotdirvar),
                  sep="\n")

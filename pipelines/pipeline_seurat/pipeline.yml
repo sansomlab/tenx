@@ -54,6 +54,12 @@ subsetcells:
     sample_two: use.all
     sample_three: stimulated
 
+blacklist:
+    # If active, cells present in the blacklist will be removed
+    # per-sample blacklisting is not  supported.
+    active: False
+    # path specifies location of a header-less text file of cells to remove (1 per line).
+    path: /path/to/cells_to_remove.txt
 
 # Run specifications
 # ------------------
@@ -189,7 +195,9 @@ dimreduction:
     # (see Seurat::FindClusters, Seurat::RunTSNE)
     # Choices: 'pca'|'ica'
     method: pca
-
+    # Projection method used for visualisation (umap is recommended)
+    # Choices: 'umap'|'tsne'
+    visualisation: umap
 
 # Plotting parameters
 # -------------------
@@ -216,14 +224,14 @@ plot:
 # ---------------
 
 tsne:
-    # Specify up to 9 different values of the perplexity parameters to test
-    # Only values strictly less than `floor(ncells/5)` will be considered
-    perplexities: 5,10,20,30,50,100,200,500,1000
-    # A single perplexity value used for downstream plotting and analysis
-    perplexity: 30
-    maxiter: 10000
-    # Choices: True|False
-    fast: True
+  # Specify up to 9 different values of the perplexity parameters to test
+  # Only values strictly less than `floor(ncells/5)` will be considered
+  perplexities: 5,10,20,30,50,100
+  # A single perplexity value used for downstream plotting and analysis
+  perplexity: 30
+  maxiter: 10000
+  # Choices: True|False
+  fast: True
 
 
 # UMAP parameters

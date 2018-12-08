@@ -281,12 +281,14 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
 
     tex <- c()
 
-    subsectionTitle <- getSubsubsectionTex(paste0(type, analysis_title, ", cluster: ", cluster))
+    subsectionTitle <- getSubsectionTex(paste0("Cluster ",
+                                               cluster, " violin plots: ",
+                                               type,
+                                               analysis_title))
     tex <- c(tex, subsectionTitle)
 
     ## make the figure
     tex <- c(tex, "\\begin{figure}[H]")
-
 
     if(violin_plots$gpa_exists)
     {
