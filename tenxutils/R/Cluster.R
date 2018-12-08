@@ -1,15 +1,17 @@
 ## function to compute the correlation between clusters
-## in principle component space
-#' @param seurat_object A seurat object containing pca embeddings and cluster ids.
-#' @param pcs The principle components to use.
+## in reduced dimension (e.g. principle component) space
+#' @param seurat_object A seurat object containing reduced dimension embeddings and cluster ids.
+#' @param dr_type The dimension reduction type, e.g. "pca" or "cca"
+#' @param comps The  components to use.
 #' @param cor_method The correlation method to use.
-#' @param cluster_average If false, the median pairwise correlation is used. 
+#' @param cluster_average If false, the median pairwise correlation is used.
 clusterCor <- function(seurat_object=NULL,
-                       pcs=NULL,
+                       dr_type="pca",
+                       comps=NULL,
                        cor_method="pearson",
                        cluster_average=FALSE)
 {
-  pcomps <- t(s@dr$pca@cell.embeddings)[pcs,]
+  pcomps <- t(s@dr[[dr_type]]@cell.embeddings)[comps,]
   clusters = as.numeric(as.vector(unique(s@ident)))
   clusters <- clusters[order(clusters)]
   names(clusters) <- paste0("C",clusters)
@@ -35,10 +37,10 @@ clusterCor <- function(seurat_object=NULL,
       }
     }
   } else {
-    
-   # compute correlation of cluster average 
+
+   # compute correlation of cluster average
     res <- data.frame(row.names = rownames(pcomps))
-    
+
     # get the cluster averages
     for(i in 1:n)
     {
@@ -47,12 +49,11 @@ clusterCor <- function(seurat_object=NULL,
       x <- apply(pcomps[,names(s@ident)[s@ident==xclust]],1,mean)
       res[[xname]] <- x[rownames(res)]
     }
-    
+
     rmat <- cor(res, method=cor_method)
-    
+
   }
   rownames(rmat) <- names(clusters)
   colnames(rmat) <- names(clusters)
   rmat
 }
-

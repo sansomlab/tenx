@@ -1,9 +1,4 @@
-\subsection{Selection of principal components}
-
-The table shows the principal components that were retained for data visualisation and clustering.
-
-\input{\clusterDir/selected.principal.components.tex}
-
+\section{tSNE analysis}
 
 \subsection{Assesment of the tSNE perplexity hyperparameter}
 
@@ -24,19 +19,25 @@ The parameters chosen for the subsequent tSNE plots are:
 
 \input{\tsneDir/plot.rdims.tsne.factor}
 
-\subsection{UMAP plots colored by factors of interest}
+\clearpage
+
+\section{UMAP projection}
+
+UMAP is a newer algorithm that often provides a superior projection to tSNE.
 
 \input{\umapDir/plot.rdims.umap.factor}
 
-\subsection{Diffusion map}
+\clearpage
 
-\input{\diffmapDir/plot.diffusion.map}
-
-\subsection{Breakdown of cell numbers by factors of interest (e.g. by cluster)}
+\section{Numbers: plots of cell numbers by factors of interest (e.g. by cluster)}
 
 \input{\groupNumbersDir/number.plots}
 
-\subsection{Exploring the similarities between the clusters}
+\clearpage
+
+\section{Cluster relationships}
+
+\subsection{Cluster distances in gene expression space}
 
 The distances between the clusters was assessed using the ``BuildClusterTree'' function in the Seurat package, which ``constructs a phylogenetic tree relating the ``average'' cell from each identity class''.
 
@@ -45,22 +46,28 @@ The distances between the clusters was assessed using the ``BuildClusterTree'' f
 \caption{Visualisation of inter-cluster distances (cluster average, gene-based)}
 \end{figure}
 
-An alternative distance metric is the median pairwise pearson correlation between the cells of each cluster in pca space.
+\subsection{Cluster distances by cell pair-wise correlation in reduced dimension space}
+
+An alternative distance metric is the median pairwise pearson correlation between the cells of each cluster in reduced dimension space (e.g. PCA).
 
 \begin{figure}[H]
 \includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/cluster.correlation.dendrogram}}}
-\caption{Visualisation of inter-cluster distances (median pairwise pearson correlation in pca space)}
+\caption{Visualisation of inter-cluster distances (median pairwise pearson correlation in reduced dimension space)}
 \end{figure}
 
-The median pairwise pearson correlations between the cells of each cluster (in pca space) are shown in the table below.
+The median pairwise pearson correlations between the cells of each cluster (reduced dimension space) are shown in the table below.
 
 \input{\clusterDir/cluster.pairwise.correlations.tex}
 
-\subsection{Comparison of different clustering resolutions}
+\clearpage
 
-The clustree algorithm is used to compare the different clustering resolutions.
+\section{Cluster resolution analysis}
+
+The \href{https://doi.org/10.1093/gigascience/giy083}{clustree algorithm} is used to compare the different clustering resolutions.
 
 \begin{figure}[H]
 \includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/clustree}}}
 \caption{The relationships between the clusters identified at different resolutions}
 \end{figure}
+
+\clearpage

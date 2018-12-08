@@ -1,16 +1,26 @@
-\subsection{Dimension reduction}
+\subsection{Scree (elbow) plot}
 
 \begin{figure}[H]
 \includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\sampleDir/pcaElbow}}}
 \caption{Scree plot showing proportion of variance explained by each PCA component}
 \end{figure}
 
+\subsection{JackStraw analysis}
+
 \begin{figure}[H]
 \includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\sampleDir/pcaJackStraw}}}
 \caption{Seurat Jack Straw analysis of PCA components}
 \end{figure}
 
+\subsection{Component heatmaps}
+
 \begin{figure}[H]
 \includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\sampleDir/pcaComponents}}}
 \caption{Heatmaps of the top genes for each PCA component}
 \end{figure}
+
+\subsection{Component selection}
+
+The table shows the principal components that were retained for data visualisation and clustering.
+
+\input{\clusterDir/selected.principal.components.tex}

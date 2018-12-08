@@ -1,6 +1,7 @@
 # Dependencies
 
 * Python3
+* The dropEst pipeline (https://github.com/hms-dbmi/dropEst) for RNA velocity analysis
 * The [cgat-core pipeline system](https://github.com/cgat-developers/cgat-core/) and a compatible queue manager
 * R >= 3.5
 * R libraries:
@@ -27,6 +28,7 @@
   * Seurat
   * scran
   * scater
+  * velocity.R
   * xtable
   * gsfisher (see [INSTALL](INSTALL.md))
   * tenxutils (see [INSTALL](INSTALL.md))

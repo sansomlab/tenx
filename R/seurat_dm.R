@@ -97,12 +97,6 @@ write.table(plot_data, opt$outfile,
 
 
 ## make a sensible set of 3D plots.
-
-gg_color_hue <- function(n) {
-    hues = seq(15, 375, length = n + 1)
-    hcl(h = hues, l = 65, c = 100)[1:n]
-}
-
 draw3D <- function(m, phi=30, theta=30, clusters, cols)
 {
     scatter3D(m@cell.embeddings[,1],

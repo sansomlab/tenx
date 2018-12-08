@@ -61,22 +61,24 @@ if(opt$usesigcomponents)
     comps <- 1:as.numeric(opt$components)
 }
 
-## Make a table of the retained principle components
-x <- as.data.frame(s@dr$pca@jackstraw@overall.p.values)
-x$p.adj <- p.adjust(x$Score, method="BH")
-x$significant <- "no"
-x$significant[x$p.adj < 0.05] <- "yes"
-x <- x[x$PC %in% comps,]
-x$sdev <- s@dr$pca@sdev[x$PC]
+if(toupper(opt$reductiontype)=="PCA")
+{
+        ## Make a table of the retained principle components
+        x <- as.data.frame(s@dr$pca@jackstraw@overall.p.values)
+        x$p.adj <- p.adjust(x$Score, method="BH")
+        x$significant <- "no"
+        x$significant[x$p.adj < 0.05] <- "yes"
+        x <- x[x$PC %in% comps,]
+        x$sdev <- s@dr$pca@sdev[x$PC]
 
-print(
+        print(
     xtable(sprintfResults(x), caption=paste("Table of the selected (n=",
                                             nrow(x),
                                             ") principle components",
                                             sep="")),
     file=file.path(opt$outdir, "selected.principal.components.tex")
     )
-
+}
 
 message(sprintf("FindClusters"))
 s <- FindClusters(s,
@@ -113,6 +115,7 @@ save_plots(
 ## 2. By the median pair-wise pearson correlation
 ## of cells in the clusters.
 cluster_cor <- clusterCor(s,
+                          dr_type=opt$reductiontype,
                           comps,
                           cor_method="pearson",
                           cluster_average=FALSE)

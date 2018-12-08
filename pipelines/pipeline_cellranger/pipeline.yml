@@ -157,3 +157,8 @@ downsampling:
     # by default the down-sampling is performed after subsetting.
     # Choices: "before_subsetting" | "after_subsetting"
     apply: after_subsetting
+
+
+dropest:
+    # Location of a suitable configuration file
+    config: /gfs/apps/bio/dropEst-2018-12-06/config_files/tenx.config.xml

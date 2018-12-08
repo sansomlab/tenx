@@ -58,7 +58,7 @@ gp <- clustree(clust_index,"R")
 save_ggplots(
     file.path(opt$outdir, "clustree"),
     gp=gp,
-    width=8, height=10
+    width=6, height=8
     )
 
 message("Completed")
