@@ -2038,7 +2038,7 @@ def latexVars(infile, outfile):
                                 "genelists.dir")
 
     diffmapDir = os.path.join(runDir,
-                              "diffmap.dir")
+                              "diffusionmap.dir")
 
     groupNumbersDir = os.path.join(runDir,
                                    "group.numbers.dir")
@@ -2248,7 +2248,7 @@ def summaryReport(infile, outfile):
 
     if(PARAMS["diffusionmap_run"]):
         statement += '''
-         \\input %(tenx_dir)s/pipelines/pipeline_seurat/velocitySection.tex
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/diffusionSection.tex
         '''
 
     if(PARAMS["velocity_run"]):
