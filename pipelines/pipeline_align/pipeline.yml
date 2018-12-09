@@ -1,0 +1,43 @@
+#
+# Pipeline pipeline_align.py configuration file
+# ==============================================
+#
+
+# General options
+# ---------------
+
+# Project name
+projectname: 10x single cell analysis
+
+# Author
+author: Sansom group
+
+resources:
+  memory: 20G
+
+
+# CCA Alignment options
+# ------------------------
+cca:
+  # Number of cores used for parallel jobs
+  # (ScaleData and JackStraw)
+  metavar: condition
+  # strata is either "all" or a comma separated list
+  strata: all
+  numccs: 30
+  niter: 100
+
+
+zinbwave:
+  ncpu: 12
+  # zinbwave K parameter
+  k: 5,10,15,20
+  # the formula is passed as the zinbwave X parameter
+  # a tilde is not needed here
+  formula: "condition"
+  # use `-1` to use all cells, otherwise specify size of random sample
+  ncells: -1
+  # use `-1` to use all genes, otherwise specify size of a random sample
+  ngenes: -1
+  # type of backend for BiocParallel. Only tested with snow!
+  backend: snow
