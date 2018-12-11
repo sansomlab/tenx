@@ -125,32 +125,88 @@ if len(sys.argv) > 1:
 # ############################### CCA Alignment ############################# #
 # ########################################################################### #
 
-@follows(mkdir("cca.dir"))
+
+@follows(mkdir("seurat.align.dir"))
 @transform("data.dir/*.rds",
            regex(r".*/(.*).rds"),
-           r"cca.dir/\1.aligned.rds")
+           r"seurat.align.dir/\1.cca.sentinel")
 def cca(infile, outfile):
     '''
-       Align with CCA
+       Perform the canonical correlation analysis
     '''
-
-    log_file = outfile.replace(".rds", ".log")
 
     job_memory = PARAMS["cca_memory"]
 
-    statement = '''Rscript %(tenx_dir)s/R/seurat_align.R
+    outname = outfile.replace(".sentinel", ".rds")
+    log_file = outfile.replace(".sentinel", ".log")
+
+    statement = '''Rscript %(tenx_dir)s/R/seurat_cca.R
                    --seuratobject=%(infile)s
-                   --metavar=%(cca_metavar)s
-                   --strata=%(cca_strata)s
+                   --metavar=%(align_metavar)s
+                   --strata=%(align_strata)s
                    --niter=%(cca_niter)s
                    --numccs=%(cca_numccs)s
-                   --outfile=%(outfile)s
+                   --outfile=%(outname)s
                    &> %(log_file)s
                 '''
 
     P.run(statement)
     IOTools.touch_file(outfile)
 
+@transform(cca,
+           regex(r".*/(.*).cca.sentinel"),
+           r"seurat.align.dir/\1.cca.plot.sentinel")
+def ccaPlots(infile, outfile):
+    '''
+       Make biocor plots and component heatmaps
+    '''
+
+    job_memory = PARAMS["cca_memory"]
+
+    infile = infile.replace(".sentinel", ".rds")
+    outprefix = outfile.replace(".sentinel", "")
+    log_file = outfile.replace(".sentinel", ".log")
+
+    statement = '''Rscript %(tenx_dir)s/R/seurat_cca_plots.R
+                   --seuratobject=%(infile)s
+                   --metavar=%(align_metavar)s
+                   --numccs=%(cca_numccs)s
+                   --outprefix=%(outprefix)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+
+@transform(cca,
+           regex(r".*/(.*).cca.sentinel"),
+           r"seurat.align.dir/\1.cca.aligned.sentinel")
+def alignSubspace(infile, outfile):
+    '''
+       Align the subspace
+    '''
+
+    job_memory = PARAMS["cca_memory"]
+
+    infile = infile.replace(".sentinel", ".rds")
+    outname = outfile.replace(".sentinel", ".rds")
+    log_file = outfile.replace(".sentinel", ".log")
+
+    statement = '''Rscript %(tenx_dir)s/R/seurat_cca_align_subspace.R
+                   --seuratobject=%(infile)s
+                   --metavar=%(align_metavar)s
+                   --dimsalign=%(cca_dimsalign)s
+                   --outfile=%(outname)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+@follows(ccaPlots, alignSubspace)
+def runCCA():
+    pass
 
 # ########################################################################### #
 # ################################## Zinbwave  ############################# #
@@ -159,35 +215,41 @@ def cca(infile, outfile):
 @follows(mkdir("zinbwave.dir"))
 @transform("data.dir/*.rds",
            regex(r".*/(.*).rds"),
-           r"zinbwave.dir/\1.zinbwave.rds")
+           r"zinbwave.dir/\1.zinbwave.sentinel")
 def zinbwave(infile, outfile):
     '''
        Compute reduced dimensions with zinbwave
     '''
 
-    log_file = outfile.replace(".rds", ".log")
-
     job_memory = PARAMS["zinbwave_memory"]
     job_threads = PARAMS["zinbwave_ncpu"]
 
-    k_values = [x.strip() for x in PARAMS["zinbwave_k"].split(",")]
+    k_values = [x.strip() for x in str(PARAMS["zinbwave_k"]).split(",")]
 
     statements = []
 
     for k_value in k_values:
 
+        outname = outfile.replace(".sentinel",
+                                  ".k" + k_value + ".rds")
+
+        log_file = outname.replace(".rds", ".log")
+
         stat = '''module unload apps/gsl;
                   Rscript %(tenx_dir)s/R/zinbwave.R
                        --seuratobject=%(infile)s
+                       --metavar=%(align_metavar)s
+                       --strata=%(align_strata)s
                        --K=%(k_value)s
                        --X=%(zinbwave_formula)s
                        --ncpu=%(zinbwave_ncpu)s
                        --ncells=%(zinbwave_ncells)s
                        --ngenes=%(zinbwave_ngenes)s
                        --backend=%(zinbwave_backend)s
-                       --outfile=%(outfile)s
+                       --outfile=%(outname)s
                        &> %(log_file)s
-                    '''
+                    ''' % {**locals(), **PARAMS}
+
         statements.append(stat)
 
     P.run(statements)
@@ -199,7 +261,7 @@ def zinbwave(infile, outfile):
 # ##################### full target: to run all tasks ####################### #
 # ########################################################################### #
 
-@follows(cca, zinbwave)
+@follows(runCCA, zinbwave)
 def full():
     pass
 

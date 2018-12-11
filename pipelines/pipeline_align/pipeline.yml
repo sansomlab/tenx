@@ -12,23 +12,30 @@ projectname: 10x single cell analysis
 # Author
 author: Sansom group
 
-resources:
-  memory: 20G
+# Common alignment options
+# -------------------------
 
+align:
+  # metavar species a column in the seurat object
+  # containing the strata to be aligned
+  metavar: condition
+  # strata is either "all" or a comma separated list
+  strata: all
 
 # CCA Alignment options
 # ------------------------
 cca:
+  memory: 20G
   # Number of cores used for parallel jobs
   # (ScaleData and JackStraw)
-  metavar: condition
-  # strata is either "all" or a comma separated list
-  strata: all
   numccs: 30
   niter: 100
+  dimsalign: 20
 
-
+# CCA Alignment options
+# ------------------------
 zinbwave:
+  memory: 10G
   ncpu: 12
   # zinbwave K parameter
   k: 5,10,15,20
@@ -39,5 +46,8 @@ zinbwave:
   ncells: -1
   # use `-1` to use all genes, otherwise specify size of a random sample
   ngenes: -1
-  # type of backend for BiocParallel. Only tested with snow!
-  backend: snow
+  # parallelisation
+  # the "dopar", "multi" and "serial" engines are supported
+  # issues have been reported with the multicore backed and also
+  # with attempting to use large numbers of cpus...
+  engine: multi
