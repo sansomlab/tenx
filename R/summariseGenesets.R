@@ -125,11 +125,12 @@ for(geneset in genesets)
 
     make_plot = FALSE
 
-    if(!is.null(contents))
+    ## Filter out genesets we do not wish to consider
+    contents <- contents[contents$n_fg >= opt$mingenes,]
+
+    if(!is.null(contents) && nrow(contents) > 0)
     {
 
-        ## Filter out genesets we do not wish to consider
-        contents <- contents[contents$n_fg >= opt$mingenes,]
 
         ## Compute adjusted p-values
         ## The input table contains _all tested genesets_
@@ -323,7 +324,12 @@ for(cluster in names(ltabs))
 
 ltab_file <- gsub("xlsx","table.tex",opt$outfile)
 
-out <- sprintfResults(out)
+if(!exists("out"))
+{
+    out <- data.frame(x=c("no significantly enriched genesets found"))
+} else {
+    out <- sprintfResults(out)
+}
 
 xtab <- xtable(out, caption="The top (lowest p-value) genesets found (uniquely) in each cluster")
 

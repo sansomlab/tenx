@@ -208,7 +208,7 @@ plot:
     # 'cluster' is automatically added if not specified.
     groups: cluster
     # Subgroup used to break down the bar plots and cell counts.
-    # Note that it also visualised in t-SNE plots.
+    # Note that it also visualised in t-SNE plots and marker heatmaps
     subgroup:
     # QC variable to be visualised on the tSNE plot
     qcvars: nUMI,percent.mito

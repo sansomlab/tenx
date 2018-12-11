@@ -6,7 +6,7 @@
 * R >= 3.5
 * R libraries:
   * clustree
-  * ComplexHeatmap
+  * ComplexHeatmap >= 1.99.0
   * data.table
   * DESeq2
   * DropletUtils
@@ -28,7 +28,7 @@
   * Seurat
   * scran
   * scater
-  * velocity.R
+  * velocyto.R
   * xtable
   * gsfisher (see [INSTALL](INSTALL.md))
   * tenxutils (see [INSTALL](INSTALL.md))

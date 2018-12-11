@@ -156,3 +156,38 @@ downsampleMatrix <- function(matrixUMI, downsample_method="median", library_ids=
   print(statUMIs)
   matrixUMI
 }
+
+#' Get highly variable genes using the trend var method from scran
+#' @param seurat_object a seurat object
+#' @param min_mean minimum mean counts threshold
+#' @param p_adjust_threshold threshold for significance
+getHVG <- function(seurat_object,
+                     min_mean=0,
+                     p_adjust_threshold=0.05)
+{
+    require(scran)
+    require(scater)
+    sce_object <- as.SingleCellExperiment(seurat_object)
+
+    var.fit.nospike <- trendVar(sce_object,
+                                parametric=TRUE,
+                                use.spikes=FALSE,
+                                loess.args=list(span=0.2))
+
+    var.out.nospike <- decomposeVar(sce_object,
+                                    var.fit.nospike,
+                                    subset.row=rowMeans(
+                                        as.matrix(logcounts(sce_object))) > min_mean)
+
+    ## TODO: some plots should be made.
+    ## plot(var.out.nospike$mean, var.out.nospike$total, pch=16, cex=0.6,
+    ##     xlab="Mean log-expression", ylab="Variance of log-expression")
+    ## curve(var.fit.nospike$trend(x), col="dodgerblue", lwd=2, add=TRUE)
+    ## points(var.out.nospike$mean[cur.spike], var.out.nospike$total[cur.spike], col="red", pch=16)
+    hvg.out <- var.out.nospike[which(var.out.nospike$FDR <= p_adjust_threshold),]
+
+    hvg.out <- hvg.out[order(hvg.out$bio,
+                             decreasing=TRUE),]
+
+    hvg.out
+}

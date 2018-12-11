@@ -1,2 +1,10 @@
 exportPattern( "." )
+
+import(ggplot2)
+import(ComplexHeatmap)
+import(Seurat)
+import(dplyr)
 importFrom(Matrix,readMM)
+importFrom("RColorBrewer", brewer.pal)
+importFrom("circlize", colorRamp2)
+importFrom("grid", gpar)
