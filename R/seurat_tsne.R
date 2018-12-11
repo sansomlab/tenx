@@ -49,6 +49,7 @@ message("readRDS")
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 s@ident <- cluster_ids
+print(head(s@ident))
 
 ## check that the perplexity value specified is sensible
 ncells <- ncol(s@data)
@@ -81,7 +82,7 @@ if(opt$perplexity > floor(ncells/5))
 
     ## extract the tSNE coordinates from the seurat object
     tsne <- as.data.frame(s@dr$tsne@cell.embeddings)
-    tsne$cluster <- s@ident
+    tsne$cluster <- s@ident[rownames(tsne)]
 
     plot_data <- merge(tsne, s@meta.data, by=0)
 

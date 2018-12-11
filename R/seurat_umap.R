@@ -78,7 +78,7 @@ s <- RunUMAP(s,
 
 ## extract the UMAP coordinates from the seurat object
 umap <- as.data.frame(s@dr$umap@cell.embeddings)
-umap$cluster <- s@ident
+umap$cluster <- s@ident[rownames(umap)]
 
 plot_data <- merge(umap, s@meta.data, by=0)
 

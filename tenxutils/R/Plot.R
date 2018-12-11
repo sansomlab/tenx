@@ -521,3 +521,125 @@ plotDownsampling <- function(matrixUMI, metadata, basename) {
 
     return(TRUE)
 }
+
+
+#' A function to draw a heatmap of top cluster marker genes with
+#' subgroup labels. The function uses the "scale.data" slot to make the heatmap.
+#' @param seurat_object A seurat objected with scaled data and cluster information
+#' @param marker_table A dataframe containing the marker information. Must contain "cluster", "gene" and "avg_logFC" columns
+#' @param n_markers The number of markers to plot
+#' @param cells_use The names of the cells to use. If NULL all cells will be used
+#' @param row_names_gp The font size for the gene names
+#' @param sub_group If given, the name of a variable in the metadata of the seurat object
+#' @param disp_min Disp floor, used to truncate the scaled data
+#' @param disp_max Disp ceiling, used to truncate the scaled data
+markerComplexHeatmap <- function(seurat_object,
+                                 marker_table=NULL,
+                                 n_markers=20,
+                                 cells_use=NULL,
+                                 row_names_gp=10,
+                                 sub_group=NULL,
+                                 disp_min=-2.5,
+                                 disp_max=2.5)
+{
+
+
+
+  # we need the recently added vertical split functionality of ComplexHeatmap.
+  if(!packageVersion("ComplexHeatmap")>"1.99")
+  {
+    stop(paste("ComplexHeatmap version 1.99 or later is needed.",
+               "it is avaliable via devtools here: https://github.com/jokergoo/ComplexHeatmap"))
+  }
+
+  top_markers <- marker_table %>% group_by(cluster) %>% top_n(n=n_markers,wt=avg_logFC)
+
+  if(is.null(cells_use)) {cell_use <- colnames(s@scale.data) }
+
+  genes_use <- top_markers$gene[top_markers$gene %in% rownames(seurat_object@scale.data)]
+  cells_use <- cell_use %in% colnames(seurat_object@scale.data)
+
+  x <- as.matrix(seurat_object@scale.data[genes_use, cells_use])
+
+  x <- MinMax(x, min = disp_min, max = disp_max)
+
+  clusters <- seurat_object@ident[cells_use]
+
+
+
+  # set up the cluster color palette
+  nclust <- length(unique(clusters))
+  cluster_cols <- gg_color_hue(nclust)
+  names(cluster_cols) <- 0:(nclust-1)
+
+  # get the vector of per-cell cluster names
+  cell_clusters <- clusters[colnames(x)]
+
+  clusterAnnotation = rowAnnotation(df = data.frame(cluster=top_markers$cluster),
+                                    col = list(cluster=cluster_cols),
+                                    show_annotation_name = FALSE,
+                                    show_legend=FALSE,
+                                    width=unit(2,"mm"))
+
+
+
+
+  if(!is.null(sub_group))
+  {
+
+      if(!sub_group %in% colnames(s@meta.data))
+      {
+          stop("specified sub group not found in the metadata")
+      }
+
+    # set up the subgroup colour palette
+    cell_sub_groups <- s@meta.data[cells_use, sub_group]
+    sub_groups <- unique(cell_sub_groups)
+
+
+      sub_group_cols <- brewer.pal(length(sub_groups),"Greys")
+      # because the Grey palette returns a minimum of 3 colors..
+      sub_group_cols <- sub_group_cols[1:length(sub_groups)]
+      names(sub_group_cols) <- sub_groups
+
+      print(sub_group_cols)
+    # get an ordering vecotor
+    cell_order <- order(cell_clusters, cell_sub_groups)
+
+    subgroupAnnotation = HeatmapAnnotation(df=data.frame(subgroup=cell_sub_groups[cell_order]),
+                                           col = list(subgroup=sub_group_cols),
+                                           show_annotation_name = FALSE)
+  } else {
+    cell_order <- order(cell_clusters)
+    subgroupAnnotation <- NULL
+  }
+
+  x <- x[,cell_order]
+
+  # match the Seurat colors
+  exprs_cols <- colorRamp2(c(-2.5,0,2.5), c("#FF00FF", "#000000", "#FFFF00"))
+
+    ## fudge the row font size to something sensible.
+    n_rows <- nrow(x)
+    # can probably show e.g. 60 rows at font size 8
+    row.cex <- min(0.5, 60/n_rows)
+
+  # draw the heatmap
+  Heatmap(x,
+          cluster_rows = FALSE,
+          col = exprs_cols,
+          row_names_gp = gpar(fontsize = row_names_gp,
+                              cex = row.cex),
+          cluster_columns = FALSE,
+          show_column_names = FALSE,
+          row_title = NULL,
+          row_split=top_markers$cluster,
+          column_split = cell_clusters[cell_order],
+          top_annotation = subgroupAnnotation,
+          right_annotation = clusterAnnotation,
+          row_gap=unit(0.5,"mm"),
+          column_title_side="bottom",
+          column_gap=unit(0.5, "mm"),
+          show_heatmap_legend = FALSE
+  )
+}

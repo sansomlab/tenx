@@ -10,6 +10,7 @@ stopifnot(
   require(data.table),
   require(openxlsx),
   require(optparse),
+  require(ComplexHeatmap),
   require(tenxutils)
 )
 
@@ -20,6 +21,8 @@ option_list <- list(
                 help="A seurat object after PCA"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
+    make_option(c("--subgroup"), default=NULL,
+                help="Optional. Name of a column in metadata to add annotation for in the heatmap"),
     make_option(c("--outdir"), default="seurat.out.dir",
                 help="outdir")
     )
@@ -125,21 +128,31 @@ for(x in cluster_levels)
 ## compute the minimum fold change to another cluster for the filtered markers
 filtered_markers$min_logFC <- NA
 cluster_levels <- unique(filtered_markers$cluster)
+
 for(cluster in cluster_levels)
 {
+    message("computing min fold changes for cluster:", cluster)
     xrows = filtered_markers$cluster==cluster
     tmp <- data.frame(filtered_markers[xrows])
     other <- cluster_levels[!cluster_levels==cluster]
     ocols <- paste(paste0("X",other),"exprs",sep="_")
     this <- paste(paste0("X",cluster),"exprs",sep="_")
 
-    fcs <- log((tmp[,this]+1) / (tmp[,ocols]+1))
+    this_exprs <- tmp[,this]+1
+    other_exprs <- tmp[,ocols]+1
+    fcs <- log(this_exprs / other_exprs )
 
-    ## for positive markers we store the min.
-    min_fcs <- apply(fcs,1,min)
+    if(length(ocols) > 1)
+    {
+        ## for positive markers we store the min.
+        min_fcs <- apply(fcs,1,min)
 
-    ## for neg markers we store the max.
-    max_fcs <- apply(fcs,1,max)
+        ## for neg markers we store the max.
+        max_fcs <- apply(fcs,1,max)
+    } else {
+        # there is only 1 other column so
+        min_fcs <- max_fcs <- fcs
+    }
 
     filtered_markers$min_logFC[xrows] <- min_fcs
     filtered_markers$max_logFC[xrows] <- max_fcs
@@ -189,15 +202,36 @@ message("Making a heatmap of the top marker genes from each cluster")
 ## make a heatmap of the top DE genes.
 filtered_markers %>% group_by(cluster) %>% top_n(20, avg_logFC) -> top20
 
-gp <- DoHeatmap(s, genes.use = top20$gene,
-                slim.col.label = TRUE,
-                remove.key = TRUE,
-                cex.row=4,
-                ## order.by.ident = TRUE, # depreciated
-                title="Top 20 marker genes for each cluster")
+## gp <- DoHeatmap(s, genes.use = top20$gene,
+##                 slim.col.label = TRUE,
+##                 remove.key = TRUE,
+##                 cex.row=4,
+##                 ## order.by.ident = TRUE, # depreciated
+##                 title="Top 20 marker genes for each cluster")
 
-save_ggplots(paste(outPrefix,"heatmap", sep="."),
-           gp,
+if(!opt$subgroup %in% colnames(s@meta.data))
+{
+    subgroup <- NULL
+} else {
+    subgroup <- opt$subgroup
+}
+
+
+mch <- markerComplexHeatmap(s,
+                         marker_table=filtered_markers,
+                         n_markers=20,
+                         cells_use=NULL,
+                         row_names_gp=12,
+                         sub_group=subgroup)
+
+
+drawHeatmap <- function()
+{
+    draw(mch)
+}
+
+save_plots(paste(outPrefix,"heatmap", sep="."),
+           plot_fn=drawHeatmap,
            width = 7,
            height = 9)
 

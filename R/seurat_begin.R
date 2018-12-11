@@ -624,7 +624,9 @@ tex <- c(tex, subsectionTitle)
 
 cell_cycle_genes <- FALSE
 
-if (!is.null(opt$sgenes) & !is.null(opt$g2mgenes)){
+if (!(is.null(opt$sgenes) | opt$sgenes=="none")
+    & !(is.null(opt$g2mgenes) | opt$g2mgenes=="none"))
+{
 
   cell_cycle_genes <- TRUE
   cat("There are cell cycle genes")
@@ -748,23 +750,12 @@ xthreshold <- opt$xlowcutoff
 if(opt$vargenesmethod=="trendvar")
 {
     message("setting variable genes using the trendvar method")
-    require(scran)
-    require(scater)
-    ss <- as.SingleCellExperiment(s)
 
-    var.fit.nospike <- trendVar(ss, parametric=TRUE,
-                                use.spikes=FALSE, loess.args=list(span=0.2))
-    var.out.nospike <- decomposeVar(ss, var.fit.nospike,
-                                    subset.row=rowMeans(as.matrix(logcounts(ss))) > opt$minmean)
-
-
-    # TODO: some plots should be made.
-    # plot(var.out.nospike$mean, var.out.nospike$total, pch=16, cex=0.6,
-    #     xlab="Mean log-expression", ylab="Variance of log-expression")
-    # curve(var.fit.nospike$trend(x), col="dodgerblue", lwd=2, add=TRUE)
-    # points(var.out.nospike$mean[cur.spike], var.out.nospike$total[cur.spike], col="red", pch=16)
-    hvg.out <- var.out.nospike[which(var.out.nospike$FDR <= opt$vargenespadjust),]
-    hvg.out <- hvg.out[order(hvg.out$bio, decreasing=TRUE),]
+    ## get highly variable genes using the getHVG function in tenxutils (Matrix.R)
+    ## that wraps the trendVar method from scran.
+    hvg.out <- getHVG(s,
+                      min_mean=opt$minmean,
+                      p_adjust_threshold=opt$vargenespadjust)
 
     # overwrite the slot!
     s@var.genes <- row.names(hvg.out)

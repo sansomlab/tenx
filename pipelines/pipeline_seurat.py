@@ -1114,6 +1114,10 @@ def summariseMarkers(infile, outfile):
     seurat_object = os.path.join(Path(outdir).parents[1],
                                "begin.rds")
 
+    if PARAMS["plot_subgroup"] is not None:
+        subgroup = '''--subgroup=%(plot_subgroup)s''' % PARAMS
+    else:
+        subgroup = ""
 
     job_memory = "50G"
 
@@ -1123,6 +1127,7 @@ def summariseMarkers(infile, outfile):
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkers.R
                    --seuratobject=%(seurat_object)s
                    --clusterids=%(cluster_ids)s
+                   %(subgroup)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
                 '''
