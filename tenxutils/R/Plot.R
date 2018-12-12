@@ -640,6 +640,9 @@ markerComplexHeatmap <- function(seurat_object,
           row_gap=unit(0.5,"mm"),
           column_title_side="bottom",
           column_gap=unit(0.5, "mm"),
+          use_raster=TRUE,
+          raster_device="CairoPNG",
+          raster_quality=4,
           show_heatmap_legend = FALSE
   )
 }
