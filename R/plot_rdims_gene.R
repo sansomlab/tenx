@@ -221,7 +221,7 @@ for(page in 1:npages)
                  gp,
                  width=10,
                  height=h,
-                 dpi=600)
+                 dpi=300)
 
     texCaption <- paste(geneset," genes (",page," of ",npages,")",sep="")
     tex <- c(tex, getFigureTex(plotfilename, texCaption,
