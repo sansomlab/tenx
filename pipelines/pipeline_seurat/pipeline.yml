@@ -283,6 +283,18 @@ velocity:
   plotcex: 1
 
 
+# Known marker genes
+# ------------------
+
+knownmarkers:
+  run: False
+  # Sets of genes that are specified here will be included in the
+  # main report as violin plots.
+  #
+  # tab-delimited .txt files with columns:
+  # gene_id, gene_name, group
+  file:
+
 # FindMarkers parameters
 # ----------------------
 

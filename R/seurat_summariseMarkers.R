@@ -209,11 +209,14 @@ filtered_markers %>% group_by(cluster) %>% top_n(20, avg_logFC) -> top20
 ##                 ## order.by.ident = TRUE, # depreciated
 ##                 title="Top 20 marker genes for each cluster")
 
-if(!opt$subgroup %in% colnames(s@meta.data))
+if(!is.null(opt$subgroup))
 {
-    subgroup <- NULL
+    if(!opt$subgroup %in% colnames(s@meta.data))
+    {
+        subgroup <- NULL
+    }
 } else {
-    subgroup <- opt$subgroup
+           subgroup <- opt$subgroup
 }
 
 
@@ -221,7 +224,7 @@ mch <- markerComplexHeatmap(s,
                          marker_table=filtered_markers,
                          n_markers=20,
                          cells_use=NULL,
-                         row_names_gp=12,
+                         row_names_gp=11,
                          sub_group=subgroup)
 
 

@@ -411,8 +411,6 @@ def clustree(infile, outfile):
 
     sampleDir = Path(cluster_ids).parts[0]
     runDir = Path(cluster_ids).parts[1]
-    print("********")
-    print(runDir)
 
     pcs, res, algo, de = runDir.split("_")
 
@@ -739,6 +737,56 @@ def velocity(infile, outfile):
 
     P.run(statement)
     IOTools.touch_file(outfile)
+
+
+# ########################################################################### #
+# ####################### Known gene violin plots ########################### #
+# ########################################################################### #
+
+
+@active_if(PARAMS["knownmarkers_run"])
+@transform(cluster,
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/known.markers.dir/known.markers.sentinel")
+def knownMarkerViolins(infile, outfile):
+    '''
+       Make per-cluster violin plots from a given set of known marker genes.
+    '''
+
+    indir = os.path.dirname(infile)
+    outdir = os.path.dirname(outfile)
+
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    cluster_ids = os.path.join(indir, "cluster_ids.rds")
+
+    seurat_dir = Path(outdir).parents[1]
+    seurat_object = os.path.join(seurat_dir, "begin.rds")
+
+
+    if not os.path.exists(PARAMS["knownmarkers_file"]):
+        raise ValueError("The specified known markers file does not exist")
+
+    outprefix = outfile.replace(".sentinel", "")
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    statement = '''Rscript %(tenx_dir)s/R/plot_violins.R
+                       --genetable=%(knownmarkers_file)s
+                       --seuratobject=%(seurat_object)s
+                       --clusterids=%(cluster_ids)s
+                       --outprefix=%(outprefix)s
+                       --plotdirvar=knownmarkersDir
+                       &> %(log_file)s
+        '''
+
+    P.run(statement)
+
+    IOTools.touch_file(outfile)
+
+
+
 
 # ########################################################################### #
 # ################## Set the DR visualisation method ######################## #
@@ -1973,7 +2021,8 @@ def genesets():
          plotRdimsMarkers,
          diffusionMap,
          plotGroupNumbers,
-         velocity)
+         velocity,
+         knownMarkerViolins)
 def plots():
     '''
     Intermediate target to collect plots.
@@ -2041,6 +2090,9 @@ def latexVars(infile, outfile):
 
     genelistsDir = os.path.join(runDir,
                                 "genelists.dir")
+
+    knownmarkersDir = os.path.join(runDir,
+                                   "known.markers.dir")
 
     diffmapDir = os.path.join(runDir,
                               "diffusionmap.dir")
@@ -2111,6 +2163,7 @@ def latexVars(infile, outfile):
             "conditionGenesetsDir": "%(conditionGenesetsDir)s" % locals(),
             "conditionMarkerDEPlotsDir": "%(conditionMarkerDEPlotsDir)s" % locals(),
             "conditionMarkersDir": "%(conditionMarkersDir)s" % locals(),
+            "knownmarkersDir": "%(knownmarkersDir)s" % locals(),
             "genelistsDir": "%(genelistsDir)s" % locals(),
             "diffmapDir": "%(diffmapDir)s" % locals(),
             "groupNumbersDir": "%(groupNumbersDir)s" % locals(),
@@ -2259,6 +2312,11 @@ def summaryReport(infile, outfile):
     if(PARAMS["velocity_run"]):
         statement += '''
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/velocitySection.tex
+        '''
+
+    if(PARAMS["knownmarkers_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/knownmarkersSection.tex
         '''
 
     statement += '''
