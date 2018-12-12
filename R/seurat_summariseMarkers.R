@@ -213,20 +213,16 @@ if(!is.null(opt$subgroup))
 {
     if(!opt$subgroup %in% colnames(s@meta.data))
     {
-        subgroup <- NULL
+        opt$subgroup <- NULL
     }
-} else {
-           subgroup <- opt$subgroup
 }
-
 
 mch <- markerComplexHeatmap(s,
                          marker_table=filtered_markers,
                          n_markers=20,
                          cells_use=NULL,
                          row_names_gp=11,
-                         sub_group=subgroup)
-
+                         sub_group=opt$subgroup)
 
 drawHeatmap <- function()
 {
