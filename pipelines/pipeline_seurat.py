@@ -651,7 +651,7 @@ def diffusionMap(infile, outfile):
     else:
         usegenes="--usegenes=FALSE"
 
-    job_memory = "20G"
+    job_memory = PARAMS["diffusionmap_job_memory"]
 
     tenx_dir = PARAMS["tenx_dir"]
 
