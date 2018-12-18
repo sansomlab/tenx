@@ -256,7 +256,7 @@ diffusionmap:
   # results.
   usegenes: False
   maxdim: 10
-
+  job_memory: "20G"
 
 # RNA Velocity
 # ------------
