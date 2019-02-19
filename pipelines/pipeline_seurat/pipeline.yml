@@ -389,9 +389,13 @@ genesets:
   # summary heatmaps.
   pvalue_threshold: 0.05
 
-  # The minimum odds ratio to be used for producing the
-  # summary heatmaps.
+  # The minimum odds ratio to be used for inclusion in the
+  # plots
   min_odds_ratio: 1.5
+
+  # The minimum number of over-represented genes for
+  # inclusion in the plots
+  min_fg_genes: 3
 
   # Should genesets significantly enriched in all clusters
   # be shown in the summary heatmaps?

@@ -1838,7 +1838,7 @@ def summariseGenesetAnalysis(infile, outfile):
 
     job_memory = "20G"
 
-    logfile = outfile + ".log"
+    logfile = outfile.replace(".sentinel", ".log")
 
     use_adjusted = str(PARAMS["genesets_use_adjusted_pvalues"]).upper()
     show_common = str(PARAMS["genesets_show_common"]).upper()
@@ -1850,13 +1850,13 @@ def summariseGenesetAnalysis(infile, outfile):
                          --gmt_names=%(gmt_names)s
                          --show_detailed=%(show_detailed)s
                          --nclusters=%(nclusters)s
-                         --mingenes=2
+                         --mingenes=%(genesets_min_fg_genes)s
                          --pvaluethreshold=%(genesets_pvalue_threshold)s
                          --padjustmethod=%(genesets_padjust_method)s
                          --useadjusted=%(use_adjusted)s
                          --minoddsratio=%(genesets_min_odds_ratio)s
                          --showcommon=%(show_common)s
-                         --outfile=%(outfile)s
+                         --outprefix=%(outdir)s/cluster.genesets
                          --prefix=genesets
                          --plotdirvar=clusterGenesetsDir
                     &> %(logfile)s
@@ -1981,7 +1981,7 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
 
     job_memory = "20G"
 
-    logfile = outfile + ".log"
+    logfile = outfile.replace(".sentinel", ".log")
 
     gmt_names, gmt_files = parseGMTs(param_keys=["gmt_pathway_files_"])
 
@@ -1995,12 +1995,13 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
                          --gmt_names=%(gmt_names)s
                          --show_detailed=%(show_detailed)s
                          --nclusters=%(nclusters)s
-                         --mingenes=2
+                         --mingenes=%(genesets_min_fg_genes)s
                          --pvaluethreshold=%(genesets_pvalue_threshold)s
                          --padjustmethod=%(genesets_padjust_method)s
+                         --minoddsratio=%(genesets_min_odds_ratio)s
                          --useadjusted=%(use_adjusted)s
                          --showcommon=%(show_common)s
-                         --outfile=%(outfile)s
+                         --outprefix=%(outdir)s/condition.genesets
                          --prefix=genesets.between
                          --plotdirvar=conditionGenesetsDir
                     &> %(logfile)s
@@ -2388,8 +2389,8 @@ def export(infile, outfile):
                os.path.join(run_dir,"latex.dir","summaryReport.pdf"),
                os.path.join(run_dir,"cluster.markers.dir","markers.summary.table.xlsx"),
                os.path.join(run_dir,"condition.markers.dir",between_xlsx),
-               os.path.join(run_dir, "cluster.genesets.dir","geneset.analysis.xlsx"),
-               os.path.join(run_dir, "condition.genesets.dir","geneset.analysis.between.xlsx")]
+               os.path.join(run_dir, "cluster.genesets.dir","cluster.genesets.xlsx"),
+               os.path.join(run_dir, "condition.genesets.dir","condition.genesets.xlsx")]
 
     for target_file in targets:
 

@@ -47,8 +47,8 @@ option_list <- list(
                 help="expected prefix for source files"),
     make_option(c("--plotdirvar"), default="clusterGenesetsDir",
                 help="latex var containing name of the directory with the plots"),
-    make_option(c("--outfile"), default="none",
-                help="outfile")
+    make_option(c("--outprefix"), default="none",
+                help="prefix for outfiles")
     )
 
 opt <- parse_args(OptionParser(option_list=option_list))
@@ -244,7 +244,7 @@ for(geneset in genesets)
         if(nrow(results_table) > 0) { make_plot <- TRUE }
     }
 
-    plotfn <- gsub("sentinel",geneset,opt$outfile)
+    plotfn <- paste(opt$outprefix, geneset, sep=".")
     if(make_plot)
     {
 
@@ -299,9 +299,8 @@ for(geneset in genesets)
                         gp <- visualiseClusteredGenesets(tmp,
                                                          highlight=genesets_to_show[genesets_to_show %in% tmp$geneset_id] )
 
-                        detailed_plotfn <- gsub("sentinel",
-                                       paste(geneset, "circle_plot", cluster, sep="."),
-                                       opt$outfile)
+                        detailed_plotfn <- paste(opt$outprefix,
+                                                 geneset, "circle_plot", cluster, sep=".")
 
                         save_ggplots(detailed_plotfn,
                                      gp,
@@ -338,10 +337,12 @@ for(geneset in genesets)
 
 }
 
-fig_file <- gsub("sentinel","figure.tex",opt$outfile)
+fig_file <- paste(opt$outprefix,"figure.tex", sep=".")
 writeTex(fig_file,tex)
 
-saveWorkbook(wb, file=opt$outfile, overwrite=T)
+saveWorkbook(wb,
+             file=paste(opt$outprefix, "xlsx", sep="."),
+             overwrite=T)
 
 begin=T
 hlines <- c()
@@ -369,7 +370,7 @@ for(cluster in names(ltabs))
 
 }
 
-ltab_file <- gsub("sentinel","table.tex",opt$outfile)
+ltab_file <- paste(opt$outprefix,"table.tex", sep=".")
 
 if(!exists("out"))
 {
