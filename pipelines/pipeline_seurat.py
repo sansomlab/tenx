@@ -1735,7 +1735,7 @@ def parseGMTs(param_keys=["gmt_pathway_files_"]):
 @transform(findMarkers,
            regex(r"(.*)/cluster.markers.dir/.*.sentinel"),
            add_inputs(getGenesetAnnotations),
-           r"\1/cluster.genesets.dir/genesetAnalysis.sentinel")
+           r"\1/cluster.genesets.dir/geneset.analysis.sentinel")
 def genesetAnalysis(infiles, outfile):
     '''
     Naive geneset over-enrichment analysis of cluster marker genes.
@@ -1814,7 +1814,7 @@ def genesetAnalysis(infiles, outfile):
 
 @transform(genesetAnalysis,
            regex(r"(.*)/.*.sentinel"),
-           r"\1/geneset.analysis.xlsx")
+           r"\1/summarise.geneset.analysis.sentinel")
 def summariseGenesetAnalysis(infile, outfile):
     '''
     Summarise the geneset over-enrichment analyses of cluster marker genes.
@@ -1843,9 +1843,12 @@ def summariseGenesetAnalysis(infile, outfile):
     use_adjusted = str(PARAMS["genesets_use_adjusted_pvalues"]).upper()
     show_common = str(PARAMS["genesets_show_common"]).upper()
 
+    show_detailed = str(PARAMS["genesets_show_detailed"])
+
     statement = '''Rscript %(tenx_dir)s/R/summariseGenesets.R
                          --genesetdir=%(genesetdir)s
                          --gmt_names=%(gmt_names)s
+                         --show_detailed=%(show_detailed)s
                          --nclusters=%(nclusters)s
                          --mingenes=2
                          --pvaluethreshold=%(genesets_pvalue_threshold)s
@@ -1858,8 +1861,9 @@ def summariseGenesetAnalysis(infile, outfile):
                          --plotdirvar=clusterGenesetsDir
                     &> %(logfile)s
                       '''
-
     P.run(statement)
+
+    IOTools.touch_file(outfile)
 
 
 # ------------------- < within cluster geneset analysis > ------------------- #
@@ -1869,7 +1873,7 @@ def summariseGenesetAnalysis(infile, outfile):
 @transform(findMarkersBetweenConditions,
            regex(r"(.*)/condition.markers.dir/.*.sentinel"),
            add_inputs(getGenesetAnnotations),
-           r"\1/condition.genesets.dir/genesetAnalysisBetweenConditions.sentinel")
+           r"\1/condition.genesets.dir/geneset.analysis.between.conditions.sentinel")
 def genesetAnalysisBetweenConditions(infiles, outfile):
     '''
     Naive geneset over-enrichment analysis of genes DE within-cluster.
@@ -1957,7 +1961,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 @active_if(PARAMS["findmarkers_between"])
 @transform(genesetAnalysisBetweenConditions,
            regex(r"(.*)/.*.sentinel"),
-           r"\1/geneset.analysis.between.xlsx")
+           r"\1/summarise.geneset.analysis.between.conditions.sentinel")
 def summariseGenesetAnalysisBetweenConditions(infile, outfile):
     '''
     Summarise the geneset over-enrichment analyses of genes DE within-cluster.
@@ -1984,9 +1988,12 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
     use_adjusted = str(PARAMS["genesets_use_adjusted_pvalues"]).upper()
     show_common = str(PARAMS["genesets_show_common"]).upper()
 
+    show_detailed = str(PARAMS["genesets_show_detailed"])
+
     statement = '''Rscript %(tenx_dir)s/R/summariseGenesets.R
                          --genesetdir=%(genesetdir)s
                          --gmt_names=%(gmt_names)s
+                         --show_detailed=%(show_detailed)s
                          --nclusters=%(nclusters)s
                          --mingenes=2
                          --pvaluethreshold=%(genesets_pvalue_threshold)s
@@ -2001,6 +2008,7 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
 
     P.run(statement)
 
+    IOTools.touch_file(outfile)
 
 # ---------------------- < geneset analysis target > ---------------------- #
 
@@ -2044,7 +2052,7 @@ def plots():
          genesets,
          plots)
 @transform(summariseGenesetAnalysis,
-           regex("(.*)/cluster.genesets.dir/geneset.analysis.xlsx"),
+           regex("(.*)/cluster.genesets.dir/summarise.geneset.analysis.sentinel"),
            r"\1/latex.dir/report.vars.sty")
 def latexVars(infile, outfile):
     '''

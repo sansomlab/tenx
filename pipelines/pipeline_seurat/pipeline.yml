@@ -397,6 +397,11 @@ genesets:
   # be shown in the summary heatmaps?
   show_common: True
 
+  # Make per-cluster geneset plots where genesets are
+  # clustered by over-represented genes
+  # either "none" or a comma-separated list of geneset names
+  show_detailed: GO.BP
+
 gmt_pathway_files:
 
   # Arbitrary genesets can be specified here using gmt files.
