@@ -30,10 +30,15 @@ option_list <- list(
                            "be shown in the summary heatmap")),
     make_option(c("--mingenes"), type="integer", default=2,
                 help="min no. genes in foreground set"),
-    make_option(c("--minoddsratio"), type="integer", default=1.5,
+    make_option(c("--maxgenes"), type="integer", default=500,
+                help="the maximum number of genes allowed per geneset"),
+    make_option(c("--minoddsratio"), type="double", default=1.5,
                 help="The minimum odds ratio."),
     make_option(c("--gmt_names"), default="none",
                 help="comma separated list of names for the gmt files"),
+    make_option(c("--show_detailed"), default="none",
+                help=paste("comma separated list of names for which to make individual",
+                "per-sample/cluster plots")),
     make_option(c("--clustertype"),default="cluster",
                 help="will be used e.g. in plot labels"),
     make_option(c("--project"), default="SeuratAnalysis",
@@ -42,8 +47,8 @@ option_list <- list(
                 help="expected prefix for source files"),
     make_option(c("--plotdirvar"), default="clusterGenesetsDir",
                 help="latex var containing name of the directory with the plots"),
-    make_option(c("--outfile"), default="none",
-                help="outfile")
+    make_option(c("--outprefix"), default="none",
+                help="prefix for outfiles")
     )
 
 opt <- parse_args(OptionParser(option_list=option_list))
@@ -62,6 +67,15 @@ if(opt$gmt_names != "none")
     gmt_names <- c()
 }
 
+if(opt$show_detailed != "none")
+{
+    show_detailed <- strsplit(opt$show_detailed,",")[[1]]
+} else {
+    show_detailed <- c()
+}
+
+
+
 ## TODO: Detect automatically
 genesets = c("GO.BP","GO.MF","GO.CC",
              "KEGG",
@@ -76,9 +90,9 @@ tex <- c()
 
 for(geneset in genesets)
 {
-    contents <- NULL
+    genesets <- NULL
 
-    print(paste("Processing:", geneset,"annotations."))
+    message(paste("Processing:", geneset,"annotations."))
     begin=T
 
     if(opt$firstcluster==0)
@@ -94,7 +108,7 @@ for(geneset in genesets)
     ## all clusters
     for(cluster in first:last)
     {
-        print(paste("Working on cluster: ", cluster))
+        message(paste("Working on cluster: ", cluster))
 
         fn = paste0(opt$genesetdir,"/",opt$prefix,".",cluster,".",geneset,".txt.gz")
         if(file.exists(fn))
@@ -106,19 +120,19 @@ for(geneset in genesets)
                     temp$cluster <- cluster
                 }
                 else {
-                    print(paste0("zero rows for cluster: ",cluster))
+                    message(paste0("zero rows for cluster: ",cluster))
                 }
 
                 if(begin==T)
                 {
-                    contents <- temp
+                    genesets <- temp
                     begin <- F
                 }
                 else {
-                    contents <- rbind(contents,temp)
+                    genesets <- rbind(genesets,temp)
                 }
             } else {
-                print(paste("Skipping ",fn,"(file not found)",sep="\t"))
+                message(paste("Skipping ",fn,"(file not found)",sep="\t"))
             }
 
     }
@@ -126,33 +140,27 @@ for(geneset in genesets)
     make_plot = FALSE
 
     ## Filter out genesets we do not wish to consider
-    contents <- contents[contents$n_fg >= opt$mingenes,]
+    filtered_genesets <- filterGenesets(genesets,
+                                   min_foreground_genes = opt$mingenes,
+                                   max_genes_geneset = opt$maxgenes,
+                                   min_odds_ratio = opt$minoddsratio,
+                                   padjust_method=opt$padjustmethod,
+                                   use_adjusted_pvalues=opt$useadjusted,
+                                   pvalue_threshold=opt$pvaluethreshold)
 
-    if(!is.null(contents) && nrow(contents) > 0)
+
+    results_table <- filtered_genesets
+
+    if(!is.null(results_table) && nrow(results_table) > 0)
     {
 
+        id_tab <- table(results_table$geneset_id)
 
-        ## Compute adjusted p-values
-        ## The input table contains _all tested genesets_
-        ## (with n_fg >= opt$mingenes) regardless of p value.
-        contents$p.adj <- p.adjust(contents$p.val, method=opt$padjustmethod)
-
-        ## Compute the number of clusters in which each geneset is signficantly enriched
-
-        if(opt$useadjusted)
-        {
-            nsigtmp <- contents[contents$p.adj < opt$pvaluethreshold,]
-        } else {
-            nsigtmp <- contents[contents$p.val < opt$pvaluethreshold,]
-        }
-
-        id_tab <- table(nsigtmp$geneset_id)
-
-        contents$n_clust_sig <- id_tab[contents$geneset_id]
-        contents$n_clust_sig[is.na(contents$n_clust_sig)] <- 0
+        results_table$n_clust_sig <- id_tab[results_table$geneset_id]
+        results_table$n_clust_sig[is.na(results_table$n_clust_sig)] <- 0
 
         ## Sort by p value
-        contents <- contents[order(contents$cluster,contents$p.val),]
+        results_table <- results_table[order(results_table$cluster,results_table$p.val),]
 
         ## Tidy up the frame
         firstcols <- c("cluster","geneset_id","description",
@@ -160,16 +168,16 @@ for(geneset in genesets)
                        "odds.ratio",
                        "n_clust_sig","n_fg","n_bg")
 
-        firstcols <- firstcols[firstcols %in% colnames(contents)]
-        othercols <- colnames(contents)[!colnames(contents) %in% firstcols]
-        contents <- contents[,c(firstcols,othercols)]
+        firstcols <- firstcols[firstcols %in% colnames(results_table)]
+        othercols <- colnames(results_table)[!colnames(results_table) %in% firstcols]
+        results_table <- results_table[,c(firstcols,othercols)]
 
-        numeric_cols <- colnames(contents)[sapply(contents, is.numeric)]
+        numeric_cols <- colnames(results_table)[sapply(results_table, is.numeric)]
 
         for(numeric_col in numeric_cols)
         {
             ## set to 3 sf
-            xx <- contents[[numeric_col]]
+            xx <- results_table[[numeric_col]]
 
             nas <- is.na(xx)
             if(any(abs(xx)==Inf))
@@ -183,21 +191,21 @@ for(geneset in genesets)
 
             xx[ints] <- as.integer(xx[ints])
 
-            contents[[numeric_col]] <- xx
+            results_table[[numeric_col]] <- xx
         }
 
         ## Add the results to the worksheet
         addWorksheet(wb,geneset)
-        setColWidths(wb,geneset,cols=1:ncol(contents),widths=10)
+        setColWidths(wb,geneset,cols=1:ncol(results_table),widths=10)
         hs <- createStyle(textDecoration = "BOLD")
-        writeData(wb, geneset, contents, withFilter = T, headerStyle=hs)
+        writeData(wb, geneset, results_table, withFilter = T, headerStyle=hs)
 
         ## prepare for writing out a latex summary table (unique pathways)
         ## and geneset heatmaps (can be shared)
-        for(clust in unique(as.character(contents$cluster)))
+        for(clust in unique(as.character(results_table$cluster)))
         {
 
-            temp <- contents[contents$cluster==clust,]
+            temp <- results_table[results_table$cluster==clust,]
             nrows <- nrow(temp)
             if(nrows==0) { next }
             temp <- temp[1:min(nrows,5),]
@@ -209,11 +217,10 @@ for(geneset in genesets)
 
             ## trim long descriptions
             maxl <- 45
-            xx <- temp$description
 
-            xx <- temp$description
-            xx <- formatDescriptions(xx, c("REACTOME_", "BIOCARTA_"), maxl)
-            temp$description <- xx
+            temp$description <- formatDescriptions(temp$description,
+                                                   c("REACTOME_", "BIOCARTA_"),
+                                                   maxl)
 
             temp_names <- colnames(temp)
             temp$type <- geneset
@@ -234,46 +241,81 @@ for(geneset in genesets)
             }
         }
 
-        results_table <- contents
-
-        ## catch case where there is nothing to plot.
-        if(opt$useadjusted)
-        {
-            nsig = nrow(results_table[results_table$p.adj < opt$pvaluethreshold &
-                                      results_table$odds.ratio >= opt$minoddsratio,])
-        } else {
-            nsig =  nrow(results_table[results_table$p.val < opt$pvaluethreshold &
-                                       results_table$odds.ratio >= opt$minoddsratio,])
-        }
-
-        if(nsig > 0) { make_plot <- TRUE }
+        if(nrow(results_table) > 0) { make_plot <- TRUE }
     }
 
-    plotfn <- gsub("xlsx",geneset,opt$outfile)
+    plotfn <- paste(opt$outprefix, geneset, sep=".")
     if(make_plot)
     {
 
-        plot_fn <- function()
+        xx <- filtered_genesets
+
+        if(!opt$showcommon)
         {
-            sampleEnrichmentHeatmap(results_table,
-                                    max_rows=50,
-                                    min_genes=opt$mingenes,
-                                    p_col="p.val",
-                                    adjust_pvalues=opt$useadjusted,
-                                    padjust_method=opt$padjustmethod,
-                                    pvalue_threshold=opt$pvaluethreshold,
-                                    min_odds_ratio=opt$minoddsratio,
-                                    maxl=45,
-                                    show_common=opt$showcommon,
-                                    sample_id_col="cluster",
-                                    sample_ids=c(first:last),
-                                    title=geneset)
+           tmp <- table(xx$geneset_id)
+           xx <- xx[!xx$geneset_id %in% names(tmp)[tmp==opt$nclusters],]
         }
 
-        save_plots(plotfn,
-                   plot_fn=plot_fn,
-                   width=8,
-                   height=8)
+        xx$score <- -log10(xx$p.adj) * log2(xx$odds.ratio)
+
+        genesets_to_show <- getSampleGenesets(xx,
+                                              sort_by = "score",
+                                              max_rows = 50)
+
+        # add back adjusted p values
+        genesets$p.adj <- NA
+        genesets[rownames(filtered_genesets),"p.adj"] <- filtered_genesets$p.adj
+
+        gp <- sampleEnrichmentDotplot(genesets,
+                                      selected_genesets = genesets_to_show,
+                                      selection_col = "geneset_id",
+                                      sample_levels =c(first:last),
+                                      min_dot_size =1, max_dot_size = 6,
+                                      maxl = 45,
+                                      pvalue_threshold = opt$pvaluethreshold,
+                                      title=geneset)
+
+
+        save_ggplots(plotfn,
+                     gp,
+                     width=8,
+                     height=8)
+
+
+        per_sample_tex = c()
+        if(geneset %in% show_detailed)
+        {
+
+                ## make the per sample plots
+                for(cluster in unique(xx$cluster))
+                {
+                    tmp <- xx[xx$cluster==cluster,]
+                    tmp <- tmp[rev(order(tmp$score)),]
+
+                    max_n_cat = 150
+
+                    if(nrow(tmp)> max_n_cat) { tmp <- tmp[1:max_n_cat,] }
+
+                        gp <- visualiseClusteredGenesets(tmp,
+                                                         highlight=genesets_to_show[genesets_to_show %in% tmp$geneset_id] )
+
+                        detailed_plotfn <- paste(opt$outprefix,
+                                                 geneset, "circle_plot", cluster, sep=".")
+
+                        save_ggplots(detailed_plotfn,
+                                     gp,
+                                     width=10, height=10)
+
+                        caption <- paste("Cluster", cluster, geneset,
+                                         "genesets clustered by similarity between over-represented genes.", sep=" ")
+
+                        per_sample_tex <- c(per_sample_tex,
+                                            getFigureTex(basename(detailed_plotfn),
+                                                         caption,
+                                                         plot_dir_var=opt$plotdirvar))
+
+                    }
+        }
 
     } else {
             # draw an empty plot with an error message
@@ -286,15 +328,21 @@ for(geneset in genesets)
 
     caption <- paste("Heatmap of the top", geneset, "genesets", sep=" ")
     tex <- c(tex,getSubsectionTex(geneset))
+
     tex <- c(tex,getFigureTex(basename(plotfn), caption,
                               plot_dir_var=opt$plotdirvar))
-    tex <- c(tex,"\n")
+
+    tex <- c(tex, "\n",
+             per_sample_tex, "\n")
+
 }
 
-fig_file <- gsub("xlsx","figure.tex",opt$outfile)
+fig_file <- paste(opt$outprefix,"figure.tex", sep=".")
 writeTex(fig_file,tex)
 
-saveWorkbook(wb, file=opt$outfile, overwrite=T)
+saveWorkbook(wb,
+             file=paste(opt$outprefix, "xlsx", sep="."),
+             overwrite=T)
 
 begin=T
 hlines <- c()
@@ -322,7 +370,7 @@ for(cluster in names(ltabs))
 
 }
 
-ltab_file <- gsub("xlsx","table.tex",opt$outfile)
+ltab_file <- paste(opt$outprefix,"table.tex", sep=".")
 
 if(!exists("out"))
 {

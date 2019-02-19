@@ -63,6 +63,9 @@ if("gene_id" %in% colnames(s@misc))
     ## map to the seurat ids via the ensembl_ids...
     id_col = "gene_id"
     map <- data.frame(s@misc[s@misc$gene_id %in% genes$gene_id,])
+
+    #subset the map to genes with expression data.
+    map <- map[map$seurat_id %in% rownames(s@data),]
     rownames(map) <- map$gene_id
     genes <- genes[genes$gene_id %in% rownames(map),]
     genes$seurat_id <- as.vector(map[genes$gene_id,"seurat_id"])
@@ -97,6 +100,10 @@ for(group in unique(genes$group))
     rownames(tmp) <- tmp$seurat_id
 
     message("prepared the gene table for group: ", group)
+
+
+    print(rownames(tmp))
+    print(rownames(tmp)[rownames(tmp) %in% rownames(s@data)])
 
     data <- as.data.frame(as.matrix(s@data[rownames(tmp),]))
     rownames(data) <- tmp$plot_name
