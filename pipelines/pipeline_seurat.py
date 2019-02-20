@@ -678,68 +678,6 @@ def diffusionMap(infile, outfile):
 
 
 # ########################################################################### #
-# ########################### RNA Velocity ################################## #
-# ########################################################################### #
-
-@active_if(PARAMS["velocity_run"])
-@transform(UMAP,
-           regex(r"(.*)/umap.dir/umap.sentinel"),
-           r"\1/velocity.dir/plot.velocity.sentinel")
-def velocity(infile, outfile):
-    '''
-       Plot the RNA velocity.
-       This analysis is highly parameterised and different configurations can
-       suggest different interpretations of the data: it is strong recommended
-       to determine the best settings manually!
-    '''
-
-    outdir = os.path.dirname(outfile)
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-
-    rdimstable = infile.replace(".sentinel", ".txt")
-    sample = infile.split(".seurat.dir")[0]
-
-    matrixdir = os.path.join("data.velocity.dir",
-                             sample + ".dir")
-
-    log_file = outfile.replace(".sentinel", ".log")
-
-    job_threads = PARAMS["velocity_ncores"]
-    job_memory = "10G"
-
-    statement = '''Rscript %(tenx_dir)s/R/plot_velocity.R
-                --ncores=%(velocity_ncores)s
-                --rdimstable=%(rdimstable)s
-                --rdim1=UMAP1
-                --rdim2=UMAP2
-                --matrixdir=%(matrixdir)s
-                --minmaxclustavemat=%(velocity_minmaxclustavemat)s
-                --minmaxclustavnmat=%(velocity_minmaxclustavnmat)s
-                --deltat=%(velocity_deltat)s
-                --kcells=%(velocity_kcells)s
-                --fitquantile=%(velocity_fitquantile)s
-                --neighbourhoodsize=%(velocity_neighbourhoodsize)s
-                --velocityscale=%(velocity_velocityscale)s
-                --arrowscale=%(velocity_arrowscale)s
-                --arrowlwd=%(velocity_arrowlwd)s
-                --gridflow=%(velocity_gridflow)s
-                --mingridcellmass=%(velocity_mingridcellmass)s
-                --gridn=%(velocity_gridn)s
-                --cellalpha=%(velocity_cellalpha)s
-                --cellborderalpha=%(velocity_cellborderalpha)s
-                --showaxes=%(velocity_showaxes)s
-                --plotdirvar=velocityDir
-                --plotcex=%(velocity_plotcex)s
-                --outdir=%(outdir)s
-                &> %(log_file)s
-                '''
-
-    P.run(statement)
-    IOTools.touch_file(outfile)
-
-
-# ########################################################################### #
 # ####################### Known gene violin plots ########################### #
 # ########################################################################### #
 
@@ -809,6 +747,77 @@ elif PARAMS["dimreduction_visualisation"].lower() == "umap":
 
 else:
     raise ValueError('dimreduction_visualisation must be either "tsne" or "umap"')
+
+# ########################################################################### #
+# ########################### RNA Velocity ################################## #
+# ########################################################################### #
+
+@active_if(PARAMS["velocity_run"])
+@transform(RDIMS_VIS_TASK,
+           regex(r"(.*)/(.*).dir/(.*).sentinel"),
+           r"\1/velocity.dir/plot.velocity.sentinel")
+def velocity(infile, outfile):
+    '''
+       Plot the RNA velocity.
+       This analysis is highly parameterised and different configurations can
+       suggest different interpretations of the data: it is strong recommended
+       to determine the best settings manually!
+    '''
+
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    if RDIMS_VIS_METHOD == "tsne":
+        rdims_table = infile.replace(
+            "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+    elif RDIMS_VIS_METHOD == "umap":
+        rdims_table = infile.replace(
+            ".sentinel", ".txt")
+
+    sample = infile.split(".seurat.dir")[0]
+
+    matrixdir = os.path.join("data.velocity.dir",
+                             sample + ".dir")
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    job_threads = PARAMS["velocity_ncores"]
+    job_memory = "10G"
+
+    rdims_vis_method = RDIMS_VIS_METHOD
+    rdim1 = RDIMS_VIS_COMP_1
+    rdim2 = RDIMS_VIS_COMP_2
+
+    statement = '''Rscript %(tenx_dir)s/R/plot_velocity.R
+                --ncores=%(velocity_ncores)s
+                --rdimstable=%(rdims_table)s
+                --rdim1=%(rdim1)s
+                --rdim2=%(rdim2)s
+                --matrixdir=%(matrixdir)s
+                --minmaxclustavemat=%(velocity_minmaxclustavemat)s
+                --minmaxclustavnmat=%(velocity_minmaxclustavnmat)s
+                --deltat=%(velocity_deltat)s
+                --kcells=%(velocity_kcells)s
+                --fitquantile=%(velocity_fitquantile)s
+                --neighbourhoodsize=%(velocity_neighbourhoodsize)s
+                --velocityscale=%(velocity_velocityscale)s
+                --arrowscale=%(velocity_arrowscale)s
+                --arrowlwd=%(velocity_arrowlwd)s
+                --gridflow=%(velocity_gridflow)s
+                --mingridcellmass=%(velocity_mingridcellmass)s
+                --gridn=%(velocity_gridn)s
+                --cellalpha=%(velocity_cellalpha)s
+                --cellborderalpha=%(velocity_cellborderalpha)s
+                --showaxes=%(velocity_showaxes)s
+                --plotdirvar=velocityDir
+                --plotcex=%(velocity_plotcex)s
+                --outdir=%(outdir)s
+                &> %(log_file)s
+                '''
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
 
 
 # ########################################################################### #
