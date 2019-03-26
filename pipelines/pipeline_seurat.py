@@ -74,6 +74,9 @@ have been added.
 Typically involves linking "dataset.dir" subfolders from a
 pipeline_cellranger.py run.
 
+The "metadata.tsv" file must contain at least a column named "barcode",
+an a column containing a grouping factor (default: "sample_id").
+
 A folder containing the expression matrix (market exchange format)
 and metadata.tsv file should be linked into a "data.dir" subfolder.
 The folder names must end with ".dir".

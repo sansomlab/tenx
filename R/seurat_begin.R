@@ -255,6 +255,8 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
+cat("Debug:\nopt <-", deparse(opt), fill=80)
+
 # Input data ----
 
 ## ######################################################################### ##
@@ -298,6 +300,8 @@ cat("Importing matrix from: ", opt$tenxdir, " ... ")
 data <- Read10X(opt$tenxdir)
 cat("Done.\n")
 
+print(data[1:3,1:3])
+
 ## Seurat discards the Ensembl IDs and makes it's own identifiers (!)
 ## From https://github.com/satijalab/seurat/blob/master/R/preprocessing.R:
 ##
@@ -316,6 +320,8 @@ inFile <- file.path(opt$tenxdir, "genes.tsv")
 cat("Importing gene information from: ", inFile, " ... ")
 genes <- read.table(inFile, as.is=TRUE)
 cat("Done.\n")
+
+print(head(genes))
 
 colnames(genes) <- c("gene_id", "gene_name")
 ## TODO: consider scater::uniquifyFeatureNames()
@@ -348,6 +354,8 @@ s <- CreateSeuratObject(
     )
 cat("Done.\n")
 
+print(s)
+
 # TODO: consider better alternatives (e.g. SummarizedExperiment has a rowData slot for that)
 s@misc <- genes
 
@@ -368,7 +376,9 @@ if (!"barcode" %in% colnames(metadata)) {
 rownames(metadata) <- metadata$barcode
 metadata$barcode <- NULL
 
-metadata <- metadata[s@cell.names, ]
+metadata <- metadata[s@cell.names, , drop=FALSE]
+
+print(head(metadata))
 
 # TODO: probably a more elegant way to show/handle this
 if (!identical(rownames(metadata), s@cell.names)) {
@@ -606,9 +616,10 @@ print(latent.vars)
 
 
 # perform regression without cell cycle correction
-s <- ScaleData(object=s, vars.to.regress=latent.vars,
-               model.use=opt$modeluse,
-               do.par=TRUE, num.cores=opt$numcores)
+s <- ScaleData(
+    object=s, vars.to.regress=latent.vars,
+    model.use=opt$modeluse,
+    do.par=TRUE, num.cores=opt$numcores, display.progress=FALSE)
 
 
 ## initialise the text snippet
