@@ -255,7 +255,7 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
-cat("Debug:\nopt <-", deparse(opt), fill=80)
+cat("Debug:\nopt <- ", fill = FALSE); cat(deparse(opt), fill=80)
 
 # Input data ----
 
@@ -435,12 +435,10 @@ getSubset <- function(seurat_object, cells_to_retain)
         s
 }
 
-
-
 # KRA: pipeline.yml says "to retain all the cells for a sample use the
 # string "use.all".. why is it used for subsetting here?!
 # TODO: use comments to explain what is done
-if (opt$subsetcells!="use.all") {
+if (opt$subsetcells != "use.all") {
 
     message("subsetting to whitelisted cells")
     cells_to_retain <- scan(opt$subsetcells, "character")
@@ -467,8 +465,7 @@ if (opt$subsetcells!="use.all") {
 }
 
 # Remove blacklisted cells.
-if(!is.null(opt$blacklist))
-{
+if(!is.null(opt$blacklist)) {
     message("removing blacklisted cells")
 
     blacklist <- scan(opt$blacklist, "character")
@@ -476,7 +473,7 @@ if(!is.null(opt$blacklist))
     cells_to_retain <- s@cell.names[!s@cell.names %in% blacklist]
 
     s <- getSubset(s, cells_to_retain)
-    }
+}
 
 ## ######################################################################### ##
 ## ##################### (iii) QC filtering ################################ ##
@@ -607,20 +604,17 @@ print(
 ## ######################################################################### ##
 
 s <- NormalizeData(
-    object=s, normalization.method="LogNormalize", scale.factor=10E3
+    object=s, normalization.method="LogNormalize", scale.factor=10E3, display.progress = FALSE
     )
-
 
 latent.vars <- strsplit(opt$latentvars, ",")[[1]]
 print(latent.vars)
-
 
 # perform regression without cell cycle correction
 s <- ScaleData(
     object=s, vars.to.regress=latent.vars,
     model.use=opt$modeluse,
     do.par=TRUE, num.cores=opt$numcores, display.progress=FALSE)
-
 
 ## initialise the text snippet
 tex = ""
@@ -629,15 +623,13 @@ tex = ""
 subsectionTitle <- getSubsectionTex("Visualisation of cell cycle effects")
 tex <- c(tex, subsectionTitle)
 
-
 ## If cell cycle genes are given, make a PCA of the cells based
 ## on expression of cell cycle genes
 
 cell_cycle_genes <- FALSE
 
 if (!(is.null(opt$sgenes) | opt$sgenes=="none")
-    & !(is.null(opt$g2mgenes) | opt$g2mgenes=="none"))
-{
+    & !(is.null(opt$g2mgenes) | opt$g2mgenes=="none")) {
 
   cell_cycle_genes <- TRUE
   cat("There are cell cycle genes")
@@ -726,13 +718,9 @@ if ( identical(opt$cellcycle, "none") ) {
 
 }
 
-
-
 tex_file <- file.path(opt$outdir, "cell.cycle.tex")
 
 writeTex(tex_file, tex)
-
-
 
 ## ######################################################################### ##
 ## ################# (v) Identification of variable genes ################## ##
@@ -742,8 +730,7 @@ writeTex(tex_file, tex)
 
 ## We need to run FindVariableGenes to set s@hvg.info
 ## even if "trendvar" method is specified...
-if(opt$vargenesmethod=="trendvar")
-{
+if (opt$vargenesmethod=="trendvar") {
     fvg_method="mean.var.plot"
 } else {
     fvg_method=opt$vargenesmethod
@@ -753,13 +740,13 @@ s <- FindVariableGenes(
     s, mean.function=ExpMean, dispersion.function=LogVMR,
     selection.method=fvg_method, top.genes=opt$topgenes,
     x.low.cutoff=opt$xlowcutoff, x.high.cutoff=opt$xhighcutoff,
-    y.cutoff=opt$sdcutoff, do.plot=FALSE, do.text=FALSE, do.contour=FALSE
+    y.cutoff=opt$sdcutoff, do.plot=FALSE, do.text=FALSE, do.contour=FALSE,
+    display.progress = FALSE
 )
 
 xthreshold <- opt$xlowcutoff
 
-if(opt$vargenesmethod=="trendvar")
-{
+if (opt$vargenesmethod=="trendvar") {
     message("setting variable genes using the trendvar method")
 
     ## get highly variable genes using the getHVG function in tenxutils (Matrix.R)
@@ -790,8 +777,7 @@ gp <- gp + geom_point(alpha = 1, size=0.5)
 gp <- gp + facet_wrap(~variable, scales="free")
 gp <- gp + theme_classic()
 
-if(xthreshold > 0)
-{
+if(xthreshold > 0) {
     gp <- gp + geom_vline(xintercept=xthreshold, linetype="dashed", color="blue")
 }
 
@@ -851,8 +837,10 @@ dev.off()
 ## constructing a 'null distribution' of gene scores, and repeat this procedure. We identify
 ## 'significant' PCs as those who have a strong enrichment of low p-value genes.
 
-s <- JackStraw(s, num.replicate=opt$jackstrawnumreplicates,
-               num.pc = nPCs, do.par=TRUE, num.cores=opt$numcores)
+s <- JackStraw(
+    s, num.replicate=opt$jackstrawnumreplicates,
+    num.pc = nPCs, do.par=TRUE, num.cores=opt$numcores,
+    display.progress = FALSE)
 
 s <- JackStrawPlot(s, PCs=1:nPCs)
 
