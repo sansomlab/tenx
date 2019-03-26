@@ -38,6 +38,8 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
+cat("Debug:\nopt <- ", fill = FALSE); cat(deparse(opt), fill=80)
+
 # set the run specs
 run_specs <- paste(opt$components,opt$resolution,opt$algorithm,opt$testuse,sep="_")
 
