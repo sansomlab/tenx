@@ -96,6 +96,15 @@ option_list <- list(
             )
         ),
     make_option(
+        c("--qcminpercentmito"),
+        type="double",
+        default=-Inf,
+        help=paste(
+            "Minimum percentage of UMI assigned to mitochondrial genes.",
+            "See Seurat::FilterCells(subset.names='percent.mito', low.thresholds= ...)"
+            )
+        ),
+    make_option(
         c("--qcmaxpercentmito"),
         type="double",
         default=0.05,
@@ -545,7 +554,7 @@ stats$qc_max_percent_mito_threshold <- opt$maxpercentmito
 
 s <- FilterCells(
     s, subset.names=c("nGene", "percent.mito"),
-    low.thresholds=c(opt$qcmingenes, -Inf),
+    low.thresholds=c(opt$qcmingenes, opt$qcminpercentmito),
     high.thresholds=c(Inf, opt$qcmaxpercentmito)
     )
 

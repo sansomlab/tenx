@@ -105,6 +105,9 @@ qc:
     ## QC Filtering of the Seurat object (see ?FilterCells)
     # Retain cells where at least this many genes are detected
     mingenes: 500
+    # Retain cells that have the given minimum proportion of UMI assiged to mitochondrial genes
+    # can be used to filter out contaminating nuclei from lysed cells
+    minpercentmito: 0
     # Retain cells where at most this proportion of UMI are assigned to mitochondrial genes
     # Note that the default 5% (0.05) can be excessively stringent in some cases
     maxpercentmito: 0.05
