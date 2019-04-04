@@ -263,6 +263,7 @@ def beginSeurat(infile, outfile):
                    --mingenes=%(qc_initial_mingenes)s
                    --mincells=%(qc_mincells)s
                    --qcmingenes=%(qc_mingenes)s
+                   --qcminpercentmito=%(qc_minpercentmito)s
                    --qcmaxpercentmito=%(qc_maxpercentmito)s
                    --metadata=%(metadata)s
                    --downsamplecells=%(downsamplecells)s
