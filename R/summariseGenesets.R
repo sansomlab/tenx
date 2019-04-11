@@ -139,8 +139,10 @@ for(geneset in genesets)
 
     make_plot = FALSE
 
-    ## Filter out genesets we do not wish to consider
-    filtered_genesets <- filterGenesets(genesets,
+    if(!is.null(genesets))
+        {
+            ## Filter out genesets we do not wish to consider
+            filtered_genesets <- filterGenesets(genesets,
                                    min_foreground_genes = opt$mingenes,
                                    max_genes_geneset = opt$maxgenes,
                                    min_odds_ratio = opt$minoddsratio,
@@ -149,7 +151,8 @@ for(geneset in genesets)
                                    pvalue_threshold=opt$pvaluethreshold)
 
 
-    results_table <- filtered_genesets
+            results_table <- filtered_genesets
+            } else { results_table <- NULL }
 
     if(!is.null(results_table) && nrow(results_table) > 0)
     {
@@ -263,8 +266,10 @@ for(geneset in genesets)
                                               max_rows = 50)
 
         # add back adjusted p values
-        genesets$p.adj <- NA
+        genesets$p.adj <- 1
         genesets[rownames(filtered_genesets),"p.adj"] <- filtered_genesets$p.adj
+
+        message("making sample enrichment dotplot with n=",nrow(genesets)," genesets")
 
         gp <- sampleEnrichmentDotplot(genesets,
                                       selected_genesets = genesets_to_show,
@@ -275,12 +280,14 @@ for(geneset in genesets)
                                       pvalue_threshold = opt$pvaluethreshold,
                                       title=geneset)
 
-
+        print(plotfn)
         save_ggplots(plotfn,
                      gp,
                      width=8,
                      height=8)
 
+
+        message("saved sample enrichement dotplot")
 
         per_sample_tex = c()
         if(geneset %in% show_detailed)
@@ -296,8 +303,14 @@ for(geneset in genesets)
 
                     if(nrow(tmp)> max_n_cat) { tmp <- tmp[1:max_n_cat,] }
 
+                    if("description" %in% colnames(tmp))
+                    {
+                       desc_col <- "description"
+                    } else { desc_col <- "geneset_id" }
+
                         gp <- visualiseClusteredGenesets(tmp,
-                                                         highlight=genesets_to_show[genesets_to_show %in% tmp$geneset_id] )
+                                                         highlight=genesets_to_show[genesets_to_show %in% tmp$geneset_id],
+                                                         desc_col=desc_col)
 
                         detailed_plotfn <- paste(opt$outprefix,
                                                  geneset, "circle_plot", cluster, sep=".")
