@@ -268,13 +268,8 @@ def cellrangerCount(infile, outfile):
         raise ValueError('The specified "cellranger_transcriptome"'
                          ' file does not exist')
 
-    memory = PARAMS["cellranger_memory"]
-    job_threads = PARAMS["cellranger_threads"]
-    mem_per_core = int(float(memory) / job_threads)  # round down
-    job_memory = str(mem_per_core) + "M"
-
-    # cellranger expects memory in GB
-    cellranger_memory = str(int((mem_per_core * job_threads)/1000) - 2)
+    # set the maximum number of jobs for cellranger
+    max_jobs = PARAMS["cellranger_maxjobs"]
 
     # parse the sample name and expected cell number
     library_id, cellnumber, batch, trash = os.path.basename(infile).split(".")
@@ -298,6 +293,10 @@ def cellrangerCount(infile, outfile):
 
     log_file = id_tag + ".log"
 
+    ## send one job script to slurm queue which arranges cellranger run
+    ## hard-coded to ensure enough resources
+    job_threads = 6
+    job_memory = "24000M"
     statement = (
         '''cellranger count
                    --id %(id_tag)s
@@ -306,14 +305,17 @@ def cellrangerCount(infile, outfile):
                    --transcriptome %(transcriptome)s
                    --expect-cells %(cellnumber)s
                    --chemistry %(cellranger_chemistry)s
-                   --jobmode=local
-                   --localcores %(job_threads)s
-                   --localmem %(cellranger_memory)s
+                   --jobmode=slurm
+                   --maxjobs=%(max_jobs)s
                    --nopreflight
             &> %(log_file)s
         ''')
 
     P.run(statement)
+
+                   #     --localcores %(cellranger_job_threads)s
+                   # --localmem %(cellranger_memory)s
+
 
     IOTools.touch_file(outfile)
 
@@ -653,24 +655,22 @@ def cellrangerAggr(infile, outfile):
     else:
         options = "--options=" + PARAMS["aggr_options"]
 
-    memory = PARAMS["cellranger_memory"]
-    job_threads = PARAMS["cellranger_threads"]
-    mem_per_core = int(float(memory) / job_threads)
-    job_memory = str(mem_per_core) + "M"
-
-    # cellranger expects memory in GB
-    cellranger_memory = str(int((mem_per_core * job_threads) / 1000) - 2)
+    # set the maximum number of jobs for cellranger
+    max_jobs = PARAMS["cellranger_maxjobs"]
 
     log_file = id_tag + ".log"
 
+    ## send one job script to slurm queue which arranges cellranger run
+    ## hard-coded to ensure enough resources
+    job_threads = 6
+    job_memory = "24000M"
     statement = '''cellranger aggr
                    --id=%(id_tag)s
                    --csv=%(infile)s
-                   --jobmode=local
+                   --jobmode=slurm
                    --normalize=%(aggr_normalize)s
                    %(options)s
-                   --localcores=%(job_threads)s
-                   --localmem=%(cellranger_memory)s
+                   --maxjobs=%(max_jobs)s
                    &> %(log_file)s
                 '''
 

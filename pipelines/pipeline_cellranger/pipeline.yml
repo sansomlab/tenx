@@ -42,12 +42,8 @@ cellranger:
     transcriptome:
 
     # Passed to `cellranger count` and `cellranger aggr`
-    threads: 24
-
-    # Passed to `cellranger count` and `cellranger aggr`
-    # Note: in MB
-    memory: 240000
-
+    # Max jobs is passed to slurm as the maximum number of jobs
+    maxjobs: 64
 
 # Picard configuration
 # ----------------------------------------------------
