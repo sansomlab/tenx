@@ -313,10 +313,6 @@ def cellrangerCount(infile, outfile):
 
     P.run(statement)
 
-                   #     --localcores %(cellranger_job_threads)s
-                   # --localmem %(cellranger_memory)s
-
-
     IOTools.touch_file(outfile)
 
 
