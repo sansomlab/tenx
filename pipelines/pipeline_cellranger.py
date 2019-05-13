@@ -378,8 +378,8 @@ def rawQcMetricsPerBarcode(infile, outfile):
     transcriptome = PARAMS["cellranger_transcriptome"]
 
     # Build the path to the raw UMI count matrix
-    genome = os.path.basename(transcriptome).split("-")[2]
-    matrixpath = os.path.join(os.path.dirname(outfile), "outs", "raw_gene_bc_matrices", genome)
+    #genome = os.path.basename(transcriptome).split("-")[2]
+    matrixpath = os.path.join(os.path.dirname(outfile), "outs", "raw_gene_bc_matrix")
 
     # Build the path to the GTF file used by CellRanger
     gtf = os.path.join(transcriptome, "genes", "genes.gtf")

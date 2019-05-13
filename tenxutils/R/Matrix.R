@@ -10,9 +10,9 @@ Read10X <- function(data.dir = NULL){
     if(!grepl("\\/$", run)){
       run <- paste(run, "/", sep = "")
     }
-    barcode.loc <- paste0(run, "barcodes.tsv")
-    gene.loc <- paste0(run, "genes.tsv")
-    matrix.loc <- paste0(run, "matrix.mtx")
+    barcode.loc <- paste0(run, "barcodes.tsv.gz")
+    gene.loc <- paste0(run, "features.tsv.gz")
+    matrix.loc <- paste0(run, "matrix.mtx.gz")
     if (!file.exists(barcode.loc)){
       stop("Barcode file missing")
     }
@@ -22,17 +22,23 @@ Read10X <- function(data.dir = NULL){
     if (! file.exists(matrix.loc)){
       stop("Expression matrix file missing")
     }
-    data <- readMM(file = matrix.loc)
-    cell.names <- readLines(barcode.loc)
+    gz1 <- gzfile(matrix.loc)
+    data <- readMM(file = gz1)
+    close(gz1)
+    gz1 <- gzfile(barcode.loc)
+    cell.names <- readLines(gz1)
+    close(gz1)
 
+    gz1 <- gzfile(gene.loc)
     rownames(x = data) <- make.unique(
       names = as.character(
         ## TODO: could take the ENSEMBL ID rather than
         ## the symbols
         ## currently we explicity track the new
         ## ID -> symbol mapping (see below)
-        x = read.table(gene.loc)$V2
+        x = read.table(gz1)$V2
       ))
+    close(gz1)
 
     if (is.null(x = names(x = data.dir))) {
       if(i < 2){
@@ -98,19 +104,19 @@ writeMatrix <- function(
   }
 
   # write out the data matrix
-  writeMM(matrix, file.path(dir, "matrix.mtx"))
+  writeMM(matrix, gzip(file.path(dir, "matrix.mtx.gz"),"w"))
 
   # write out the "cell" barcodes
   write.table(
-    barcodes, file.path(dir, "barcodes.tsv"),
+    barcodes, gzip(file.path(dir, "barcodes.tsv.gz"),"w"),
     col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
 
   # copy over the gene names (!)
-  file.copy(gene_tsv_file, file.path(dir, "genes.tsv"))
+  file.copy(gene_tsv_file, gzip(file.path(dir, "features.tsv.gz"),"w"))
 
   # write out the metadata table
   write.table(
-    metadata, file.path(dir, "metadata.tsv"),
+    metadata, gzip(file.path(dir, "metadata.tsv.gz"),"w"),
     col.names=TRUE, sep="\t", row.names=FALSE, quote=FALSE)
 
   return(TRUE)

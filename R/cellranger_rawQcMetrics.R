@@ -41,7 +41,7 @@ print(opt)
 # Process data ----
 
 cat("Loading matrix data ...")
-sce10x <- read10xCounts(opt$matrixpath)
+sce10x <- read10xCounts(opt$matrixpath, type = "auto")
 cat("Done.\n")
 
 cat("Loading gene information from GTF file ...")
