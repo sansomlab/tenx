@@ -142,7 +142,7 @@ cellcycle:
 regress:
     ## Removal of unwanted variation (see Seurat::ScaleData)
     # Latent variables to regress out
-    latentvars: nUMI,percent.mito
+    latentvars: nCount_RNA,percent.mito
     # Model used to regress out latent variables
     # Choices: 'linear'|'poisson'|'negbinom'
     modeluse: linear
@@ -214,7 +214,7 @@ plot:
     # Note that it also visualised in t-SNE plots and marker heatmaps
     subgroup:
     # QC variable to be visualised on the tSNE plot
-    qcvars: nUMI,percent.mito
+    qcvars: nCount_RNA,percent.mito
     # Column in metadata.tsv represented by the shape of data points
     shape:
     # Opacity of data points

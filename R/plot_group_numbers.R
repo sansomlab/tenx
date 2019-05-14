@@ -180,7 +180,7 @@ for(group_var in group_vars)
 # Plot numbers of genes/cell and counts/cell ----
 
 s <- readRDS(opt$seuratobject)
-cdata <- s@raw.data
+cdata <- GetAssayData(object = s, slot = "counts")
 
 ngenes <- apply(cdata,2,function(x) sum(x>0))
 ncounts <- apply(cdata,2,sum)

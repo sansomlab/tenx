@@ -92,10 +92,15 @@ print(opt)
 rdims <- read.table(opt$rdimstable,
                     header=T, sep="\t",as.is=T)
 
+print(dim(rdims))
+print(head(rdims))
+
 ## read in the exon and intron count matrix
 dat <- readMM(file.path(opt$matrixdir, "matrix.mtx"))
 rownames(dat) <- read.table(file.path(opt$matrixdir,"genes.tsv"))$V1
 colnames(dat) <- read.table(file.path(opt$matrixdir,"barcodes.tsv"))$V1
+
+print(dim(dat))
 
 ## get the exon and intron counts for the relevant cells.
 emat <- dat[grepl("ex_",rownames(dat)),
@@ -122,10 +127,23 @@ names(cell.colors) <- rdims$barcode
 emb <- rdims[,c(opt$rdim1,opt$rdim2)]
 rownames(emb) <- rdims$barcode
 
+print(dim(emat))
+print(dim(nmat))
+print(head(emat))
+print(head(nmat))
+print(head(cluster.label))
+print(table(cluster.label))
+
+print(length(intersect(colnames(emat),names(cluster.label))))
+print(length(intersect(colnames(nmat),names(cluster.label))))
+
 ## Filter genes by cluster expression
+message("filtering emat")
 emat <- filter.genes.by.cluster.expression(emat,
                                            cluster.label,
                                            min.max.cluster.average = opt$minmaxclustavemat)
+
+message("filtering nmat")
 nmat <- filter.genes.by.cluster.expression(nmat,
                                            cluster.label,
                                            min.max.cluster.average = opt$minmaxclustavnmat)

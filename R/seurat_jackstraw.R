@@ -37,14 +37,14 @@ s <- readRDS(opt$seuratobject)
 ## constructing a 'null distribution' of gene scores, and repeat this procedure. We identify
 ## 'significant' PCs as those who have a strong enrichment of low p-value genes.
 
-nPCs <- min(dim(s@dr$pca@cell.embeddings)[2],30)
+nPCs <- min(dim(s@reductions$pca@cell.embeddings)[2],30)
 
 s <- JackStraw(s, num.replicate=opt$numreplicate,
                num.pc = nPCs)
 
 s <- JackStrawPlot(s, PCs=1:nPCs)
 
-gp <- s@dr$pca@misc$jackstraw.plot
+gp <- s@reductions$pca@misc$jackstraw.plot
 
 save_ggplots(paste0(opt$outdir,"/pcaJackStraw"),
            gp,

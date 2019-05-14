@@ -48,7 +48,7 @@ print(opt)
 message("readRDS")
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-s@ident <- cluster_ids
+Idents(s) <- cluster_ids
 
 ## get the principle components to use
 if(opt$usesigcomponents)
@@ -63,24 +63,24 @@ if(opt$usesigcomponents)
 ## run UMAP
 message("RunUMAP")
 s <- RunUMAP(s,
-             cells.use = NULL,
-             reduction.use = opt$reductiontype,
-             dims.use = comps,
-             genes.use = NULL,
-             assay.use = "RNA",
-             max.dim = 2L,
+             # cells.use = NULL,
+             reduction = opt$reductiontype,
+             dims = comps,
+             # genes.use = NULL,
+             assay = "RNA",
+             n.components = 2L,
              reduction.name = "umap",
              reduction.key = "UMAP",
-             n_neighbors = opt$nneighbors,
-             min_dist = opt$mindist,
+             n.neighbors = opt$nneighbors,
+             min.dist = opt$mindist,
              metric = opt$metric,
              seed.use = 42)
 
 ## extract the UMAP coordinates from the seurat object
-umap <- as.data.frame(s@dr$umap@cell.embeddings)
-umap$cluster <- s@ident[rownames(umap)]
+umap <- as.data.frame(s@reductions$umap@cell.embeddings)
+umap$cluster <- Idents(s)[rownames(umap)]
 
-plot_data <- merge(umap, s@meta.data, by=0)
+plot_data <- merge(umap, s[[]], by=0)
 
 rownames(plot_data) <- plot_data$Row.names
 plot_data$Row.names <- NULL
