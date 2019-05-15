@@ -156,7 +156,7 @@ getMetaData <- function(barcodes=barcodes,
 
 ## Matrix
 # TODO: used DropletUtils package instead
-matrixFile <- gzip(file.path(opt$tenxdir, "matrix.mtx.gz"))
+matrixFile <- gzfile(file.path(opt$tenxdir, "matrix.mtx.gz"), "wt")
 stopifnot(file.exists(matrixFile))
 cat("Importing matrix from:", matrixFile, " ... ")
 matrixUMI <- readMM(matrixFile)
@@ -168,7 +168,7 @@ cat(
 close(matrixFile)
 
 ## Barcodes
-barcodeFile <- gzip(file.path(opt$tenxdir, "barcodes.tsv.gz"))
+barcodeFile <- gzfile(file.path(opt$tenxdir, "barcodes.tsv.gz"), "wt")
 stopifnot(file.exists(matrixFile))
 cat("Importing cell barcodes from:", barcodeFile, " ... ")
 barcodes <- scan(barcodeFile, "character")
@@ -269,7 +269,7 @@ if (opt$writeaggmat) {
     aggpath <- file.path(opt$outdir, "agg.processed.dir")
     cat("Writing aggregated matrix to:", aggpath, " ... ")
     metadata <- getMetaData(barcodes, samples, opt$samplenamefields)
-    featureFile <- gzfile(file.path(opt$tenxdir,"features.tsv.gz"))
+    featureFile <- gzfile(file.path(opt$tenxdir,"features.tsv.gz"), "wt")
     writeMatrix(aggpath, matrixUMI, barcodes, featureFile, metadata)
     close(featureFile)
     cat("Done\n")
@@ -298,7 +298,7 @@ if (opt$writesamplemats) {
         cat(sprintf("Written barcodes: %i\n", length(sample_barcodes)))
 
         metadata <- getMetaData(sample_barcodes, samples, opt$samplenamefields)
-	featureFile <- gzfile(file.path(opt$tenxdir,"features.tsv.gz"))
+	featureFile <- gzfile(file.path(opt$tenxdir,"features.tsv.gz"), "wt")
         writeMatrix(sample_path, sample_matrix, sample_barcodes,
                     featureFile, metadata)
 	close(featureFile)

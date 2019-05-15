@@ -22,14 +22,14 @@ Read10X <- function(data.dir = NULL){
     if (! file.exists(matrix.loc)){
       stop("Expression matrix file missing")
     }
-    gz1 <- gzfile(matrix.loc)
+    gz1 <- gzfile(matrix.loc, "wt")
     data <- readMM(file = gz1)
     close(gz1)
-    gz1 <- gzfile(barcode.loc)
+    gz1 <- gzfile(barcode.locc, "wt")
     cell.names <- readLines(gz1)
     close(gz1)
 
-    gz1 <- gzfile(gene.loc)
+    gz1 <- gzfile(gene.locc, "wt")
     rownames(x = data) <- make.unique(
       names = as.character(
         ## TODO: could take the ENSEMBL ID rather than
@@ -104,19 +104,19 @@ writeMatrix <- function(
   }
 
   # write out the data matrix
-  writeMM(matrix, gzip(file.path(dir, "matrix.mtx.gz"),"w"))
+  writeMM(matrix, gzfile(file.path(dir, "matrix.mtx.gz"),"wt"))
 
   # write out the "cell" barcodes
   write.table(
-    barcodes, gzip(file.path(dir, "barcodes.tsv.gz"),"w"),
+    barcodes, gzfile(file.path(dir, "barcodes.tsv.gz"),"wt"),
     col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
 
   # copy over the gene names (!)
-  file.copy(gene_tsv_file, gzip(file.path(dir, "features.tsv.gz"),"w"))
+  file.copy(gene_tsv_file, gzfile(file.path(dir, "features.tsv.gz"),"wt"))
 
   # write out the metadata table
   write.table(
-    metadata, gzip(file.path(dir, "metadata.tsv.gz"),"w"),
+    metadata, gzfile(file.path(dir, "metadata.tsv.gz"),"wt"),
     col.names=TRUE, sep="\t", row.names=FALSE, quote=FALSE)
 
   return(TRUE)

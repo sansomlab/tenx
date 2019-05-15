@@ -98,17 +98,23 @@ dir <- opt$outdir
 
 message("writing out the results")
 # write out the data matrix
-writeMM(results, file.path(dir, "matrix.mtx"))
+matrixFile <- gzfile(file.path(dir, "matrix.mtx.gz"), "wt")
+writeMM(results, matrixFile)
+close(matrixFile)
 
 # write out the "cell" barcodes
+barcodeFile <- gzfile(file.path(dir, "barcodes.tsv.gz"), "wt")
 write.table(
-    data.frame(x=colnames(results)), file.path(dir, "barcodes.tsv"),
+    data.frame(x=colnames(results)), barcodeFile,
     col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
+close(barcodeFile)
 
-# write out the genes
+# write out the features
+featureFile <- gzfile(file.path(dir, "features.tsv.gz"), "wt")
 write.table(
-    data.frame(x=rownames(results)), file.path(dir, "genes.tsv"),
+    data.frame(x=rownames(results)), featureFile,
     col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
+close(featureFile)
 
 timestamp()
 message("Completed")

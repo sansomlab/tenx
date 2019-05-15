@@ -379,7 +379,7 @@ def rawQcMetricsPerBarcode(infile, outfile):
 
     # Build the path to the raw UMI count matrix
     #genome = os.path.basename(transcriptome).split("-")[2]
-    matrixpath = os.path.join(os.path.dirname(outfile), "outs", "raw_gene_bc_matrix")
+    matrixpath = os.path.join(os.path.dirname(outfile), "outs", "raw_feature_bc_matrix")
 
     # Build the path to the GTF file used by CellRanger
     gtf = os.path.join(transcriptome, "genes", "genes.gtf")
@@ -679,6 +679,7 @@ def cellrangerAggr(infile, outfile):
 # ########################################################################### #
 
 
+@active_if(PARAMS["dropest_run"])
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
            r"\1-dropest/dropest.sentinel")
@@ -723,6 +724,7 @@ def dropEst(infile, outfile):
     IOTools.touch_file(outfile)
 
 
+@active_if(PARAMS["dropest_run"])
 @follows(dropEst,
          mkdir("dropEst-aggr"))
 @files(writeSampleInformation,
@@ -915,7 +917,7 @@ def subsetAndDownsample(infiles, outfile):
 # ---------------------------------------------------
 # Generic pipeline tasks
 
-@follows(subsetAndDownsample, metrics, plotMetrics)
+@follows(subsetAndDownsample, metrics, plotMetrics, dropEstAggr)
 def full():
     '''
     Run the full pipeline.
