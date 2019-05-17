@@ -51,8 +51,8 @@ cluster_ids <- readRDS(opt$clusterids)
 ## cluster_ids
 clusters <- sort(unique(as.vector(cluster_ids)))
 
-acells <- s[[opt$testfactor]] == opt$a
-bcells <- s[[opt$testfactor]] == opt$b
+acells <- s[[]][,opt$testfactor] == opt$a
+bcells <- s[[]][,opt$testfactor] == opt$b
 
 aName <- paste(opt$a,"mean",sep="_")
 bName <- paste(opt$b,"mean",sep="_")

@@ -96,9 +96,9 @@ print(dim(rdims))
 print(head(rdims))
 
 ## read in the exon and intron count matrix
-dat <- readMM(file.path(opt$matrixdir, "matrix.mtx"))
-rownames(dat) <- read.table(file.path(opt$matrixdir,"genes.tsv"))$V1
-colnames(dat) <- read.table(file.path(opt$matrixdir,"barcodes.tsv"))$V1
+dat <- readMM(gzfile(file.path(opt$matrixdir, "matrix.mtx.gz")))
+rownames(dat) <- read.table(gzfile(file.path(opt$matrixdir,"features.tsv.gz")))$V1
+colnames(dat) <- read.table(gzfile(file.path(opt$matrixdir,"barcodes.tsv.gz")))$V1
 
 print(dim(dat))
 
