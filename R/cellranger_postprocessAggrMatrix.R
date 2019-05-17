@@ -53,7 +53,8 @@ stopifnot(
     require(methods), # https://github.com/tudo-r/BatchJobs/issues/27
     require(Matrix),
     require(S4Vectors),
-    require(tenxutils)
+    require(tenxutils),
+    require(R.utils)
 )
 
 # Options ----
@@ -171,21 +172,25 @@ getMetaData <- function(barcodes=barcodes,
 
 ## Matrix
 # TODO: used DropletUtils package instead
-matrixFile <- file.path(opt$tenxdir, "matrix.mtx")
+matrixFile <- file.path(opt$tenxdir, "matrix.mtx.gz")
 stopifnot(file.exists(matrixFile))
 cat("Importing matrix from:", matrixFile, " ... ")
-matrixUMI <- readMM(matrixFile)
+matrixUMI <- readMM(gzfile(matrixFile))
 cat("Done.\n")
 cat(
     "Input matrix size:",
     sprintf("%i rows/genes, %i columns/cells\n", nrow(matrixUMI), ncol(matrixUMI))
 )
 
+
 ## Barcodes
-barcodeFile <- file.path(opt$tenxdir, "barcodes.tsv")
-stopifnot(file.exists(matrixFile))
+barcodeFile <- file.path(opt$tenxdir, "barcodes.tsv.gz")
+stopifnot(file.exists(barcodeFile))
+
+
 cat("Importing cell barcodes from:", barcodeFile, " ... ")
-barcodes <- scan(barcodeFile, "character")
+barcodes <- scan(gzfile(barcodeFile), "character")
+
 
 ## Blacklist
 if (!identical(opt$blacklist, "none")){
@@ -195,6 +200,7 @@ if (!identical(opt$blacklist, "none")){
     cat("... Done.\n")
     blacklistTable <- barcode2table(blacklist)
 }
+
 
 # Preprocess ----
 
@@ -297,18 +303,24 @@ if (!identical(opt$downsample, "no")) {
 
 }
 
-# write out the whitelisted/cleaned full matrix ----
+
+## Write out the matrices
+featureFile <- file.path(opt$tenxdir,"features.tsv.gz")
+
+## write out the cleaned full matrix ----
 
 if (opt$writeaggmat) {
     aggpath <- file.path(opt$outdir, "agg.processed.dir")
     cat("Writing aggregated matrix to:", aggpath, " ... ")
     metadata <- getMetaData(barcodes, samples, opt$samplenamefields)
-    writeMatrix(aggpath, matrixUMI, barcodes, file.path(opt$tenxdir,"genes.tsv"), metadata)
+
+    writeMatrix(aggpath, matrixUMI, barcodes,featureFile, metadata)
+
     cat("Done\n")
 }
 
 
-# Write out per sample matrices ----
+## Write out per sample matrices ----
 
 if (opt$writesamplemats) {
     cat("Writing out per-sample matrices\n")
@@ -330,8 +342,10 @@ if (opt$writesamplemats) {
         cat(sprintf("Written barcodes: %i\n", length(sample_barcodes)))
 
         metadata <- getMetaData(sample_barcodes, samples, opt$samplenamefields)
+
         writeMatrix(sample_path, sample_matrix, sample_barcodes,
-                    file.path(opt$tenxdir,"genes.tsv"), metadata)
+                    featureFile, metadata)
+
     }
 }
 

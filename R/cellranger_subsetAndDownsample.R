@@ -117,11 +117,12 @@ if(!opt$apply %in% c("after_subsetting", "before_subsetting"))
 # Input data ----
 
 ## Matrix
-# TODO: used DropletUtils package instead
-matrixFile <- file.path(opt$tenxdir, "matrix.mtx")
+
+matrixFile <- file.path(opt$tenxdir, "matrix.mtx.gz")
 stopifnot(file.exists(matrixFile))
 cat("Importing matrix from:", matrixFile, " ... ")
-matrixUMI <- readMM(matrixFile)
+matrixUMI <- readMM(gzfile(matrixFile))
+
 cat("Done.\n")
 cat(
     "Input matrix size:",
@@ -129,17 +130,17 @@ cat(
 )
 
 ## Barcodes
-barcodeFile <- file.path(opt$tenxdir, "barcodes.tsv")
-stopifnot(file.exists(matrixFile))
+barcodeFile <- file.path(opt$tenxdir, "barcodes.tsv.gz")
+stopifnot(file.exists(barcodeFile))
 cat("Importing cell barcodes from:", barcodeFile, " ... ")
-barcodes <- scan(barcodeFile, "character")
+barcodes <- scan(gzfile(barcodeFile), "character")
 
 ## Metadata
 
-metadataFile <- file.path(opt$tenxdir, "metadata.tsv")
+metadataFile <- file.path(opt$tenxdir, "metadata.tsv.gz")
 stopifnot(file.exists(metadataFile))
 cat("Importing metadata from:", metadataFile, " ... ")
-metadata <- read.table(metadataFile, header=TRUE)
+metadata <- read.table(gzfile(metadataFile), header=TRUE)
 cat("Done.\n")
 cat(
     "Input metadata size:",
@@ -225,7 +226,8 @@ if (!identical(opt$downsample, "no") && opt$apply == "after_subsetting") {
 
 # Write out matrix ----
 
-writeMatrix(opt$outdir, matrixUMI, barcodes, file.path(opt$tenxdir,"genes.tsv"), metadata)
+genesFile <- file.path(opt$tenxdir,"features.tsv.gz")
+writeMatrix(opt$outdir, matrixUMI, barcodes, genesFile, metadata)
 
 timestamp()
 message("Completed")

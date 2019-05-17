@@ -1,4 +1,5 @@
-## Aggregate the dropEst matrices
+## 1. Aggregate the dropEst matrices
+## 2. Subset the matrices to a given set of barcodes
 
 message("cellranger_postprocessAggrMatrix.R")
 timestamp()
@@ -10,7 +11,8 @@ stopifnot(
     require(methods), # https://github.com/tudo-r/BatchJobs/issues/27
     require(Matrix),
     require(S4Vectors),
-    require(tenxutils)
+    require(tenxutils),
+    require(R.utils)
 )
 
 # Options ----
@@ -21,6 +23,13 @@ option_list <- list(
         dest = "sampletable",
         help="Input sample table (sample_id, seq_id, agg_id)"
     ),
+    make_option(
+        c("--barcodes",
+          default = NULL,
+          dest = "barcodes",
+          help = "A tsv file containing the list of barcodes that should be retained")
+    ),
+
     make_option(
         c("--outdir"),
         default=".",
@@ -94,21 +103,48 @@ for(sample in names(all_mat))
             colnames(all_mat[[sample]])] <- all_mat[[sample]]
 }
 
-dir <- opt$outdir
+
+## Perform subsetting
+if(!is.null(opt$barcodes)) {
+
+    message("Subsetting to given list of barcodes")
+
+    ## subset to the given list of barcodes
+    barcodes_to_keep <- read.table(gzfile(opt$barcodes))$V1
+
+    message("Length of the given list of barcodes: ", length(barcodes_to_keep))
+
+    message("number of barcodes before subsetting: ", ncol(results))
+    results <- results[,colnames(results) %in% barcodes_to_keep]
+
+    message("number of barcodes after subsetting: ", ncol(results))
+}
+
+
+print(dim(results))
 
 message("writing out the results")
-# write out the data matrix
-writeMM(results, file.path(dir, "matrix.mtx"))
+matrixFile <- file.path(opt$outdir, "matrix.mtx")
 
-# write out the "cell" barcodes
-write.table(
-    data.frame(x=colnames(results)), file.path(dir, "barcodes.tsv"),
-    col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
+## write out the data matrix
+## (writeMM does not support writing to a connection)
 
-# write out the genes
+writeMM(results, matrixFile)
+gzip(matrixFile, overwrite = TRUE)
+
+## write out the "cell" barcodes
+barcodeFile <- gzfile(file.path(opt$outdir, "barcodes.tsv.gz"), "wt")
 write.table(
-    data.frame(x=rownames(results)), file.path(dir, "genes.tsv"),
+    data.frame(x=colnames(results)), barcodeFile,
     col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
+close(barcodeFile)
+
+## write out the features
+featureFile <- gzfile(file.path(opt$outdir, "features.tsv.gz"), "wt")
+write.table(
+    data.frame(x=rownames(results)), featureFile,
+    col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
+close(featureFile)
 
 timestamp()
 message("Completed")

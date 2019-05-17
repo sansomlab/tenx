@@ -42,12 +42,8 @@ cellranger:
     transcriptome:
 
     # Passed to `cellranger count` and `cellranger aggr`
-    threads: 24
-
-    # Passed to `cellranger count` and `cellranger aggr`
-    # Note: in MB
-    memory: 240000
-
+    # Max jobs is passed to slurm as the maximum number of jobs
+    maxjobs: 64
 
 # Picard configuration
 # ----------------------------------------------------
@@ -112,11 +108,7 @@ postprocess:
     blacklist: none
 
     # Path to the matrix subdirectory, relative to each sample directory.
-    # Note that this is species specific.
-    #
-    # e.g. for human: outs/filtered_gene_bc_matrices_mex/GRCh38
-    # e.g. for mouse: outs/filtered_gene_bc_matrices_mex/mm10
-    mexdir:
+    mexdir: outs/filtered_feature_bc_matrices_mex
 
     # Set the memory allowance for the R script
     memory: 10000M
@@ -160,5 +152,8 @@ downsampling:
 
 
 dropest:
+    # by default dropest is not included, can be included by setting
+    # run to True.
+    run: False
     # Location of a suitable configuration file
     config: /gfs/apps/bio/dropEst-2018-12-06/config_files/tenx.config.xml
