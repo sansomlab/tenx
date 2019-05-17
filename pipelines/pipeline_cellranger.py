@@ -724,15 +724,19 @@ def dropEst(infile, outfile):
     IOTools.touch_file(outfile)
 
 
-@active_if(PARAMS["dropest_run"])
 @follows(dropEst,
          mkdir("dropEst-aggr"))
-@files(writeSampleInformation,
+@files([cellrangerAggr,writeSampleInformation],
        "dropEst-aggr/dropEst.aggr.sentinel")
-def dropEstAggr(infile, outfile):
+def dropEstAggrAndSubset(infiles, outfile):
     '''
-       Mimic the cellranger aggr step...
+       1. Make aggregated matrices from the dropEst output.
+       2. Subset the barcodes to those present in the cellranger aggr matrix.
     '''
+
+    cr_sentinel, sample_table = infiles
+
+    cr_agg_dir = os.path.dirname(cr_sentinel)
 
     outdir = os.path.dirname(outfile)
 
@@ -744,16 +748,23 @@ def dropEstAggr(infile, outfile):
         raise ValueError('"postprocess_mexdir" parameter not set'
                          ' in file "pipeline.yml"')
 
-    tenxdir = os.path.join(outdir, mexdir)
 
-    if not os.path.exists(tenxdir):
-        os.makedirs(tenxdir)
+    mex_out_dir = os.path.join(outdir, mexdir)
+
+    if not os.path.exists(mex_out_dir):
+        os.makedirs(mex_out_dir)
+
+
+    barcodes =os.path.join(cr_agg_dir, mexdir,
+                                 "barcodes.tsv.gz")
+
 
     job_memory = "50G"
 
     statement='''Rscript %(tenx_dir)s/R/dropest_aggr.R
-                 --sampletable=%(infile)s
-                 --outdir=%(tenxdir)s
+                 --sampletable=%(sample_table)s
+                 --barcodes=%(barcodes)s
+                 --outdir=%(mex_out_dir)s
                  &> %(log_file)s
               '''
 
@@ -766,7 +777,7 @@ def dropEstAggr(infile, outfile):
 # ########################################################################### #
 
 #@follows(mkdir("all-processed.dir"))
-@transform([cellrangerAggr, dropEstAggr],
+@transform([cellrangerAggr, dropEstAggrAndSubset],
            regex(r"(.*)-aggr/.*"),
            add_inputs(collectSampleInformation),
            r"\1-processed.dir/postprocess.sentinel")
@@ -917,7 +928,7 @@ def subsetAndDownsample(infiles, outfile):
 # ---------------------------------------------------
 # Generic pipeline tasks
 
-@follows(subsetAndDownsample, metrics, plotMetrics, dropEstAggr)
+@follows(subsetAndDownsample, metrics, plotMetrics, dropEstAggrAndSubset)
 def full():
     '''
     Run the full pipeline.

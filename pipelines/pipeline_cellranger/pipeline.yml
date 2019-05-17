@@ -108,11 +108,7 @@ postprocess:
     blacklist: none
 
     # Path to the matrix subdirectory, relative to each sample directory.
-    # Note that this is species specific.
-    #
-    # e.g. for human: outs/filtered_feature_bc_matrices_mex
-    # e.g. for mouse: outs/filtered_feature_bc_matrices_mex
-    mexdir:
+    mexdir: outs/filtered_feature_bc_matrices_mex
 
     # Set the memory allowance for the R script
     memory: 10000M
@@ -157,7 +153,7 @@ downsampling:
 
 dropest:
     # by default dropest is not included, can be included by setting
-    # run to 1.
-    run: 0
+    # run to True.
+    run: False
     # Location of a suitable configuration file
     config: /gfs/apps/bio/dropEst-2018-12-06/config_files/tenx.config.xml

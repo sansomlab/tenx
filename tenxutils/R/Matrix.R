@@ -1,59 +1,59 @@
 #' Slightly modified version of Read10x from Seurat.
 #' @param data.dir  The directory containing the 10x matrix, cell names and barcodes.
 Read10X <- function(data.dir = NULL){
-  full.data <- list()
-  for (i in seq_along(data.dir)) {
-    run <- data.dir[i]
-    if (! dir.exists(run)){
-      stop("Directory provided does not exist")
-    }
-    if(!grepl("\\/$", run)){
-      run <- paste(run, "/", sep = "")
-    }
-    barcode.loc <- paste0(run, "barcodes.tsv.gz")
-    gene.loc <- paste0(run, "features.tsv.gz")
-    matrix.loc <- paste0(run, "matrix.mtx.gz")
-    if (!file.exists(barcode.loc)){
+
+    barcodes_path <- file.path(data.dir, "barcodes.tsv.gz")
+    features_path <- file.path(data.dir, "features.tsv.gz")
+    matrix_path <- file.path(data.dir, "matrix.mtx.gz")
+
+    if (!file.exists(barcodes_path)){
       stop("Barcode file missing")
     }
-    if (! file.exists(gene.loc)){
+    if (! file.exists(features_path)){
       stop("Gene name file missing")
     }
-    if (! file.exists(matrix.loc)){
+    if (! file.exists(matrix_path)){
       stop("Expression matrix file missing")
     }
-    gz1 <- gzfile(matrix.loc, "wt")
-    data <- readMM(file = gz1)
-    close(gz1)
-    gz1 <- gzfile(barcode.locc, "wt")
-    cell.names <- readLines(gz1)
-    close(gz1)
 
-    gz1 <- gzfile(gene.locc, "wt")
-    rownames(x = data) <- make.unique(
+    if(endsWith(matrix_path,".gz"))
+        {
+            data <- readMM(file = gzfile(matrix_path))
+        } else {
+            data <- readMM(file = matrix_path)
+        }
+
+    if(endsWith(barcodes_path, ".gz"))
+    {
+        barcodes <- readLines(gzfile(barcodes_path))
+    } else {
+        barcodes <- readLines(barcodes_path)
+    }
+
+    ## read.table supports compressed files.
+    features = read.table(features_path, as.is=T)
+
+    rownames(data)  <- make.unique(
       names = as.character(
         ## TODO: could take the ENSEMBL ID rather than
         ## the symbols
         ## currently we explicity track the new
         ## ID -> symbol mapping (see below)
-        x = read.table(gz1)$V2
+        x = features$V2
       ))
-    close(gz1)
 
     if (is.null(x = names(x = data.dir))) {
       if(i < 2){
-        colnames(x = data) <- cell.names
+        colnames(x = data) <- barcoes
       }
       else {
-        colnames(x = data) <- paste0(i, "_", cell.names)
+        colnames(x = data) <- paste0(i, "_", barcodes)
       }
     } else {
       colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
     }
-    full.data <- append(x = full.data, values = data)
-  }
-  full.data <- do.call(cbind, full.data)
-  return(full.data)
+
+  return(data)
 }
 
 
@@ -89,36 +89,61 @@ barcode2table <- function(codes){
 #' @param matrix A sparse numeric matrix of UMI counts.
 #' @param barcodes A character vector of cell barcodes,
 #' one per column of \code{x}.
-#' @param gene_tsv_file The path to the original genes.tsv file.
+#' @param features_tsv_file The path to the original features tsv file.
 #' @param metadata Table of cell metadata.
+#' @param gzip Should the output files be compresssed?
 #' Includes \code{c("code", "agg_id", "barcode", "seq_id", "sample_id"}
 #' and any metadata encoded in the sample file names.
 #'
 #' @return \code{TRUE} if successful.
 writeMatrix <- function(
-  dir, matrix, barcodes, gene_tsv_file, metadata
+                        dir, matrix, barcodes, features_tsv_file, metadata,
+                        gzip = TRUE
 ){
 
   if (!dir.exists(dir)) {
     dir.create(dir)
   }
 
-  # write out the data matrix
-  writeMM(matrix, gzfile(file.path(dir, "matrix.mtx.gz"),"wt"))
+    matrix_path = file.path(dir, "matrix.mtx")
+    barcodes_path = file.path(dir, "barcodes.tsv")
+    features_path = file.path(dir, basename(features_tsv_file))
+    metadata_path = file.path(dir, "metadata.tsv")
 
-  # write out the "cell" barcodes
-  write.table(
-    barcodes, gzfile(file.path(dir, "barcodes.tsv.gz"),"wt"),
-    col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
+    ## write out the matrix
+    writeMM(matrix, matrix_path)
 
-  # copy over the gene names (!)
-  file.copy(gene_tsv_file, gzfile(file.path(dir, "features.tsv.gz"),"wt"))
+    ## write out the "cell" barcodes
+    write.table(barcodes, barcodes_path,
+                col.names=FALSE, sep=",", row.names=FALSE, quote=FALSE)
+
+    ## copy over the gene names (!)
+    file.copy(features_tsv_file, features_path)
+
+    ## write out the metadata
+    write.table(
+        metadata, metadata_path,
+        col.names=TRUE, sep="\t", row.names=FALSE, quote=FALSE)
+
+
+    if(gzip)
+    {
+        gzip(matrix_path, overwrite=TRUE)
+        gzip(barcodes_path, overwrite=TRUE)
+        gzip(metadata_path, overwrite=TRUE)
+        if(!endsWith(features_path, ".gz"))
+        {
+            gzip(features_path)
+        }
+    } else {
+        if(endsWith(features_path, ".gz"))
+        {
+            gunzip(features_path, overwrite=TRUE)
+        }
+
+        }
 
   # write out the metadata table
-  write.table(
-    metadata, gzfile(file.path(dir, "metadata.tsv.gz"),"wt"),
-    col.names=TRUE, sep="\t", row.names=FALSE, quote=FALSE)
-
   return(TRUE)
 }
 
