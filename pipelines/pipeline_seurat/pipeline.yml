@@ -114,6 +114,9 @@ qc:
     # Whether to downsample to a common number of cells
     # Choices: False|True
     downsamplecells: False
+    # Seed to use for downsampling
+    # Either "none" or an integer.
+    seed: none
 
 
 # Regression parameters

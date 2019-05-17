@@ -2,36 +2,33 @@
 #' @param data.dir  The directory containing the 10x matrix, cell names and barcodes.
 Read10X <- function(data.dir = NULL){
 
-    barcodes_path <- file.path(data.dir, "barcodes.tsv.gz")
-    features_path <- file.path(data.dir, "features.tsv.gz")
-    matrix_path <- file.path(data.dir, "matrix.mtx.gz")
-
-    if (!file.exists(barcodes_path)){
-      stop("Barcode file missing")
-    }
-    if (! file.exists(features_path)){
-      stop("Gene name file missing")
-    }
-    if (! file.exists(matrix_path)){
-      stop("Expression matrix file missing")
-    }
-
-    if(endsWith(matrix_path,".gz"))
-        {
-            data <- readMM(file = gzfile(matrix_path))
-        } else {
-            data <- readMM(file = matrix_path)
-        }
-
-    if(endsWith(barcodes_path, ".gz"))
-    {
-        barcodes <- readLines(gzfile(barcodes_path))
+    if (file.exists(file.path(data.dir,"barcodes.tsv"))) {
+        barcodes <- readLines(file.path(data.dir, "barcodes.tsv"))
     } else {
-        barcodes <- readLines(barcodes_path)
-    }
+        if(file.exists(file.path(data.dir, "barcodes.tsv.gz"))) {
+            barcodes <- readLines(gzfile(file.path(data.dir, "barcodes.tsv.gz")))
+        } else {
+            stop("Barcode file missing")
+        }}
 
-    ## read.table supports compressed files.
-    features = read.table(features_path, as.is=T)
+    if(file.exists(file.path(data.dir, "matrix.mtx"))) {
+            data <- readMM(file = file.path(data.dir, "matrix.mtx"))
+        } else {
+            if(file.exists(file.path(data.dir, "matrix.mtx.gz"))) {
+            data <- readMM(file = gzfile(file.path(data.dir, "matrix.mtx.gz")))
+            } else {
+      stop("Matrix file missing")
+            }}
+
+     if(file.exists(file.path(data.dir, "features.tsv"))) {
+         features = read.table(file.path(data.dir,"features.tsv"), as.is=T)
+     } else {
+         if(file.exists(file.path(data.dir, "features.tsv.gz")))
+         {
+             features = read.table(file.path(data.dir, "features.tsv.gz"), as.is=T)
+         } else {
+             stop("Features file missing")
+         }}
 
     rownames(data)  <- make.unique(
       names = as.character(
@@ -42,18 +39,9 @@ Read10X <- function(data.dir = NULL){
         x = features$V2
       ))
 
-    if (is.null(x = names(x = data.dir))) {
-      if(i < 2){
-        colnames(x = data) <- barcoes
-      }
-      else {
-        colnames(x = data) <- paste0(i, "_", barcodes)
-      }
-    } else {
-      colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
-    }
+    colnames(x = data) <- barcodes
 
-  return(data)
+    return(data)
 }
 
 

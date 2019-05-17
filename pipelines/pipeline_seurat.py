@@ -196,7 +196,7 @@ def beginSeurat(infile, outfile):
     job_threads = PARAMS["resources_numcores"]
 
     log_file = outfile.replace(".rds", ".log")
-    metadata = os.path.join(infile, "metadata.tsv")
+    metadata = os.path.join(infile, "metadata.tsv.gz")
 
     if PARAMS["subsetcells_active"]:
 
@@ -252,6 +252,11 @@ def beginSeurat(infile, outfile):
     else:
         cell_cycle_regress = ""
 
+    if PARAMS["qc_seed"] != "none":
+        seed = '''--seed=%(qc_seed)s''' % PARAMS
+    else:
+        seed = ""
+
     # Turn Python boolean into R logical
     downsamplecells = str(PARAMS["qc_downsamplecells"]).upper()
 
@@ -281,6 +286,7 @@ def beginSeurat(infile, outfile):
                    --plotdirvar=sampleDir
                    %(subset)s
                    %(blacklist)s
+                   %(seed)s
                    %(cell_cycle_genes)s
                    %(cell_cycle_regress)s
                    &> %(log_file)s
