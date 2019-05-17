@@ -308,6 +308,8 @@ for(geneset in genesets)
                        desc_col <- "description"
                     } else { desc_col <- "geneset_id" }
 
+                    if(nrow(tmp) > 1)
+                        {
                         gp <- visualiseClusteredGenesets(tmp,
                                                          highlight=genesets_to_show[genesets_to_show %in% tmp$geneset_id],
                                                          desc_col=desc_col)
@@ -327,7 +329,7 @@ for(geneset in genesets)
                                                          caption,
                                                          plot_dir_var=opt$plotdirvar))
 
-                    }
+                    }}
         }
 
     } else {

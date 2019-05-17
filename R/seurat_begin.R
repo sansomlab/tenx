@@ -53,12 +53,6 @@ option_list <- list(
             "A barcode column must be present and must match the barcodes of the 10x matrix"
             )
         ),
-    # TODO
-    # make_option(
-    #     c("--batch"),
-    #     default=F,
-    #     help="If true, a single-column batch.tsv file must be present in the --tenxdir"
-    #     ),
     make_option(
         c("--groupby"),
         default="sample_id",
@@ -86,7 +80,13 @@ option_list <- list(
             "Whether to randomly downsample cells so that each",
             "group has the sample number of cells."
         )),
-    #KRA: note that filtering _could_ be done before downsampling (with some obvious caveats)
+
+    make_option(
+        c("--seed"),
+        default=NULL,
+        help=paste(
+            "The seed (an integer) to use when down sampling the cells"
+        )),
     make_option(
         c("--qcmingenes"),
         type="integer",
@@ -290,7 +290,7 @@ plan("multiprocess",
 getCellNumbers <- function(s, cell_numbers="none", stage="input",
 	       	  	   groupby=opt$groupby) {
     ## cell_info <- getCellInfo(s)
-    counts <- as.data.frame(table(s[[groupby]]))
+    counts <- as.data.frame(table(s[[]][,groupby]))
     colnames(counts) <- c(groupby, stage)
     rownames(counts) <- counts[[groupby]]
     counts[[groupby]] <- NULL
@@ -326,9 +326,9 @@ cat("Done.\n")
 ## We need to track the seurat id -> Ensembl id mapping, e.g. for downstream GO analysis
 ## (and to guarentee reproducibility, e.g. between annotations versions)
 
-inFile <- file.path(opt$tenxdir, "genes.tsv")
+inFile <- file.path(opt$tenxdir, "features.tsv.gz")
 cat("Importing gene information from: ", inFile, " ... ")
-genes <- read.table(inFile, as.is=TRUE)
+genes <- read.table(gzfile(inFile), as.is=TRUE)
 cat("Done.\n")
 
 colnames(genes) <- c("gene_id", "gene_name")
@@ -372,7 +372,8 @@ if ( identical(opt$metadata, "none") ) {
 }
 
 cat("Importing metadata ... ")
-metadata <- read.table(opt$metadata, sep="\t", header=TRUE, as.is=TRUE)
+metadata <- read.table(gzfile(opt$metadata),
+                       sep="\t", header=TRUE, as.is=TRUE)
 cat("Done.\n")
 
 # ensure that the barcode column is present in the metadata
@@ -460,7 +461,7 @@ if (opt$subsetcells!="use.all") {
             stop("The given subsetting factor must match a column in the metadata")
         }
 
-        if (!opt$subsetlevel %in% s[[opt$subsetfactor]]) {
+        if (!opt$subsetlevel %in% s[[]][,opt$subsetfactor]) {
             stop("The specified level of the subsetting factor does not exist")
         }
 
@@ -581,21 +582,31 @@ cell_numbers <- getCellNumbers(s,
 cat("Data dimensions after subsetting:\n")
 print(dim(GetAssayData(object = s)))
 
-## note that this overwrites pbmc@scale.data. Therefore, if you intend to use RegressOut,
-## you can set do.scale=F and do.center=F in the original object to save some time.
-
 # Optionally downsample cell numbers ----
+
+if(is.null(opt$seed))
+{
+    seed <- sample(1:2^15,1)
+    set.seed(seed)
+    message("Seed set to: ", seed)
+} else {
+    seed <- opt$seed
+}
+
 
 if (as.logical(opt$downsamplecells)) {
 
-    mincells <- min(table(s[[opt$groupby]]))
+    mincells <- min(table(s[[]][,opt$groupby]))
 
     cat(paste0("Downsampling to ", mincells, " per sample\n"))
     cells.to.use <- c()
-    for (sample in unique(s[[opt$groupby]])) {
-        temp <- rownames(s[[]])[s[[opt$groupby]] == sample]
-        # KRA: We should probable set.seed() here, for reproducibility
+    for (group in unique(s[[]][,opt$groupby])) {
+        print(group)
+        temp <- rownames(s[[]])[s[[]][,opt$groupby] == group]
+        print(head(temp))
+
         cells.to.use <- c(cells.to.use, sample(temp, mincells))
+        print(length(cells.to.use))
     }
 
     s <- SubsetData(s,
