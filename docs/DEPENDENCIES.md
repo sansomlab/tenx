@@ -1,5 +1,6 @@
 # Dependencies
 
+* Cellranger (from 10x Genomics) >= version 3
 * Python3
 * The dropEst pipeline (https://github.com/hms-dbmi/dropEst) for RNA velocity analysis
 * The [cgat-core pipeline system](https://github.com/cgat-developers/cgat-core/) and a compatible queue manager
@@ -25,7 +26,7 @@
   * reshape2
   * R.utils
   * S4Vectors
-  * Seurat
+  * Seurat >= version 3
   * scran
   * scater
   * velocyto.R
