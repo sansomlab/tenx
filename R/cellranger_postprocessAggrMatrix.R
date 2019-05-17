@@ -104,6 +104,21 @@ option_list <- list(
         )
     ),
     make_option(
+        c("--usebarcodewhitelist"),
+        default=FALSE,
+        dest = "usebarcodewhitelist",
+        help=paste(
+            "Use a barcode whitelist.",
+            "If TRUE no other filtering of barcodes is applied"
+        )
+    ),
+    make_option(
+        c("--barcodewhitelist"),
+        default=NULL,
+        dest = "barcodewhitelist",
+        help="A (e.g. .tsv) file containing the whitelist of barcodes"
+    ),
+    make_option(
         c("--outdir"),
         default=".",
         dest = "outdir",
@@ -196,9 +211,30 @@ colnames(matrixUMI) <- barcodes
 ## Contains: sample_id, seq_id, agg_id
 samples <- DataFrame(read.delim(opt$sampletable, as.is = TRUE))
 
-# Clean barcode hopping, if required ----
 
-if (opt$hopping){
+## Subset to whitelist
+if (opt$usebarcodewhitelist) {
+    message("Performing barcode whitelisting")
+    if(is.null(opt$barcodewhitelist))
+    {
+        stop("File containing barcode whitelist not specified (--barcodewhitelist)")
+    }
+
+    barcode_whitelist <- read.table(opt$barcodewhitelist, as.is=T)$V1
+
+    message("number of barcodes before whitelisting: ", ncol(matrixUMI))
+    matrixUMI <- matrixUMI[,colnames(matrixUMI) %in% barcode_whitelist]
+
+    message("number of barcodes after whitelisting: ", ncol(matrixUMI))
+}
+
+
+
+
+
+## Clean barcode hopping, if required ----
+
+if (opt$hopping & !opt$usebarcodewhitelist){
     cat("Removing duplicated cell barcodes within sequencing batches\n")
 
     goodBarcodes <- c()

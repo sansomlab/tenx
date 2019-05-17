@@ -93,8 +93,8 @@ print(opt)
 ## read in the raw count matrix
 s <- readRDS(opt$seuratobject)
 
-## data <- s@raw.data
-data <- s@data
+## data <- GetAssayData(object = s, slot = counts)
+data <- GetAssayData(object = s, slot = "counts")
 
 if("gene_id" %in% colnames(s@misc))
 {
@@ -108,6 +108,8 @@ if("gene_id" %in% colnames(s@misc))
 
 ##
 plot_data <- read.table(opt$table,sep="\t",header=TRUE)
+
+print(head(plot_data))
 rownames(plot_data) <- plot_data$barcode
 
 ## read in the table containing the genes to visualise

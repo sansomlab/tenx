@@ -64,12 +64,12 @@ if(opt$usesigcomponents)
 if(toupper(opt$reductiontype)=="PCA")
 {
         ## Make a table of the retained principle components
-        x <- as.data.frame(s@dr$pca@jackstraw@overall.p.values)
+        x <- as.data.frame(s@reductions$pca@jackstraw@overall.p.values)
         x$p.adj <- p.adjust(x$Score, method="BH")
         x$significant <- "no"
         x$significant[x$p.adj < 0.05] <- "yes"
         x <- x[x$PC %in% comps,]
-        x$sdev <- s@dr$pca@sdev[x$PC]
+        x$sdev <- s@reductions$pca@stdev[x$PC]
 
         print(
     xtable(sprintfResults(x), caption=paste("Table of the selected (n=",
@@ -81,15 +81,18 @@ if(toupper(opt$reductiontype)=="PCA")
 }
 
 message(sprintf("FindClusters"))
-s <- FindClusters(s,
-                  reduction.type=opt$reductiontype,
-                  dims.use = comps,
-                  resolution = opt$resolution,
-                  algorithm = opt$algorithm,
-                  print.output = 0,
-                  save.SNN = F)
+s <- FindNeighbors(s,
+                   reduction.type = "pca",
+                   dims = comps)
 
-cluster_ids <- s@ident
+
+s <- FindClusters(s,
+                  resolution = opt$resolution,
+                  algorithm = opt$algorithm)
+#                  print.output = 0,
+#                  save.SNN = F)
+
+cluster_ids <- Idents(s) #
 
 nclusters <- length(unique(cluster_ids))
 

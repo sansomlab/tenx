@@ -11,8 +11,8 @@ clusterCor <- function(seurat_object=NULL,
                        cor_method="pearson",
                        cluster_average=FALSE)
 {
-  pcomps <- t(s@dr[[dr_type]]@cell.embeddings)[comps,]
-  clusters = as.numeric(as.vector(unique(s@ident)))
+  pcomps <- t(s@reductions[[dr_type]]@cell.embeddings)[comps,]
+  clusters = as.numeric(as.vector(unique(Idents(s))))
   clusters <- clusters[order(clusters)]
   names(clusters) <- paste0("C",clusters)
   n=length(clusters)
@@ -25,11 +25,11 @@ clusterCor <- function(seurat_object=NULL,
     for(i in 1:n)
     {
       xclust = clusters[i]
-      x <- pcomps[,names(s@ident)[s@ident==xclust]]
+      x <- pcomps[,names(Idents(s))[Idents(s)==xclust]]
       for(j in i:n)
       {
         yclust = clusters[j]
-        y <- pcomps[,names(s@ident)[s@ident==yclust]]
+        y <- pcomps[,names(Idents(s))[Idents(s)==yclust]]
         pairwise_cors <- cor(x,y, method=cor_method)
         med_cor <-  median(pairwise_cors)
         rmat[i,j] <- med_cor
@@ -46,7 +46,7 @@ clusterCor <- function(seurat_object=NULL,
     {
       xclust <- clusters[i]
       xname <- names(clusters)[i]
-      x <- apply(pcomps[,names(s@ident)[s@ident==xclust]],1,mean)
+      x <- apply(pcomps[,names(Idents(s))[Idents(s)==xclust]],1,mean)
       res[[xname]] <- x[rownames(res)]
     }
 

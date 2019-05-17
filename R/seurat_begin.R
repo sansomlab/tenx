@@ -24,7 +24,8 @@ stopifnot(
   require(Matrix),
   require(xtable),
   require(tenxutils),
-  require(reshape2)
+  require(reshape2),
+  require(future)
 )
 
 # Options ----
@@ -151,7 +152,7 @@ option_list <- list(
         default=0.5,
         help=paste(
             "Bottom cutoff on y-axis for identifying variable genes.",
-            "See Seurat::FindVariableGenes(y.cutoff=...)"
+            "See Seurat::FindVariableFeatures(y.cutoff=...)"
             )
         ),
     make_option(
@@ -160,7 +161,7 @@ option_list <- list(
         default=0.1,
         help=paste(
             "Bottom cutoff on x-axis for identifying variable genes",
-            "See Seurat::FindVariableGenes(x.low.cutoff=...)"
+            "See Seurat::FindVariableFeatures(x.low.cutoff=...)"
             )
         ),
     make_option(
@@ -169,7 +170,7 @@ option_list <- list(
         default=8,
         help=paste(
             "Top cutoff on x-axis for identifying variable genes",
-            "See Seurat::FindVariableGenes(x.low.cutoff=...)"
+            "See Seurat::FindVariableFeatures(x.low.cutoff=...)"
             )
     ),
         make_option(
@@ -264,6 +265,10 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
+plan("multiprocess",
+     workers = opt$numcores)
+
+
 # Input data ----
 
 ## ######################################################################### ##
@@ -285,7 +290,7 @@ print(opt)
 getCellNumbers <- function(s, cell_numbers="none", stage="input",
 	       	  	   groupby=opt$groupby) {
     ## cell_info <- getCellInfo(s)
-    counts <- as.data.frame(table(s@meta.data[[groupby]]))
+    counts <- as.data.frame(table(s[[groupby]]))
     colnames(counts) <- c(groupby, stage)
     rownames(counts) <- counts[[groupby]]
     counts[[groupby]] <- NULL
@@ -348,8 +353,9 @@ write.table(
 ## Perform log-normalization, first scaling each cell
 ## to a total of 1e4 molecules (as in Macosko et al. Cell 2015)
 cat("Creating Seurat object ... ")
-s <- CreateSeuratObject(
-    raw.data=data, min.cells=opt$mincells, min.genes=opt$mingenes,
+s <- CreateSeuratObject(counts=data,
+                        min.cells=opt$mincells,
+                        min.features=opt$mingenes,
     ## do.scale=F,
     ## do.center=F,
     #save.raw=T,
@@ -377,33 +383,37 @@ if (!"barcode" %in% colnames(metadata)) {
 rownames(metadata) <- metadata$barcode
 metadata$barcode <- NULL
 
-metadata <- metadata[s@cell.names, ]
+metadata <- metadata[colnames(x = s), ]
 
 # TODO: probably a more elegant way to show/handle this
-if (!identical(rownames(metadata), s@cell.names)) {
+if (!identical(rownames(metadata), colnames(x = s))) {
     ## print out some debugging information
     cat("Count of rownames in metadata: ", length(rownames(metadata)), "\n")
-    cat("Count of cell.names in Seurat object: ", length(s@cell.names), "\n")
+    cat("Count of cell.names in Seurat object: ", length(colnames(x = s)), "\n")
     cat("--\n")
     cat("First rownames in metadata:\n")
     print(head(rownames(metadata)))
     cat("First cell.names in Seurat object:\n")
-    print(head(s@cell.names))
+    print(head(colnames(x = s)))
     cat("--\n")
     cat("Last rownames in metadata:\n")
     print(tail(rownames(metadata)))
     cat("Last cell.names in Seurat object:\n")
-    print(tail(s@cell.names))
+    print(tail(colnames(x = s)))
 
     stop("Metadata barcode field does not match cell.names")
 }
 
 cat("Adding meta data ... ")
-s <- AddMetaData(s, metadata)
+for(meta_col in colnames(metadata))
+{
+    s[[meta_col]] <- metadata[[meta_col]]
+                                        }
+# s <- AddMetaData(s, metadata)
 cat("Done.\n")
 
 # ensure that the grouping factor is present in the metadata
-if (!opt$groupby %in% colnames(s@meta.data)) {
+if (!opt$groupby %in% colnames(s[[]])) {
     stop(paste("The specified grouping factor:",
                opt$groupby,
                "was not found in the metadata",
@@ -422,14 +432,13 @@ getSubset <- function(seurat_object, cells_to_retain)
         }
 
         message("Number of cells before subsetting:")
-        print(length(s@cell.names))
+        print(length(colnames(x = s)))
 
         s <- SubsetData(s,
-                        cells.use=cells_to_retain,
-                        subset.raw=TRUE)
+                        cells=cells_to_retain)
 
         message("Number of cells after subsetting:")
-        print(length(s@cell.names))
+        print(length(colnames(x = s)))
 
         s
 }
@@ -447,17 +456,17 @@ if (opt$subsetcells!="use.all") {
 
 } else {
     if (!is.null(opt$subsetfactor)) {
-        if(!opt$subsetfactor %in% colnames(s@meta.data)) {
+        if(!opt$subsetfactor %in% colnames(s[[]])) {
             stop("The given subsetting factor must match a column in the metadata")
         }
 
-        if (!opt$subsetlevel %in% s@meta.data[[opt$subsetfactor]]) {
+        if (!opt$subsetlevel %in% s[[opt$subsetfactor]]) {
             stop("The specified level of the subsetting factor does not exist")
         }
 
         message("subsetting by factor")
-        cells_to_retain <- rownames(s@meta.data)[
-            s@meta.data[, opt$subsetfactor] == opt$subsetlevel
+        cells_to_retain <- rownames(s[[]])[
+            s[[]][, opt$subsetfactor] == opt$subsetlevel
             ]
 
         s <- getSubset(s, cells_to_retain)
@@ -472,7 +481,7 @@ if(!is.null(opt$blacklist))
 
     blacklist <- scan(opt$blacklist, "character")
 
-    cells_to_retain <- s@cell.names[!s@cell.names %in% blacklist]
+    cells_to_retain <- colnames(x = s)[!colnames(x = s) %in% blacklist]
 
     s <- getSubset(s, cells_to_retain)
     }
@@ -491,26 +500,32 @@ if(!is.null(opt$blacklist))
 ## NOTE: You must have the Matrix package loaded to calculate the percent.mito values.
 ## In humans the pattern is ^MT-, in mouse it is ^mt-: to accomodate both
 ## we simply ignore the case (specificity is still maintained).
-mito.genes <- grep("^MT-", rownames(s@data), value=TRUE, ignore.case=TRUE)
+mito.genes <- grep("^MT-", rownames(x = s), value=TRUE, ignore.case=TRUE)
 
 ## NOTE: unlike in the Seurat vignette, our data is not yet log transformed.
 # TODO: is Matrix:: required here?
-percent.mito <- Matrix::colSums(s@data[mito.genes, ]) / Matrix::colSums(s@data)
+percent.mito <- Matrix::colSums(GetAssayData(object = s)[mito.genes, ]) / Matrix::colSums(GetAssayData(object = s))
 
 ## AddMetaData adds columns to object@data.info,
 ## and is a great place to stash QC stats
-s <- AddMetaData(s, percent.mito, "percent.mito")
+s$percent.mito <- percent.mito
 
-gp <- VlnPlot(
-    s, c("nGene", "nUMI", "percent.mito"), size.title.use=14, size.x.use=12,
-    group.by=opt$groupby, x.lab.rot=TRUE, point.size.use=0.1, nCol=3
+message("Drawing violin plots")
+gp <- VlnPlot(s,
+              features = c("nFeature_RNA", "nCount_RNA", "percent.mito"),
+              # size.title.use=14,
+              # size.x.use=12,
+              group.by=opt$groupby,
+              # x.lab.rot=TRUE,
+              # point.size.use=0.1,
+              ncol=3
     )
 
-# TODO: document where this function comes from
-save_ggplots(
-    file.path(opt$outdir, "qc.vlnPlot"), gp,
-    width=7, height=4
-    )
+
+save_ggplots(file.path(opt$outdir, "qc.vlnPlot"),
+             gp,
+             width=7,
+             height=4)
 
 ## GenePlot is typically used to visualize gene-gene relationships,
 ## but can be used for anything calculated by the object, i.e. columns
@@ -518,54 +533,53 @@ save_ggplots(
 ## Since there is a rare subset of cells with an outlier level of
 ## high mitochondrial percentage, and also low UMI content, we filter these as well
 
-#' TODO: title
-#'
-#' TODO: describe
-#'
-#' @return TODO: describe
+message("Drawing scatter plots")
 plot_fn <- function() {
     par(mfrow=c(1, 2))
-    GenePlot(s, "nUMI", "percent.mito", cex.use=1)
-    GenePlot(s, "nUMI", "nGene", cex.use=1)
+    FeatureScatter(s, "nCount_RNA", "percent.mito", cex.use=1)
+    FeatureScatter(s, "nCount_RNA", "nFeature_RNA", cex.use=1)
     par(mfrow=c(1, 1))
 }
 
-# TODO: document where this function comes from
 save_plots(
     file.path(opt$outdir, "qc.genePlot"), plot_fn=plot_fn,
     width=8, height=4
     )
 
-# TODO: Document
-
 cell_numbers <- getCellNumbers(s, groupby=opt$groupby)
 
 ## We filter out cells that have unique gene counts over 2,500
 ## Note that accept.high and accept.low can be used to define a 'gate',
-## and can filter cells not only based on nGene but on anything in the
+## and can filter cells not only based on nFeature_RNA but on anything in the
 ## object (as in GenePlot above)
 
-stats$no_cells <- ncol(s@data)
+stats$no_cells <- ncol(GetAssayData(object = s))
 stats$qc_min_gene_threshold <- opt$qcmingenes
 stats$qc_max_percent_mito_threshold <- opt$maxpercentmito
 
-## s <- SubsetData(s, subset.name="nGene", accept.low=opt$qcmingenes)
+## s <- SubsetData(s, subset.name="nFeature_RNA", accept.low=opt$qcmingenes)
 ## s <- SubsetData(s, subset.name="percent.mito", accept.high=opt$qcmaxpercentmito)
 
-s <- FilterCells(
-    s, subset.names=c("nGene", "percent.mito"),
-    low.thresholds=c(opt$qcmingenes, opt$qcminpercentmito),
-    high.thresholds=c(Inf, opt$qcmaxpercentmito)
-    )
+s <- subset(s, subset = nFeature_RNA > opt$qcmingenes &
+                   percent.mito > opt$qcminpercentmito &
+                   percent.mito < opt$qcmaxpercentmito)
+
+#s <- FilterCells(
+#    s, subset.names=c("nFeature_RNA", "percent.mito"),
+#    low.thresholds=c(opt$qcmingenes, opt$qcminpercentmito),
+#    high.thresholds=c(Inf, opt$qcmaxpercentmito)
+#    )
 
 
-stats$no_cells_after_qc <- ncol(s@data)
+stats$no_cells_after_qc <- ncol(GetAssayData(object = s))
 
-cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers, stage="after_qc_filters",
+cell_numbers <- getCellNumbers(s,
+                               cell_numbers=cell_numbers,
+                               stage="after_qc_filters",
 	     		       groupby=opt$groupby)
 
 cat("Data dimensions after subsetting:\n")
-print(dim(s@data))
+print(dim(GetAssayData(object = s)))
 
 ## note that this overwrites pbmc@scale.data. Therefore, if you intend to use RegressOut,
 ## you can set do.scale=F and do.center=F in the original object to save some time.
@@ -574,21 +588,19 @@ print(dim(s@data))
 
 if (as.logical(opt$downsamplecells)) {
 
-    ##cell_info <- getCellInfo(s)
-
-    mincells <- min(table(s@meta.data[[opt$groupby]]))
+    mincells <- min(table(s[[opt$groupby]]))
 
     cat(paste0("Downsampling to ", mincells, " per sample\n"))
     cells.to.use <- c()
-    for (sample in unique(s@meta.data[[opt$groupby]])) {
-        temp <- rownames(s@meta.data)[s@meta.data[[opt$groupby]] == sample]
+    for (sample in unique(s[[opt$groupby]])) {
+        temp <- rownames(s[[]])[s[[opt$groupby]] == sample]
         # KRA: We should probable set.seed() here, for reproducibility
         cells.to.use <- c(cells.to.use, sample(temp, mincells))
     }
 
-    s <- SubsetData(s, cells.use=cells.to.use)
+    s <- SubsetData(s,
+                    cells=cells.to.use)
 
-    ##cell_info <- getCellInfo(s)
     cell_numbers <- getCellNumbers(s, cell_numbers=cell_numbers,
     		    		   stage="after_downsampling", groupby=opt$groupby)
 
@@ -602,12 +614,105 @@ print(
     )
 
 ## ######################################################################### ##
-## ######## (iv) Normalisation and removal of unwanted variation ########### ##
+## ######## (iv) Initial normalisation ############# ##
 ## ######################################################################### ##
 
-s <- NormalizeData(
-    object=s, normalization.method="LogNormalize", scale.factor=10E3
+s <- NormalizeData(object=s,
+                   normalization.method="LogNormalize",
+                   scale.factor=10E3)
+
+
+## ######################################################################### ##
+## ################# (v) Identification of variable genes ################## ##
+## ######################################################################### ##
+
+## identify variable genes and output the plots
+
+message("Finding variable features")
+## We need to run FindVariableFeatures to set HVFInfo(object = s)
+## even if "trendvar" method is specified...
+if(opt$vargenesmethod=="trendvar")
+{
+    fvg_method="mean.var.plot"
+} else {
+    fvg_method=opt$vargenesmethod
+}
+
+s <- FindVariableFeatures(s,
+                          #mean.function=ExpMean,
+                          #dispersion.function=LogVMR,
+                          selection.method=fvg_method,
+                          nfeatures=opt$topgenes,
+                          mean.cutoff = c(opt$xlowcutoff,
+                                          opt$xhighcutoff),
+                          dispersion.cutoff=c(opt$sdcutoff, Inf))
+
+xthreshold <- opt$xlowcutoff
+
+if(opt$vargenesmethod=="trendvar")
+{
+    message("setting variable genes using the trendvar method")
+
+    ## get highly variable genes using the getHVG function in tenxutils (Matrix.R)
+    ## that wraps the trendVar method from scran.
+    hvg.out <- getHVG(s,
+                      min_mean=opt$minmean,
+                      p_adjust_threshold=opt$vargenespadjust)
+
+    # overwrite the slot!
+    VariableFeatures(object = s) <- row.names(hvg.out)
+    ## HVFInfo(object = s) <- var.out.nospike
+
+    xthreshold <- opt$minmean
+}
+
+
+## make a plot that shows the variable genes.
+xx <- HVFInfo(object = s)
+
+xx$var.gene = FALSE
+xx$var.gene[rownames(xx) %in% VariableFeatures(object = s)] <- TRUE
+
+# print(head(xx))
+
+xxm <- melt(xx[, c("mean","dispersion","var.gene")],
+            id.vars=c("var.gene","mean"))
+
+gp <- ggplot(xxm, aes(mean, value,color=var.gene))
+gp <- gp + scale_color_manual(values=c("black","red"))
+gp <- gp + geom_point(alpha = 1, size=0.5)
+gp <- gp + facet_wrap(~variable, scales="free")
+gp <- gp + theme_classic()
+
+if(xthreshold > 0)
+{
+    gp <- gp + geom_vline(xintercept=xthreshold, linetype="dashed", color="blue")
+}
+
+save_ggplots(file.path(opt$outdir, "varGenesPlot"),
+             gp=gp,
+             width=8,
+             height=5)
+
+
+
+cat("no. variable genes: ", length(VariableFeatures(object = s)), "\n")
+stats$no_variable_genes <- length(VariableFeatures(object = s))
+
+print(stats)
+
+# write out some statistics into a latex table.
+print(
+    xtable(t(data.frame(stats)), caption="Run statistics"),
+    file=file.path(opt$outdir, "stats.tex")
     )
+
+
+
+
+## ######################################################################### ##
+## ######## (vi) Removal of unwanted variation ############# ##
+## ######################################################################### ##
 
 
 latent.vars <- strsplit(opt$latentvars, ",")[[1]]
@@ -615,10 +720,11 @@ print(latent.vars)
 
 
 # perform regression without cell cycle correction
-s <- ScaleData(object=s, vars.to.regress=latent.vars,
-               model.use=opt$modeluse,
-               do.par=TRUE, num.cores=opt$numcores)
-
+all.genes <- rownames(s)
+s <- ScaleData(object=s,
+               features = all.genes,
+               vars.to.regress=latent.vars,
+               model.use=opt$modeluse)
 
 ## initialise the text snippet
 tex = ""
@@ -648,11 +754,14 @@ if (!(is.null(opt$sgenes) | opt$sgenes=="none")
   g2mgenes <- s@misc$seurat_id[s@misc$gene_id %in% g2mgenes_ensembl]
 
   # score the cell cycle phases
-  s <- CellCycleScoring(
-    object=s, s.genes=sgenes, g2m.genes=g2mgenes, set.ident=TRUE
-  )
+    s <- CellCycleScoring(object=s,
+                          s.features=sgenes,
+                          g2m.features=g2mgenes,
+                          set.ident=TRUE)
 
-  s <- RunPCA(object = s, pc.genes = c(sgenes, g2mgenes), do.print = FALSE)
+    s <- RunPCA(object = s,
+                pc.genes = c(sgenes, g2mgenes),
+                do.print = FALSE)
 
   ## PCA plot on cell cycle genes without regression
   gp <- PCAPlot(object = s)
@@ -688,17 +797,21 @@ if ( identical(opt$cellcycle, "none") ) {
     if ( identical(opt$cellcycle, "all") ){
 
       ## regress out all cell cycle effects
-      s <- ScaleData(object=s, vars.to.regress=c(latent.vars, "S.Score", "G2M.Score"),
-                     model.use=opt$modeluse, do.par=TRUE, num.cores=opt$numcores)
+        s <- ScaleData(object=s,
+                       features = all.genes,
+                       vars.to.regress=c(latent.vars, "S.Score", "G2M.Score"),
+                       model.use=opt$modeluse)
 
         cat("Data was scaled to remove all cell cycle variation\n")
 
     } else if ( identical(opt$cellcycle, "difference") ) {
 
       ## regress out the difference between G2M and S phase scores
-      s@meta.data$CC.Difference <- s@meta.data$S.Score - s@meta.data$G2M.Score
-      s <- ScaleData(object=s, vars.to.regress=c(latent.vars, "CC.Difference"),
-                     model.use=opt$modeluse, do.par=TRUE, num.cores=opt$numcores)
+      s$CC.Difference <- s$S.Score - s$G2M.Score
+        s <- ScaleData(object=s,
+                       features = all.genes,
+                       vars.to.regress=c(latent.vars, "CC.Difference"),
+                     model.use=opt$modeluse)
 
       cat("Scaling was scaled to remove the difference between G2M and S phase scores\n")
     } else {
@@ -725,123 +838,55 @@ if ( identical(opt$cellcycle, "none") ) {
 }
 
 
-
 tex_file <- file.path(opt$outdir, "cell.cycle.tex")
 
 writeTex(tex_file, tex)
 
 
 
-## ######################################################################### ##
-## ################# (v) Identification of variable genes ################## ##
-## ######################################################################### ##
-
-## identify variable genes and output the plots
-
-## We need to run FindVariableGenes to set s@hvg.info
-## even if "trendvar" method is specified...
-if(opt$vargenesmethod=="trendvar")
-{
-    fvg_method="mean.var.plot"
-} else {
-    fvg_method=opt$vargenesmethod
-}
-
-s <- FindVariableGenes(
-    s, mean.function=ExpMean, dispersion.function=LogVMR,
-    selection.method=fvg_method, top.genes=opt$topgenes,
-    x.low.cutoff=opt$xlowcutoff, x.high.cutoff=opt$xhighcutoff,
-    y.cutoff=opt$sdcutoff, do.plot=FALSE, do.text=FALSE, do.contour=FALSE
-)
-
-xthreshold <- opt$xlowcutoff
-
-if(opt$vargenesmethod=="trendvar")
-{
-    message("setting variable genes using the trendvar method")
-
-    ## get highly variable genes using the getHVG function in tenxutils (Matrix.R)
-    ## that wraps the trendVar method from scran.
-    hvg.out <- getHVG(s,
-                      min_mean=opt$minmean,
-                      p_adjust_threshold=opt$vargenespadjust)
-
-    # overwrite the slot!
-    s@var.genes <- row.names(hvg.out)
-    ## s@hvg.info <- var.out.nospike
-
-    xthreshold <- opt$minmean
-}
-
-
-## make a plot that shows the variable genes.
-xx <- s@hvg.info
-
-xx$var.gene = FALSE
-xx$var.gene[rownames(xx) %in% s@var.genes] <- TRUE
-
-xxm <- melt(xx, id.vars=c("var.gene","gene.mean"))
-
-gp <- ggplot(xxm, aes(gene.mean, value,color=var.gene))
-gp <- gp + scale_color_manual(values=c("black","red"))
-gp <- gp + geom_point(alpha = 1, size=0.5)
-gp <- gp + facet_wrap(~variable, scales="free")
-gp <- gp + theme_classic()
-
-if(xthreshold > 0)
-{
-    gp <- gp + geom_vline(xintercept=xthreshold, linetype="dashed", color="blue")
-}
-
-save_ggplots(file.path(opt$outdir, "varGenesPlot"),
-             gp=gp,
-             width=8,
-             height=5)
-
-
-
-cat("no. variable genes: ", length(s@var.genes), "\n")
-stats$no_variable_genes <- length(s@var.genes)
-
-print(stats)
-
-# write out some statistics into a latex table.
-print(
-    xtable(t(data.frame(stats)), caption="Run statistics"),
-    file=file.path(opt$outdir, "stats.tex")
-    )
 
 ## ######################################################################### ##
 ## ################### (vi) Dimension reduction (PCA) ###################### ##
 ## ######################################################################### ##
 
 # perform PCA using the variable genes
-s <- RunPCA(s, pc.genes=s@var.genes, pcs.compute=50, do.print=FALSE)
+s <- RunPCA(s,
+            pc.genes=VariableFeatures(object = s),
+            pcs.compute=50,
+            do.print=FALSE)
 
-n_cells_pca <- min(1000, length(s@cell.names))
+n_cells_pca <- min(1000, length(colnames(x = s)))
 
 # Write out heatmaps showing the genes loading the first 12 components
 plot_fn <- function() {
-    PCHeatmap(
-        s, pc.use=1:12, cells.use=n_cells_pca, do.balanced=TRUE,
-        label.columns=FALSE, cexRow=0.8, use.full=FALSE
+    DimHeatmap(s, dims=1:12,
+               # cells.use=n_cells_pca,
+               reduction="pca",
+               balanced=TRUE,
+               # label.columns=FALSE,
+               # cexRow=0.8,
+               # use.full=FALSE
         )
 }
 
-save_plots(
-    file.path(opt$outdir, "pcaComponents"), plot_fn=plot_fn,
-    width=8, height=12
-    )
+save_plots(file.path(opt$outdir, "pcaComponents"), plot_fn=plot_fn,
+           width=8, height=12)
 
+print("----")
+print(dim(Embeddings(object=s, reduction="pca")))
 
-nPCs <- min(dim(s@dr$pca@cell.embeddings)[2],50)
+nPCs <- min(dim(Embeddings(object =s, reduction="pca"))[2],50)
+
+print(nPCs)
 
 # Write out the PCA elbow (scree) plot
-png(
-    file.path(opt$outdir, "pcaElbow.png"), width=5, height=4, units="in",
-    res=300
-    )
-PCElbowPlot(s, num.pc=nPCs)
+png(file.path(opt$outdir, "pcaElbow.png"),
+    width=5, height=4, units="in",
+    res=300)
+
+ElbowPlot(s,
+          ndims=nPCs)
+
 dev.off()
 
 ## In Macosko et al, we implemented a resampling test inspired by the jackStraw procedure.
@@ -849,17 +894,23 @@ dev.off()
 ## constructing a 'null distribution' of gene scores, and repeat this procedure. We identify
 ## 'significant' PCs as those who have a strong enrichment of low p-value genes.
 
-s <- JackStraw(s, num.replicate=opt$jackstrawnumreplicates,
-               num.pc = nPCs, do.par=TRUE, num.cores=opt$numcores)
+s <- JackStraw(s,
+               reduction="pca",
+               num.replicate=opt$jackstrawnumreplicates,
+               dims = nPCs)
 
-s <- JackStrawPlot(s, PCs=1:nPCs)
+s <- ScoreJackStraw(s, dims = 1:nPCs)
 
-gp <- s@dr$pca@misc$jackstraw.plot
+#               do.par=TRUE,
+#               num.cores=opt$numcores)
 
-save_ggplots(paste0(opt$outdir,"/pcaJackStraw"),
-           gp,
-           width=8,
-           height=12)
+ gp <- JackStrawPlot(s, dims= 1:nPCs,
+                     reduction="pca")
+
+ save_ggplots(paste0(opt$outdir,"/pcaJackStraw"),
+            gp,
+            width=8,
+            height=12)
 
 
 # Save the R object

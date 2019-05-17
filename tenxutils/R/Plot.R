@@ -168,11 +168,15 @@ plotViolins <- function(data, seurat_object,
     if(n_a > 0)
     {
         message("Calling VlnPlot for top genes by p-value")
-        gpa <- VlnPlot(object=seurat_object, features.plot=genes_a,
-                       size.x.use=6,size.y.use=6,size.title.use=10, point.size.use=0.1,
-                       nCol=ncol,
-                       y.log=TRUE, do.return=TRUE,
-                       group.by=group.by, ident.include=ident.include)
+        gpa <- VlnPlot(object=seurat_object,
+                       features=genes_a,
+                       pt.size = 0.1,
+                       #size.x.use=6,size.y.use=6,size.title.use=10, point.size.use=0.1,
+                       ncol=ncol,
+                       log=TRUE,
+                       # do.return=TRUE,
+                       group.by=group.by,
+                       idents=ident.include)
 
         gpa_exists <- TRUE
 
@@ -225,11 +229,14 @@ plotViolins <- function(data, seurat_object,
         {
 
             message("Calling VlnPlot for top genes by fold change")
-            gpb <- VlnPlot(object=seurat_object, features.plot=genes_b,
-                           size.x.use=6,size.y.use=6,size.title.use=10, point.size.use=0.1,
-                           nCol=ncol,
-                           y.log=TRUE, do.return=TRUE,
-                           group.by=group.by, ident.include= ident.include)
+            gpb <- VlnPlot(object=seurat_object,
+                           features=genes_b,
+                           pt.size = 0.1,
+                           #size.x.use=6,size.y.use=6,size.title.use=10, point.size.use=0.1,
+                           ncol=ncol,
+                           log=TRUE, #do.return=TRUE,
+                           group.by=group.by,
+                           idents=ident.include)
 
             gpb_exists <- TRUE
 
@@ -554,17 +561,18 @@ markerComplexHeatmap <- function(seurat_object,
 
   top_markers <- marker_table %>% group_by(cluster) %>% top_n(n=n_markers,wt=avg_logFC)
 
-  if(is.null(cells_use)) {cell_use <- colnames(s@scale.data) }
+  if(is.null(cells_use)) {cell_use <- colnames(GetAssayData(s, slot="scale.data")) }
 
-  genes_use <- top_markers$gene[top_markers$gene %in% rownames(seurat_object@scale.data)]
-  cells_use <- cell_use %in% colnames(seurat_object@scale.data)
+    genes_use <- top_markers$gene[top_markers$gene %in% rownames(GetAssayData(seurat_object,
+                                                                              slot="scale.data"))]
 
-  x <- as.matrix(seurat_object@scale.data[genes_use, cells_use])
+  cells_use <- cell_use %in% colnames(GetAssayData(seurat_object, slot="scale.data"))
+
+  x <- as.matrix(GetAssayData(seurat_object, slot="scale.data")[genes_use, cells_use])
 
   x <- MinMax(x, min = disp_min, max = disp_max)
 
-  clusters <- seurat_object@ident[cells_use]
-
+  clusters <- Idents(seurat_object)[cells_use]
 
 
   # set up the cluster color palette
@@ -587,15 +595,14 @@ markerComplexHeatmap <- function(seurat_object,
   if(!is.null(sub_group))
   {
 
-      if(!sub_group %in% colnames(s@meta.data))
+      if(!sub_group %in% colnames(s[[]]))
       {
           stop("specified sub group not found in the metadata")
       }
 
     # set up the subgroup colour palette
-    cell_sub_groups <- s@meta.data[cells_use, sub_group]
+    cell_sub_groups <- s[[]][cells_use, sub_group]
     sub_groups <- unique(cell_sub_groups)
-
 
       sub_group_cols <- brewer.pal(length(sub_groups),"Greys")
       # because the Grey palette returns a minimum of 3 colors..

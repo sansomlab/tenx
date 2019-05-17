@@ -85,7 +85,7 @@ degenes <- read.table(gzfile(opt$degenes),header=T,as.is=T,sep="\t")
 ## read in the seurat object
 seurat_object <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-seurat_object@ident <- cluster_ids
+Idents(seurat_object) <- cluster_ids
 
 cluster <- opt$cluster
 

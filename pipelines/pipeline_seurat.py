@@ -743,8 +743,8 @@ if PARAMS["dimreduction_visualisation"].lower() == "tsne":
 elif PARAMS["dimreduction_visualisation"].lower() == "umap":
     RDIMS_VIS_TASK = UMAP
     RDIMS_VIS_METHOD = "umap"
-    RDIMS_VIS_COMP_1 = "UMAP1"
-    RDIMS_VIS_COMP_2 = "UMAP2"
+    RDIMS_VIS_COMP_1 = "UMAP_1"
+    RDIMS_VIS_COMP_2 = "UMAP_2"
 
 else:
     raise ValueError('dimreduction_visualisation must be either "tsne" or "umap"')

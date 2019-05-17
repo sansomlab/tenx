@@ -8,6 +8,7 @@
 stopifnot(
   require(optparse),
   require(Seurat),
+  require(future),
   require(dplyr),
   require(Matrix),
   require(reshape2)
@@ -52,13 +53,24 @@ option_list <- list(
     make_option(c("--project"), default="SeuratAnalysis",
                 help="project name"),
     make_option(c("--outdir"), default="seurat.out.dir",
-                help="outdir")
+                help="outdir"),
+        make_option(
+        c("--numcores"),
+        type="integer",
+        default=1,
+        help="Number of cores to be used for the Jackstraw analysis"
+        )
+
     )
 
 opt <- parse_args(OptionParser(option_list=option_list))
 
 cat("Running with options:\n")
 print(opt)
+
+plan("multiprocess",
+     workers = opt$numcores)
+
 
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
@@ -83,11 +95,11 @@ if(!have_gene_ids)
     rownames(ann) <- ann$gene_name
 }
 
-if(!identical(s@cell.names,names(cluster_ids)))
+if(!identical(colnames(x = s),names(cluster_ids)))
 {   stop("Cluster cell names do not match Seurat object cell names")
 }
 
-if(!identical(names(cluster_ids), rownames(s@meta.data)))
+if(!identical(names(cluster_ids), rownames(s[[]])))
 {
     # probaby not necessary.
     stop("cluster_ids and metadata rownames do not match")
@@ -108,17 +120,18 @@ if(opt$testfactor=="none")
     if(length(ident[ident == "ignore"])>0)
     { stop("Problem assigning cells to clusters") }
 } else {
-    if(!opt$a %in% s@meta.data[[opt$testfactor]] | !opt$b %in% s@meta.data[[opt$testfactor]])
+     print(head(s[[opt$testfactor]]))
+    if(!opt$a %in% s[[]][,opt$testfactor] | !opt$b %in% s[[]][,opt$testfactor])
     {
         stop("between_a and/or between_b not present in the opt$testfactor metadata colum")
     }
-    ident[cluster_ids==id & s@meta.data[[opt$testfactor]] == opt$a] <- "a"
-    ident[cluster_ids==id & s@meta.data[[opt$testfactor]] == opt$b] <- "b"
+    ident[cluster_ids==id & s[[]][,opt$testfactor] == opt$a] <- "a"
+    ident[cluster_ids==id & s[[]][,opt$testfactor] == opt$b] <- "b"
 }
 
 if(opt$conservedfactor != "none"){
     # stopifnot testfactor also supplied
-    ident.conserved <- factor(s@meta.data[names(ident), opt$conservedfactor])
+    ident.conserved <- factor(s[[]][names(ident), opt$conservedfactor])
     if (nlevels(ident.conserved) < 2){
         stop("Conserved factor has fewer than 2 levels")
     }
@@ -135,10 +148,10 @@ for (conserved.level in levels(ident.conserved)){
     ident.use <- ident
     # Ignore cells in other levels of conservation factor
     ident.use[ident.conserved != conserved.level] <- "ignore"
-    s@ident <- factor(ident.use)
-    ident.use = s@ident
+    Idents(s) <- factor(ident.use)
+    ident.use = Idents(s)
     message("Identities:")
-    print(table(s@ident))
+    print(table(Idents(s)))
 
     # Original FindMarker pipeline routine
     ## check fold change threshold
@@ -146,12 +159,12 @@ for (conserved.level in levels(ident.conserved)){
     ncells_check <- F
     other_checks <- F
 
-    if(length(unique(s@ident[s@ident!="ignore"])) > 1)
+    if(length(unique(Idents(s)[Idents(s)!="ignore"])) > 1)
     {
         nclust_check = TRUE
 
-        cluster_cells <- s@cell.names[s@ident == "a"]
-        other_cells <- s@cell.names[s@ident == "b"]
+        cluster_cells <- colnames(x = s)[Idents(s) == "a"]
+        other_cells <- colnames(x = s)[Idents(s) == "b"]
 
         if(length(cluster_cells) >= opt$mincells & length(other_cells) >= opt$mincells)
         {
@@ -161,9 +174,9 @@ for (conserved.level in levels(ident.conserved)){
         }
 
         ## compute percentages and difference
-        genes <- rownames(s@data)
-        cluster_pct <- apply(s@data[genes,cluster_cells, drop=F], 1, function(x) round(sum(x>0)/length(x), digits=3))
-        other_pct <- apply(s@data[,other_cells, drop=F], 1, function(x) round(sum(x>0)/length(x),digits=3))
+        genes <- rownames(x = s)
+        cluster_pct <- apply(GetAssayData(object = s)[genes,cluster_cells, drop=F], 1, function(x) round(sum(x>0)/length(x), digits=3))
+        other_pct <- apply(GetAssayData(object = s)[,other_cells, drop=F], 1, function(x) round(sum(x>0)/length(x),digits=3))
 
         pcts <- cbind(cluster_pct,other_pct)
         max_pct <- apply(pcts,1,max)
@@ -171,14 +184,14 @@ for (conserved.level in levels(ident.conserved)){
         diff_pct <- max_pct - min_pct
 
         ## compute mean expression levels and difference
-        cluster_mean <- apply(s@data[,cluster_cells, drop=F], 1, FUN = ExpMean)
-        other_mean <- apply(s@data[,other_cells, drop=F], 1, FUN = ExpMean)
+        cluster_mean <- apply(GetAssayData(object = s)[,cluster_cells, drop=F], 1, FUN = ExpMean)
+        other_mean <- apply(GetAssayData(object = s)[,other_cells, drop=F], 1, FUN = ExpMean)
         diff_mean <- abs(cluster_mean - other_mean)
 
         ## store these stats so that they can added to the results table
         ## e.g. for later investigation of threshold effects...
 
-        filter_stats <- data.frame(row.names=rownames(s@data),
+        filter_stats <- data.frame(row.names=rownames(x = s),
                                    cluster_mean=signif(cluster_mean,4),
                                    other_mean=signif(other_mean,4))
 
@@ -188,8 +201,8 @@ for (conserved.level in levels(ident.conserved)){
         ## deliberately ignore diff_mean when selecting the background genes
         background_take <- max_pct > opt$minpct
 
-        genes.use <- rownames(s@data)[take]
-        background.use <- rownames(s@data)[background_take]
+        genes.use <- rownames(x = s)[take]
+        background.use <- rownames(x = s)[background_take]
 
         if(length(genes.use > 0))
         {
@@ -214,8 +227,8 @@ for (conserved.level in levels(ident.conserved)){
             stop("ROC not supported")
         }
 
-        ident.use = s@ident
-        ##idents.all = sort(unique(s@ident))
+        ident.use = Idents(s)
+        ##idents.all = sort(unique(Idents(s)))
 
         print(table(ident.use)) ##idents.all)
         #genes.de = list()
@@ -227,13 +240,13 @@ for (conserved.level in levels(ident.conserved)){
         genes.de <- FindMarkers(s,
                                 ident.1 = "a",
                                 ident.2 = "b",
-                                genes.use = NULL,
+                                # genes.use = NULL,
                                 logfc.threshold = opt$threshuse,
                                 test.use = opt$testuse,
                                 min.pct = opt$minpct,
                                 min.diff.pct = opt$mindiffpct,
-                                print.bar = F,
-                                min.cells.gene = min.cells,
+                                # print.bar = F,
+                                min.cells.feature = min.cells,
                                 min.cells.group = min.cells)
 
         ## keep everything, adjust later

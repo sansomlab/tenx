@@ -36,7 +36,7 @@ print(opt)
 
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-s@ident <- cluster_ids
+Idents(s) <- cluster_ids
 
 idents.all = sort(unique(cluster_ids))
 
@@ -108,9 +108,9 @@ for(x in cluster_levels)
     clust_cells <- names(cluster_ids[cluster_ids==x])
     other_cells <- names(cluster_ids[cluster_ids!=x])
 
-    xmean <- apply(expm1(s@data[fgenes,clust_cells]),1,mean)
-    omean <- apply(expm1(s@data[fgenes,other_cells]),1,mean)
-    xfreq <- apply(s@data[fgenes,clust_cells],1,function(x) length(x[x>0])/length(x))
+    xmean <- apply(expm1(GetAssayData(object = s)[fgenes,clust_cells]),1,mean)
+    omean <- apply(expm1(GetAssayData(object = s)[fgenes,other_cells]),1,mean)
+    xfreq <- apply(GetAssayData(object = s)[fgenes,clust_cells],1,function(x) length(x[x>0])/length(x))
 
     filtered_markers[[paste0(x,"_exprs")]] <- xmean
     filtered_markers[[paste0(x,"_freq")]] <- xfreq

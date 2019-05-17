@@ -51,8 +51,8 @@ cluster_ids <- readRDS(opt$clusterids)
 ## cluster_ids
 clusters <- sort(unique(as.vector(cluster_ids)))
 
-acells <- s@meta.data[[opt$testfactor]] == opt$a
-bcells <- s@meta.data[[opt$testfactor]] == opt$b
+acells <- s[[opt$testfactor]] == opt$a
+bcells <- s[[opt$testfactor]] == opt$b
 
 aName <- paste(opt$a,"mean",sep="_")
 bName <- paste(opt$b,"mean",sep="_")
@@ -96,8 +96,8 @@ for(cluster in clusters)
            de <- read.table(gzfile(res_fn), header=T, sep="\t", as.is=T)
            de <- de[order(de$p_va),]
 
-           ameans <- rowMeans(s@scale.data[de$gene,as])
-           bmeans <- rowMeans(s@scale.data[de$gene,bs])
+           ameans <- rowMeans(GetAssayData(object = s, slot = "scale.data")[de$gene,as])
+           bmeans <- rowMeans(GetAssayData(object = s, slot = "scale.data")[de$gene,bs])
 
            de[[aName]] <- ameans
            de[[bName]] <- bmeans

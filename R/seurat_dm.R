@@ -5,6 +5,7 @@
 
 stopifnot(
     require(Seurat),
+    require(destiny),
     require(plot3D),
     require(tenxutils),
     require(dplyr),
@@ -51,15 +52,14 @@ print(opt)
 message("readRDS")
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-s@ident <- cluster_ids
+Idents(s) <- cluster_ids
 
 ## run the diffusion map algorithm
 if(opt$usegenes)
 {
 message("Running diffusion with the variable genes")
-s <- RunDiffusion(object=s,
-                  genes.use=s@var.genes,
-                  max.dim=opt$maxdim)
+
+diff.data <- GetAssayData(s, slot = "scale.data")[VariableFeatures(s),]
 
 } else {
 
@@ -74,17 +74,18 @@ s <- RunDiffusion(object=s,
     }
 
     message("Running diffussion with reduced dimensions")
-    s <- RunDiffusion(object=s,
-                  reduction.use = opt$reductiontype,
-                  dims.use=comps,
-                  max.dim=opt$maxdim)
+
+    diff.data <- Embeddings(s, reduction="pca")[,comps]
 }
 
-## extract the DM coordinates from the seurat object
-dm <- as.data.frame(s@dr$dm@cell.embeddings)
-dm$cluster <- s@ident
+## make the diffusion map
+diff_map <- DiffusionMap(t(diff.data))
 
-plot_data <- merge(dm, s@meta.data, by=0)
+## extract the DM coordinates from the seurat object
+dm <- as.data.frame(diff_map@eigenvectors)
+dm$cluster <- Idents(s)
+
+plot_data <- merge(dm, s[[]], by=0)
 
 rownames(plot_data) <- plot_data$Row.names
 plot_data$Row.names <- NULL
@@ -99,9 +100,9 @@ write.table(plot_data, opt$outfile,
 ## make a sensible set of 3D plots.
 draw3D <- function(m, phi=30, theta=30, clusters, cols)
 {
-    scatter3D(m@cell.embeddings[,1],
-              m@cell.embeddings[,2],
-              m@cell.embeddings[,3],
+    scatter3D(m@eigenvectors[,1],
+              m@eigenvectors[,2],
+              m@eigenvectors[,3],
               bty = "b2",
               col=cols,
               colkey=F,
@@ -115,19 +116,17 @@ draw3D <- function(m, phi=30, theta=30, clusters, cols)
 
 draw3Dplots <- function()
     {
-        n = length(unique(s@ident))
+        n = length(unique(Idents(s)))
         cols = gg_color_hue(n)
-        clusters <- as.numeric(as.vector(s@ident))
-
-        m <- s@dr$dm
+        clusters <- as.numeric(as.vector(Idents(s)))
 
         par(mfrow=c(2,2),
             mai = c(0.1, 0.1, 0.1, 0.1))
 
-        draw3D(m, phi=30, theta=30, clusters, cols)
-        draw3D(m, phi=30, theta=120, clusters, cols)
-        draw3D(m, phi=30, theta=210, clusters, cols)
-        draw3D(m, phi=30, theta=300, clusters, cols)
+        draw3D(diff_map, phi=30, theta=30, clusters, cols)
+        draw3D(diff_map, phi=30, theta=120, clusters, cols)
+        draw3D(diff_map, phi=30, theta=210, clusters, cols)
+        draw3D(diff_map, phi=30, theta=300, clusters, cols)
     }
 
 plotfilename="diffusion.map"

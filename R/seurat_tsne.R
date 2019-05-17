@@ -48,11 +48,11 @@ print(opt)
 message("readRDS")
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-s@ident <- cluster_ids
-print(head(s@ident))
+Idents(s) <- cluster_ids
+print(head(Idents(s)))
 
 ## check that the perplexity value specified is sensible
-ncells <- ncol(s@data)
+ncells <- ncol(GetAssayData(object = s))
 message("no. cells:", ncells)
 message("perplexity:", opt$perplexity)
 
@@ -74,17 +74,17 @@ if(opt$perplexity > floor(ncells/5))
     ## run the tSNE analysis
     message("RunTSNE")
     s <- RunTSNE(s,
-                 reduction.use = opt$reductiontype,
-                 dims.use = comps,
+                 reduction = opt$reductiontype,
+                 dims = comps,
                  perplexity = opt$perplexity,
                  max_iter = opt$maxiter,
                  do.fast = as.logical(opt$fast))
 
     ## extract the tSNE coordinates from the seurat object
-    tsne <- as.data.frame(s@dr$tsne@cell.embeddings)
-    tsne$cluster <- s@ident[rownames(tsne)]
+    tsne <- as.data.frame(s@reductions$tsne@cell.embeddings)
+    tsne$cluster <- Idents(s)[rownames(tsne)]
 
-    plot_data <- merge(tsne, s@meta.data, by=0)
+    plot_data <- merge(tsne, s[[]], by=0)
 
     rownames(plot_data) <- plot_data$Row.names
     plot_data$Row.names <- NULL

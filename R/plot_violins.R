@@ -55,7 +55,7 @@ genes <- read.table(opt$genetable,
 
 ## read in the raw count matrix
 s <- readRDS(opt$seuratobject)
-s@ident <- readRDS(opt$clusterids)
+Idents(s) <- readRDS(opt$clusterids)
 
 
 if("gene_id" %in% colnames(s@misc))
@@ -65,7 +65,7 @@ if("gene_id" %in% colnames(s@misc))
     map <- data.frame(s@misc[s@misc$gene_id %in% genes$gene_id,])
 
     #subset the map to genes with expression data.
-    map <- map[map$seurat_id %in% rownames(s@data),]
+    map <- map[map$seurat_id %in% rownames(x = s),]
     rownames(map) <- map$gene_id
     genes <- genes[genes$gene_id %in% rownames(map),]
     genes$seurat_id <- as.vector(map[genes$gene_id,"seurat_id"])
@@ -75,7 +75,7 @@ if("gene_id" %in% colnames(s@misc))
 } else {
     ## map directly using gene symbols
     id_col = "gene"
-    genes <- genes[genes$gene %in% rownames(s@data),]
+    genes <- genes[genes$gene %in% rownames(x = s),]
     genes$seurat_id <- genes$gene
 
     message("mapped gene symbol directly to seurat gene...")
@@ -103,20 +103,20 @@ for(group in unique(genes$group))
 
 
     print(rownames(tmp))
-    print(rownames(tmp)[rownames(tmp) %in% rownames(s@data)])
+    print(rownames(tmp)[rownames(tmp) %in% rownames(x = s)])
 
-    data <- as.data.frame(as.matrix(s@data[rownames(tmp),]))
+    data <- as.data.frame(as.matrix(GetAssayData(object = s)[rownames(tmp),]))
     rownames(data) <- tmp$plot_name
 
     data$gene <- as.vector(rownames(data))
 
     ggData <- melt(data,id.vars="gene")
 
-    ggData$cluster <- as.numeric(as.vector(s@ident[ggData$variable]))
+    ggData$cluster <- as.numeric(as.vector(Idents(s)[ggData$variable]))
 
     message("prepared the expression data")
 
-    nclust <- length(unique(s@ident))
+    nclust <- length(unique(Idents(s)))
     colors <- gg_color_hue(nclust)
     names(colors) <- 0:(nclust-1)
 
