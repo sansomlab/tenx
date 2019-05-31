@@ -81,8 +81,8 @@ picard:
 aggr:
     # !! Normalising here is not recommended !!
     # See below for down-sampling of the final count matrix
-    # Normalize can be set none (default), mapped, raw
-    # Choices: 'mapped'|'raw'|'none'
+    # Normalize can be set none (default), mapped
+    # Choices: 'mapped'|'none'
     normalize: none
 
     # Additional options passed to `cellranger aggr`
@@ -108,7 +108,7 @@ postprocess:
     blacklist: none
 
     # Path to the matrix subdirectory, relative to each sample directory.
-    mexdir: outs/filtered_feature_bc_matrices_mex
+    mexdir: outs/filtered_feature_bc_matrix
 
     # Set the memory allowance for the R script
     memory: 10000M
@@ -157,3 +157,5 @@ dropest:
     run: False
     # Location of a suitable configuration file
     config: /gfs/apps/bio/dropEst-2018-12-06/config_files/tenx.config.xml
+    # memory to be used (total)
+    memory: 25000M

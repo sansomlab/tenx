@@ -68,6 +68,8 @@ the output of pipeline_cellranger.py) or
 (B) starting from a saved seurat object. This is useful for analysing
 an object to which reduced dimensions from another method (e.g. zinbwave)
 have been added.
+Optionally, velocity plots can be included, which require the optional
+run of the tool dropEst within the cellranger pipeline (see below).
 
 (A) Starting from a processed tenx count matrix (and a metadata.tsv file).
 
@@ -99,6 +101,15 @@ ending with ".seurat.dir", e.g.
 wildtype.seurat.dir/begin.rds
 knockout.seurat.dir/begin.rds
 aggregated.seurat.dir/begin.rds
+
+(Optional - velocity) Starting from aggregated dropEst output matrix.
+
+Typically involves linking "dropEst-datasets.dir" subfolders from the
+pipeline_cellranger.py run.
+
+Similar to (A), a "data.velocity.dir" folder has to be created with
+subfolders of the different conditions. The folder names must end
+with ".dir" and folder structure should correspond to (A).
 
 
 Dependencies

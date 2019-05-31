@@ -17,3 +17,12 @@ Check the list of [dependencies](DEPENDENCIES.md)
    $> cd tenx
    $> R CMD INSTALL --no-multiarch --with-keep.source tenxutils
 ```
+5. Install velocyto using e.g.
+```
+   R> library(devtools)
+   R> install_github("velocyto-team/velocyto.R")
+```
+6. Install umap using
+```
+   $> pip install umap-learn
+```
