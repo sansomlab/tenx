@@ -724,6 +724,7 @@ def dropEst(infile, outfile):
     IOTools.touch_file(outfile)
 
 
+@active_if(PARAMS["dropest_run"])
 @follows(dropEst,
          mkdir("dropEst-aggr"))
 @files([cellrangerAggr,writeSampleInformation],
