@@ -106,7 +106,7 @@ saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 ## 1. Using the Seurat default function
 ## which computes distance between clusters averages
 ## using the expression levels of the variable genes
-draw_tree <- function() { BuildClusterTree(s) }
+draw_tree <- function() { plot(Tool(BuildClusterTree(s),slot='BuildClusterTree')) }
 
 save_plots(
     file.path(opt$outdir, "cluster.dendrogram"),

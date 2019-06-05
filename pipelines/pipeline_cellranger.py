@@ -707,7 +707,7 @@ def dropEst(infile, outfile):
                               "outs",
                               "possorted_genome_bam.bam")
 
-    job_memory = "20000M"
+    job_memory = PARAMS["dropest_memory"]
 
     statement = '''dropest -V
                           -g %(gtf)s
