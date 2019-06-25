@@ -94,7 +94,7 @@ print(opt)
 s <- readRDS(opt$seuratobject)
 
 ## data <- GetAssayData(object = s, slot = counts)
-data <- GetAssayData(object = s, slot = "counts")
+data <- GetAssayData(object = s, slot = "data")
 
 if("gene_id" %in% colnames(s@misc))
 {
