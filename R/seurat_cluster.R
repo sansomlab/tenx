@@ -106,13 +106,27 @@ saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 ## 1. Using the Seurat default function
 ## which computes distance between clusters averages
 ## using the expression levels of the variable genes
-draw_tree <- function() { plot(Tool(BuildClusterTree(s),slot='BuildClusterTree')) }
+
+if(DefaultAssay(s) != "SCT")
+{
+    ## see: https://github.com/satijalab/seurat/issues/1677
+
+    draw_tree <- function() { plot(Tool(BuildClusterTree(s),slot='BuildClusterTree')) }
+
+} else {
+    ## draw an empty plot with an error message
+
+    draw_tree <- function()
+    {
+    plot.new()
+    text(0.5,0.5,"BuildClusterTree is not compatible with sctransform")
+    }
+}
 
 save_plots(
     file.path(opt$outdir, "cluster.dendrogram"),
     plot_fn=draw_tree,
-    width=8, height=5
-    )
+    width=8, height=5)
 
 
 ## 2. By the median pair-wise pearson correlation

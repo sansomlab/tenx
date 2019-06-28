@@ -119,6 +119,15 @@ qc:
     seed: none
 
 
+# Normalization
+# -------------
+
+normalization:
+  # Choose between standard "log-normalization" or newer "sctransform"
+  method: log-normalization
+
+
+
 # Regression parameters
 # ---------------------
 

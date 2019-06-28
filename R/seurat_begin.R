@@ -20,6 +20,8 @@
 stopifnot(
   require(optparse),
   require(Seurat),
+  require(sctransform),
+  require(ggplot2),
   require(dplyr),
   require(Matrix),
   require(xtable),
@@ -113,6 +115,11 @@ option_list <- list(
             "Maximal percentage of UMI assigned to mitochondrial genes.",
             "See Seurat::FilterCells(subset.names='percent.mito', high.thresholds= ...)"
             )
+        ),
+    make_option(
+        c("--normalizationmethod"),
+        default="log-normalization",
+        help="The normlization method to use"
         ),
     make_option(
         c("--latentvars"),
@@ -363,7 +370,6 @@ s <- CreateSeuratObject(counts=data,
     )
 cat("Done.\n")
 
-# TODO: consider better alternatives (e.g. SummarizedExperiment has a rowData slot for that)
 s@misc <- genes
 
 ## Read in the metadata
@@ -410,7 +416,6 @@ for(meta_col in colnames(metadata))
 {
     s[[meta_col]] <- metadata[[meta_col]]
                                         }
-# s <- AddMetaData(s, metadata)
 cat("Done.\n")
 
 # ensure that the grouping factor is present in the metadata
@@ -444,11 +449,6 @@ getSubset <- function(seurat_object, cells_to_retain)
         s
 }
 
-
-
-# KRA: pipeline.yml says "to retain all the cells for a sample use the
-# string "use.all".. why is it used for subsetting here?!
-# TODO: use comments to explain what is done
 if (opt$subsetcells!="use.all") {
 
     message("subsetting to whitelisted cells")
@@ -558,18 +558,10 @@ stats$no_cells <- ncol(GetAssayData(object = s))
 stats$qc_min_gene_threshold <- opt$qcmingenes
 stats$qc_max_percent_mito_threshold <- opt$maxpercentmito
 
-## s <- SubsetData(s, subset.name="nFeature_RNA", accept.low=opt$qcmingenes)
-## s <- SubsetData(s, subset.name="percent.mito", accept.high=opt$qcmaxpercentmito)
 
 s <- subset(s, subset = nFeature_RNA > opt$qcmingenes &
                    percent.mito > opt$qcminpercentmito &
                    percent.mito < opt$qcmaxpercentmito)
-
-#s <- FilterCells(
-#    s, subset.names=c("nFeature_RNA", "percent.mito"),
-#    low.thresholds=c(opt$qcmingenes, opt$qcminpercentmito),
-#    high.thresholds=c(Inf, opt$qcmaxpercentmito)
-#    )
 
 
 stats$no_cells_after_qc <- ncol(GetAssayData(object = s))
@@ -624,80 +616,139 @@ print(
     file=file.path(opt$outdir, "cell_numbers.tex")
     )
 
-## ######################################################################### ##
-## ######## (iv) Initial normalisation ############# ##
-## ######################################################################### ##
-
-s <- NormalizeData(object=s,
-                   normalization.method="LogNormalize",
-                   scale.factor=10E3)
-
 
 ## ######################################################################### ##
-## ################# (v) Identification of variable genes ################## ##
+## # (iv) Initial normalisation, variable gene identification and scaling ## ##
 ## ######################################################################### ##
 
-## identify variable genes and output the plots
 
-message("Finding variable features")
-## We need to run FindVariableFeatures to set HVFInfo(object = s)
-## even if "trendvar" method is specified...
-if(opt$vargenesmethod=="trendvar")
+## No cell cycle correction is applied at this stage.
+
+latent.vars <- strsplit(opt$latentvars, ",")[[1]]
+print(latent.vars)
+
+
+if(opt$normalizationmethod=="log-normalization")
 {
-    fvg_method="mean.var.plot"
+    message("Performing initial log-normalization")
+
+    ## log-normalization
+    s <- NormalizeData(object=s,
+                       normalization.method="LogNormalize",
+                       scale.factor=10E3)
+
+
+    ## variable gene identification
+
+    message("Finding variable features")
+    ## We need to run FindVariableFeatures to set HVFInfo(object = s)
+    ## even if "trendvar" method is specified...
+    if(opt$vargenesmethod=="trendvar")
+    {
+        fvg_method="mean.var.plot"
+    } else {
+        fvg_method=opt$vargenesmethod
+    }
+
+    s <- FindVariableFeatures(s,
+                              selection.method=fvg_method,
+                              nfeatures=opt$topgenes,
+                              mean.cutoff = c(opt$xlowcutoff,
+                                              opt$xhighcutoff),
+                              dispersion.cutoff=c(opt$sdcutoff, Inf))
+
+    xthreshold <- opt$xlowcutoff
+
+    if(opt$vargenesmethod=="trendvar")
+    {
+        message("setting variable genes using the trendvar method")
+
+        ## get highly variable genes using the getHVG function in tenxutils (Matrix.R)
+        ## that wraps the trendVar method from scran.
+        hvg.out <- getHVG(s,
+                          min_mean=opt$minmean,
+                          p_adjust_threshold=opt$vargenespadjust)
+
+        ## overwrite the slot
+        VariableFeatures(object = s) <- row.names(hvg.out)
+
+        xthreshold <- opt$minmean
+    }
+
+    ## perform the regression
+    all.genes <- rownames(s)
+    s <- ScaleData(object=s,
+                   features = all.genes,
+                   vars.to.regress=latent.vars,
+                   model.use=opt$modeluse)
+
+} else if(opt$normalizationmethod=="sctransform")
+{
+    message("Performing initial SCTransform normalization")
+
+    s <- SCTransform(object=s,
+                     assay="RNA",
+                     new.assay.name="SCT",
+                     do.correct.umi=TRUE,
+                     variable.features.n=3000,
+                     vars.to.regress=latent.vars,
+                     do.scale=FALSE,
+                     do.center=TRUE,
+                     return.only.var.genes=FALSE)
+
+    ## Note that the SCT slot will now be set as default.
+
 } else {
-    fvg_method=opt$vargenesmethod
+    stop("Invalid normalization method specified")
 }
 
-s <- FindVariableFeatures(s,
-                          #mean.function=ExpMean,
-                          #dispersion.function=LogVMR,
-                          selection.method=fvg_method,
-                          nfeatures=opt$topgenes,
-                          mean.cutoff = c(opt$xlowcutoff,
-                                          opt$xhighcutoff),
-                          dispersion.cutoff=c(opt$sdcutoff, Inf))
 
-xthreshold <- opt$xlowcutoff
-
-if(opt$vargenesmethod=="trendvar")
-{
-    message("setting variable genes using the trendvar method")
-
-    ## get highly variable genes using the getHVG function in tenxutils (Matrix.R)
-    ## that wraps the trendVar method from scran.
-    hvg.out <- getHVG(s,
-                      min_mean=opt$minmean,
-                      p_adjust_threshold=opt$vargenespadjust)
-
-    # overwrite the slot!
-    VariableFeatures(object = s) <- row.names(hvg.out)
-    ## HVFInfo(object = s) <- var.out.nospike
-
-    xthreshold <- opt$minmean
-}
+#saveRDS(s, file=file.path(opt$outdir, "begin.rds"))
 
 
 ## make a plot that shows the variable genes.
+
 xx <- HVFInfo(object = s)
 
 xx$var.gene = FALSE
 xx$var.gene[rownames(xx) %in% VariableFeatures(object = s)] <- TRUE
 
-# print(head(xx))
+if(opt$normalizationmethod=="log-normalization")
+{
+    xvar = "mean"
+    yvar = "dispersion"
 
-xxm <- melt(xx[, c("mean","dispersion","var.gene")],
-            id.vars=c("var.gene","mean"))
+} else if(opt$normalizationmethod=="sctransform")
+{
+    xvar = "gmean"
+    yvar = "residual_variance"
+}
 
-gp <- ggplot(xxm, aes(mean, value,color=var.gene))
+xxm <- melt(xx[, c(xvar,yvar,"var.gene")],
+            id.vars=c("var.gene",xvar))
+
+gp <- ggplot(xxm, aes_string(xvar, "value", color="var.gene"))
+
+
 gp <- gp + scale_color_manual(values=c("black","red"))
 gp <- gp + geom_point(alpha = 1, size=0.5)
 gp <- gp + facet_wrap(~variable, scales="free")
 gp <- gp + theme_classic()
 
-if(xthreshold > 0)
+if(opt$normalizationmethod=="sctransform")
 {
-    gp <- gp + geom_vline(xintercept=xthreshold, linetype="dashed", color="blue")
+    gp <- gp + scale_y_continuous(trans="log10", labels = function(x) format(x, digits=3, scientific = TRUE))
+    gp <- gp + scale_x_continuous(trans="log10", labels = function(x) format(x, digits=3, scientific = TRUE))
+}
+
+gp <- gp + ylab(yvar)
+
+if(exists("xthreshold"))
+{
+    if(xthreshold > 0)
+    {
+        gp <- gp + geom_vline(xintercept=xthreshold, linetype="dashed", color="blue")
+    }
 }
 
 save_ggplots(file.path(opt$outdir, "varGenesPlot"),
@@ -719,23 +770,10 @@ print(
     )
 
 
-
-
 ## ######################################################################### ##
-## ######## (vi) Removal of unwanted variation ############# ##
+## ###### (v) Removal of unwanted variation/cell cycle correction ########## ##
 ## ######################################################################### ##
 
-
-latent.vars <- strsplit(opt$latentvars, ",")[[1]]
-print(latent.vars)
-
-
-# perform regression without cell cycle correction
-all.genes <- rownames(s)
-s <- ScaleData(object=s,
-               features = all.genes,
-               vars.to.regress=latent.vars,
-               model.use=opt$modeluse)
 
 ## initialise the text snippet
 tex = ""
@@ -804,29 +842,40 @@ if ( identical(opt$cellcycle, "none") ) {
         stop("Please provide lists of cell cycle sgenes and g2mgenes")
         }
 
-
     if ( identical(opt$cellcycle, "all") ){
 
-      ## regress out all cell cycle effects
-        s <- ScaleData(object=s,
-                       features = all.genes,
-                       vars.to.regress=c(latent.vars, "S.Score", "G2M.Score"),
-                       model.use=opt$modeluse)
-
-        cat("Data was scaled to remove all cell cycle variation\n")
+        message("Cell cycle correction for S and G2M scores will be applied\n")
+        vars.to.regress <- c(latent.vars, "S.Score", "G2M.Score")
 
     } else if ( identical(opt$cellcycle, "difference") ) {
 
-      ## regress out the difference between G2M and S phase scores
-      s$CC.Difference <- s$S.Score - s$G2M.Score
+      message("Cell cycle correction for the difference between G2M and S phase scores will be applied\n")
+        s$CC.Difference <- s$S.Score - s$G2M.Score
+        vars.to.regress <- c(latent.vars, "CC.Difference")
+
+    } else {
+      stop("Cell cycle regression type not recognised")
+    }
+
+    ## Apply the cell cycle correction.
+    if(opt$normalizationmethod=="log-normalization")
+    {
         s <- ScaleData(object=s,
                        features = all.genes,
-                       vars.to.regress=c(latent.vars, "CC.Difference"),
-                     model.use=opt$modeluse)
+                       vars.to.regress=vars.to.regress,
+                       model.use=opt$modeluse)
 
-      cat("Scaling was scaled to remove the difference between G2M and S phase scores\n")
-    } else {
-      stop("cellcycle regression type not understood")
+    } else if(opt$normalizationmethod=="sctransform")
+    {
+        s <- SCTransform(object=s,
+                         assay="RNA",
+                         new.assay.name="SCT",
+                         do.correct.umi=TRUE,
+                         variable.features.n=3000,
+                         vars.to.regress=vars.to.regress,
+                         do.scale=FALSE,
+                         do.center=TRUE,
+                         return.only.var.genes=FALSE)
     }
 
     ## visualise the cells by PCA of cell cycle genes after regression
@@ -852,8 +901,6 @@ if ( identical(opt$cellcycle, "none") ) {
 tex_file <- file.path(opt$outdir, "cell.cycle.tex")
 
 writeTex(tex_file, tex)
-
-
 
 
 ## ######################################################################### ##

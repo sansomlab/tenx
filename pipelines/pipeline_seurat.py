@@ -283,6 +283,7 @@ def beginSeurat(infile, outfile):
                    --qcmaxpercentmito=%(qc_maxpercentmito)s
                    --metadata=%(metadata)s
                    --downsamplecells=%(downsamplecells)s
+                   --normalizationmethod=%(normalization_method)s
                    --latentvars=%(regress_latentvars)s
                    --modeluse=%(regress_modeluse)s
                    --vargenesmethod=%(vargenes_method)s
@@ -2185,6 +2186,13 @@ def latexVars(infile, outfile):
     else:
         conservedBetweenFactor = "None"
 
+    if PARAMS["normalization_method"] == "log-normalization":
+        varGeneMethod = PARAMS["vargenes_method"]
+    elif PARAMS["normalization_method"] == "sctransform":
+        varGeneMethod = "SCTransform"
+    else:
+        raise ValueError("unrecognised normalization method")
+
     vars = {"sample": "%(sample)s" % locals(),
             "projectName": "%(projectname)s" % PARAMS,
             "reportAuthor": "%(author)s" % PARAMS,
@@ -2211,6 +2219,7 @@ def latexVars(infile, outfile):
             "runDetails": "%(runDetails)s" % locals(),
             "tenxDir": "%(tenx_dir)s" % PARAMS,
             "nPCs": "%(nPCs)s" % locals(),
+            "normalizationMethod": "%(normalization_method)s" % PARAMS,
             "reductionType": "%(reductionType)s" % locals(),
             "tSNEPerplexity": "%(tsne_perplexity)s" % PARAMS,
             "tSNEMaxIter": "%(tsne_maxiter)s" % PARAMS,
@@ -2228,7 +2237,7 @@ def latexVars(infile, outfile):
             "modelType": "%(regress_modeluse)s" % PARAMS,
             "latentVariables": "%(latentvars)s" % locals(),
             "cellCycle": "%(regress_cellcycle)s" % PARAMS,
-            "varGeneMethod": "%(vargenes_method)s" % PARAMS,
+            "varGeneMethod": "%(varGeneMethod)s" % locals(),
             "sdCutOff": "%(vargenes_sdcutoff)s" % PARAMS,
             "conservedFactor": "%(conservedFactor)s" % locals(),
             "conservedBetweenFactor": "%(conservedBetweenFactor)s" % locals()}
