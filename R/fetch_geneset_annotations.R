@@ -9,7 +9,7 @@
 ##
 ## Details ----
 ##
-## Ensembl to Entrez mappings are retrieved using biomaRt. KEGG pathways are retrieved 
+## Ensembl to Entrez mappings are retrieved using biomaRt. KEGG pathways are retrieved
 ## directly from KEGG.
 ##
 ## Usage ----
@@ -31,17 +31,22 @@ stopifnot(
 
 option_list <- list(
     make_option(
-      c("--ensemblversion"), 
+      c("--ensemblversion"),
       default="latest",
       help="either latest or a specific number"
-      ),
+    ),
     make_option(
-      c("--species"), 
+      c("--ensemblhost"),
+      default=NULL,
+      help="the ensembl host address"
+    ),
+    make_option(
+      c("--species"),
       default="none",
       help="species - mm or hs"
       ),
     make_option(
-      c("--outdir"), 
+      c("--outdir"),
       default="none",
       help="outdir")
     )
@@ -53,7 +58,22 @@ print(opt)
 
 # Fetch Ensembl to Entrez ID mappings ----
 
-anno <- fetchAnnotation(species=opt$species)
+if(opt$ensemblversion=="latest")
+{
+    version <- NULL
+} else { version <- opt$ensemblversion }
+
+if(is.null(opt$ensembl_host))
+{
+    # use the default host (www.ensembl.org)
+    anno <- fetchAnnotation(species=opt$species,
+                            ensembl_version=version)
+} else {
+    anno <- fetchAnnotation(species=opt$species,
+                            ensembl_version=version,
+                            ensembl_host=opt$ensemblhost)
+}
+
 write.table(anno,
             gzfile(file.path(opt$outdir,"ensembl.to.entrez.txt.gz")),
             quote=FALSE,
