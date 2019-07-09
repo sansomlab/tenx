@@ -34,6 +34,11 @@ annotation:
     # Choices: 'latest' or a specific number, e.g. 89,90 etc
     ensembl_release: latest
 
+    # The ensembl host to use
+    # When set to "default" the default host of the biomaRt package will be used.
+    # The default biomaRt host is currently "www.ensembl.org".
+    # If the default host is down try e.g. "uswest.ensembl.org" or "useast.ensembl.org"
+    enseml_host: default
 
 # Pre-run subsetting (optional)
 # -----------------------------

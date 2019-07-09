@@ -59,7 +59,7 @@ if(opt$usegenes)
 {
 message("Running diffusion with the variable genes")
 
-diff.data <- GetAssayData(s, slot = "scale.data")[VariableFeatures(s),]
+diff.data <- t(GetAssayData(s, slot = "scale.data")[VariableFeatures(s),])
 
 } else {
 
@@ -78,24 +78,37 @@ diff.data <- GetAssayData(s, slot = "scale.data")[VariableFeatures(s),]
     diff.data <- Embeddings(s, reduction="pca")[,comps]
 }
 
+message("making the diffusion map")
+
+print(dim(diff.data))
+
 ## make the diffusion map
-diff_map <- DiffusionMap(t(diff.data))
+diff_map <- DiffusionMap(diff.data)
+
+message("saving the dm coordinates")
 
 ## extract the DM coordinates from the seurat object
-dm <- as.data.frame(diff_map@eigenvectors)
-dm$cluster <- Idents(s)
+dm_coord <- as.data.frame(diff_map@eigenvectors)
 
-plot_data <- merge(dm, s[[]], by=0)
+print(head(dm_coord))
+print(dim(dm_coord))
+print(head(Idents(s)))
 
-rownames(plot_data) <- plot_data$Row.names
-plot_data$Row.names <- NULL
+dm_coord$cluster <- Idents(s)
 
-plot_data$barcode <- row.names(plot_data)
+dm_coord <- merge(dm_coord, s[[]], by=0)
 
-## save the annotated tSNE data frame
-write.table(plot_data, opt$outfile,
+rownames(dm_coord) <- dm_coord$Row.names
+dm_coord$Row.names <- NULL
+
+dm_coord$barcode <- row.names(dm_coord)
+
+## save the annotated coordinates
+write.table(dm_coord, opt$outfile,
             sep="\t", quote=FALSE, row.names=FALSE)
 
+
+message("drawing the plots")
 
 ## make a sensible set of 3D plots.
 draw3D <- function(m, phi=30, theta=30, clusters, cols)
@@ -138,19 +151,18 @@ save_plots(file.path(opt$outdir, plotfilename),
 
 texCaption <- paste("Diffusion map plots (first 3 dimensions, different rotations) colored by cluster")
 
-
-
 tex <- paste(getSubsubsectionTex(texCaption),
              getFigureTex(plotfilename,texCaption,plot_dir_var=opt$plotdirvar),
              sep="\n")
 
-print("Writing out latex snippet")
+message("Writing out latex snippet")
 ## write out latex snippet
 
 tex_file <- file.path(opt$outdir,
                       "plot.diffusion.map.tex")
 
 writeTex(tex_file, tex)
+
 
 
 

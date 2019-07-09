@@ -12,13 +12,15 @@ stopifnot(
 option_list <- list(
     make_option(c("--rdimstable"),
                 default="none",
-                help="A table containing the reduced coordinates and phenotype information"),
+                help=paste('A table containing the reduced coordinates and cluster identities.',
+                           'The column names for the coordinates are given via the --rdim1 and --rdim2 paramters.',
+                           'The column name for the cluster identities should be set to "cluster"')),
     make_option(c("--rdim1"),
                 default="tSNE_1",
-                help="The name of the column for reduced dimension one"),
+                help="The name of the rdimstable column for reduced dimension one"),
     make_option(c("--rdim2"),
                 default="tSNE_2",
-                help="The name of the column for reduced dimension two" ),
+                help="The name of the rdimstable column for reduced dimension two" ),
     make_option(c("--matrixdir"),
                 default=NULL,
                 help=paste("Directory with matrix.mtx, barcodes.tsv and genes.tsv.",
@@ -92,14 +94,12 @@ print(opt)
 rdims <- read.table(opt$rdimstable,
                     header=T, sep="\t",as.is=T)
 
-print(dim(rdims))
-print(head(rdims))
-
 ## read in the exon and intron count matrix
 dat <- readMM(gzfile(file.path(opt$matrixdir, "matrix.mtx.gz")))
 rownames(dat) <- read.table(gzfile(file.path(opt$matrixdir,"features.tsv.gz")))$V1
 colnames(dat) <- read.table(gzfile(file.path(opt$matrixdir,"barcodes.tsv.gz")))$V1
 
+message("Dimensions of the exon and intron count matrix:")
 print(dim(dat))
 
 ## get the exon and intron counts for the relevant cells.
@@ -127,15 +127,6 @@ names(cell.colors) <- rdims$barcode
 emb <- rdims[,c(opt$rdim1,opt$rdim2)]
 rownames(emb) <- rdims$barcode
 
-print(dim(emat))
-print(dim(nmat))
-print(head(emat))
-print(head(nmat))
-print(head(cluster.label))
-print(table(cluster.label))
-
-print(length(intersect(colnames(emat),names(cluster.label))))
-print(length(intersect(colnames(nmat),names(cluster.label))))
 
 ## Filter genes by cluster expression
 message("filtering emat")

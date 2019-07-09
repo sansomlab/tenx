@@ -1089,8 +1089,14 @@ def getGenesetAnnotations(infile, outfile):
 
     log_file = outfile.replace(".sentinel", ".log")
 
+    if PARAMS["annotation_ensembl_host"] == "default":
+        ensembl_host = ""
+    else:
+        ensembl_host = "--ensemblhost=%(annotation_ensembl_host)s" % PARAMS
+
     statement = '''Rscript %(tenx_dir)s/R/fetch_geneset_annotations.R
                  --ensemblversion=%(annotation_ensembl_release)s
+                 %(ensembl_host)s
                  --species=%(annotation_species)s
                  --outdir=%(outdir)s
                  &> %(log_file)s
