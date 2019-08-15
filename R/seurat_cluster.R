@@ -45,6 +45,8 @@ run_specs <- paste(opt$components,opt$resolution,opt$algorithm,opt$testuse,sep="
 message(sprintf("readRDS: %s", opt$seuratobject))
 s <- readRDS(opt$seuratobject)
 
+message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
+
 ## The FindClusters() function implements the procedure, and contains a
 ## resolution parameter that sets the 'granularity' of the downstream clustering,
 ## with increased values leading to a greater number of clusters.
@@ -155,5 +157,6 @@ print(
     file=file.path(opt$outdir, "cluster.pairwise.correlations.tex")
     )
 
+message("seurat_cluster.R final default assay: ", DefaultAssay(s))
 
 message("Completed")

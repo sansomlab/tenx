@@ -33,6 +33,8 @@ option_list <- list(
                 help="Summary table of differentially expressed genes"),
     make_option(c("--seuratobject"), default="begin.Robj",
                 help="seurat object"),
+    make_option(c("--seuratassay"), default="RNA",
+                help="the assay to set as default (used for the violin plots)"),
     make_option(c("--clusterids"), default="begin.Robj",
                 help="clusterids"),
     make_option(c("--cluster"), default="none",
@@ -83,9 +85,16 @@ tex = ""
 degenes <- read.table(gzfile(opt$degenes),header=T,as.is=T,sep="\t")
 
 ## read in the seurat object
-seurat_object <- readRDS(opt$seuratobject)
+s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-Idents(seurat_object) <- cluster_ids
+Idents(s) <- cluster_ids
+
+## set the default assay
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+message("seurat_characteriseClusterDEGenes.R running with default assay: ", DefaultAssay(s))
+
 
 cluster <- opt$cluster
 
@@ -190,7 +199,7 @@ if(is.null(opt$testfactor))
 
 ## make the +ve plots
 message("making violin plots for +ve genes")
-pos_tex <- violinPlotSection(violin_data, seurat_object, cluster_ids, type="positive",
+pos_tex <- violinPlotSection(violin_data, s, cluster_ids, type="positive",
                              group.by = opt$testfactor,
                              ident.include = ident.include, ncol=ncol,
                              outdir = opt$outdir,
@@ -200,7 +209,7 @@ pos_tex <- violinPlotSection(violin_data, seurat_object, cluster_ids, type="posi
 
 ## make the -ve plots
 message("making violin plots for -ve genes")
-neg_tex <- violinPlotSection(violin_data, seurat_object, cluster_ids, type="negative",
+neg_tex <- violinPlotSection(violin_data, s, cluster_ids, type="negative",
                              group.by = opt$testfactor,
                              ident.include = ident.include, ncol=ncol,
                              outdir = opt$outdir,
@@ -216,3 +225,7 @@ tex_file <- file.path(opt$outdir,
 writeTex(tex_file, tex)
 
 }
+
+message("seurat_characteriseClusterDEGenes.R final default assay: ", DefaultAssay(s))
+
+message("completed")

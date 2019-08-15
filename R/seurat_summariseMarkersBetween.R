@@ -23,6 +23,8 @@ stopifnot(
 option_list <- list(
     make_option(c("--seuratobject"), default="begin.Robj",
                 help="A seurat object after PCA"),
+    make_option(c("--seuratassay"), default="RNA",
+                help="the seurat assay to use"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
     make_option(c("--testfactor"),default="factor",
@@ -47,6 +49,12 @@ run_specs <- paste(opt$numpcs,opt$resolution,opt$algorithm,opt$testuse,sep="_")
 
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
+
+message("Setting the default seurat assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+message("seurat_summariseMarkersBetween.R running with default assay: ", DefaultAssay(s))
+
 
 ## cluster_ids
 clusters <- sort(unique(as.vector(cluster_ids)))
@@ -96,8 +104,8 @@ for(cluster in clusters)
            de <- read.table(gzfile(res_fn), header=T, sep="\t", as.is=T)
            de <- de[order(de$p_va),]
 
-           ameans <- rowMeans(GetAssayData(object = s, slot = "scale.data")[de$gene,as])
-           bmeans <- rowMeans(GetAssayData(object = s, slot = "scale.data")[de$gene,bs])
+           ameans <- rowMeans(GetAssayData(object = s, slot="data")[de$gene,as])
+           bmeans <- rowMeans(GetAssayData(object = s, slot="data")[de$gene,bs])
 
            de[[aName]] <- ameans
            de[[bName]] <- bmeans
@@ -247,3 +255,7 @@ save_plots(plotfn,
            plot_fn=plot_fn,
            width=6,
            height=8)
+
+message("seurat_summariseMarkersBetween.R final default assay: ", DefaultAssay(s))
+
+message("completed")

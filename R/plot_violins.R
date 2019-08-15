@@ -25,6 +25,11 @@ option_list <- list(
       help="The seurat object (e.g. begin.rds)"
     ),
     make_option(
+      c("--seuratassay"),
+      default="RNA",
+      help="The assay to set as default before GetAssayData is called"
+    ),
+    make_option(
       c("--clusterids"),
       default="none",
       help="The rdsfile containing the clusterids"
@@ -57,6 +62,12 @@ genes <- read.table(opt$genetable,
 s <- readRDS(opt$seuratobject)
 Idents(s) <- readRDS(opt$clusterids)
 
+## set the default assay
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+
+message("plot_violins.R running with default assay: ", DefaultAssay(s))
 
 if("gene_id" %in% colnames(s@misc))
 {
@@ -105,7 +116,7 @@ for(group in unique(genes$group))
     print(rownames(tmp))
     print(rownames(tmp)[rownames(tmp) %in% rownames(x = s)])
 
-    data <- as.data.frame(as.matrix(GetAssayData(object = s)[rownames(tmp),]))
+    data <- as.data.frame(as.matrix(GetAssayData(object = s, slot="data")[rownames(tmp),]))
     rownames(data) <- tmp$plot_name
 
     data$gene <- as.vector(rownames(data))
@@ -153,3 +164,7 @@ tex_file <- file.path(paste(opt$outprefix,"tex",
                             sep="."))
 
 writeTex(tex_file, tex)
+
+message("plot_violins.R final default assay: ", DefaultAssay(s))
+
+message("completed")

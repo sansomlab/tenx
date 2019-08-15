@@ -363,10 +363,7 @@ cat("Creating Seurat object ... ")
 s <- CreateSeuratObject(counts=data,
                         min.cells=opt$mincells,
                         min.features=opt$mingenes,
-    ## do.scale=F,
-    ## do.center=F,
-    #save.raw=T,
-    project=opt$project
+                        project=opt$project
     )
 cat("Done.\n")
 
@@ -628,15 +625,31 @@ latent.vars <- strsplit(opt$latentvars, ",")[[1]]
 print(latent.vars)
 
 
+## Currently, we need to log-normlize and scale the RNA assay
+## for gene-level analyses even if we use sctransform
+## for characterisation of the cells/subpopulations.
+##
+## see e.g. https://github.com/satijalab/seurat/issues/1717
+## and  https://github.com/satijalab/seurat/issues/1421
+
+message("Performing initial log-normalization")
+
+## Perform log-normalization of the RNA assay
+s <- NormalizeData(object=s,
+                   normalization.method="LogNormalize",
+                   scale.factor=10E3)
+
+## Initial scaling of the RNA assay data
+all.genes <- rownames(s)
+s <- ScaleData(object=s,
+               features = all.genes,
+               vars.to.regress=latent.vars,
+               model.use=opt$modeluse)
+
+## Normalisation specific options.
+
 if(opt$normalizationmethod=="log-normalization")
 {
-    message("Performing initial log-normalization")
-
-    ## log-normalization
-    s <- NormalizeData(object=s,
-                       normalization.method="LogNormalize",
-                       scale.factor=10E3)
-
 
     ## variable gene identification
 
@@ -675,12 +688,6 @@ if(opt$normalizationmethod=="log-normalization")
         xthreshold <- opt$minmean
     }
 
-    ## perform the regression
-    all.genes <- rownames(s)
-    s <- ScaleData(object=s,
-                   features = all.genes,
-                   vars.to.regress=latent.vars,
-                   model.use=opt$modeluse)
 
 } else if(opt$normalizationmethod=="sctransform")
 {
@@ -701,9 +708,6 @@ if(opt$normalizationmethod=="log-normalization")
 } else {
     stop("Invalid normalization method specified")
 }
-
-
-#saveRDS(s, file=file.path(opt$outdir, "begin.rds"))
 
 
 ## make a plot that shows the variable genes.
@@ -858,14 +862,16 @@ if ( identical(opt$cellcycle, "none") ) {
     }
 
     ## Apply the cell cycle correction.
-    if(opt$normalizationmethod=="log-normalization")
-    {
-        s <- ScaleData(object=s,
-                       features = all.genes,
-                       vars.to.regress=vars.to.regress,
-                       model.use=opt$modeluse)
 
-    } else if(opt$normalizationmethod=="sctransform")
+    ## Always scale the RNA slot
+    s <- ScaleData(object=s,
+                   features = all.genes,
+                   vars.to.regress=vars.to.regress,
+                   model.use=opt$modeluse,
+                   assay="RNA")
+
+    ## Optionally run sctransorm
+    if(opt$normalizationmethod=="sctransform")
     {
         s <- SCTransform(object=s,
                          assay="RNA",
@@ -876,6 +882,8 @@ if ( identical(opt$cellcycle, "none") ) {
                          do.scale=FALSE,
                          do.center=TRUE,
                          return.only.var.genes=FALSE)
+
+        ## Note that the SCT assay will now be the default.
     }
 
     ## visualise the cells by PCA of cell cycle genes after regression
@@ -970,6 +978,8 @@ s <- ScoreJackStraw(s, dims = 1:nPCs)
             width=8,
             height=12)
 
+
+message("seurat_begin.R object final default assay: ", DefaultAssay(s))
 
 # Save the R object
 saveRDS(s, file=file.path(opt$outdir, "begin.rds"))

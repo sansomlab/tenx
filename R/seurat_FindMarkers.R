@@ -19,6 +19,8 @@ stopifnot(
 option_list <- list(
     make_option(c("--seuratobject"), default="begin.rds",
                 help="A seurat object after PCA"),
+    make_option(c("--seuratassay"), default="RNA",
+                help="the assay to set as the default"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
     make_option(c("--cluster"), default=1,
@@ -136,6 +138,12 @@ if(opt$conservedfactor != "none"){
         stop("Conserved factor has fewer than 2 levels")
     }
 }
+
+
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+message("seurat_FindMarkers.R running with default assay: ", DefaultAssay(s))
 
 markers.conserved.list <- list()
 background.conserved.list <- list()
@@ -572,4 +580,6 @@ if (length(markers.conserved.list) > 1){
                 quote=FALSE, sep="\t", row.names=FALSE)
 }
 
-message("Done")
+message("seurat_FindMarkers.R final default assay: ", DefaultAssay(s))
+
+message("completed")

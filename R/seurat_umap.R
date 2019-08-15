@@ -50,6 +50,8 @@ s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 Idents(s) <- cluster_ids
 
+message("seurat_umap.R running with default assay: ", DefaultAssay(s))
+
 ## get the principle components to use
 if(opt$usesigcomponents)
 {
@@ -63,11 +65,8 @@ if(opt$usesigcomponents)
 ## run UMAP
 message("RunUMAP")
 s <- RunUMAP(s,
-             # cells.use = NULL,
              reduction = opt$reductiontype,
              dims = comps,
-             # genes.use = NULL,
-             assay = "RNA",
              n.components = 2L,
              reduction.name = "umap",
              reduction.key = "UMAP",
@@ -90,5 +89,7 @@ plot_data$barcode <- row.names(plot_data)
 ## save the annotated tSNE data frame
 write.table(plot_data, opt$outfile,
             sep="\t", quote=FALSE, row.names=FALSE)
+
+message("seurat_umap.R final default assay: ", DefaultAssay(s))
 
 message("Completed")

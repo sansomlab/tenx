@@ -64,6 +64,11 @@ option_list <- list(
       help="The seurat object (e.g. begin.rds)"
     ),
     make_option(
+      c("--seuratassay"),
+      default="RNA",
+      help="The seurat assay to pull the expression data from"
+    ),
+    make_option(
       c("--plotdirvar"),
       default="clusterMarkerTSNEPlotsDir",
       help="The name of the latex var specifying the location of the plots"
@@ -93,7 +98,13 @@ print(opt)
 ## read in the raw count matrix
 s <- readRDS(opt$seuratobject)
 
-## data <- GetAssayData(object = s, slot = counts)
+## set the default assay
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+message("plot_rdims_gene.R running with default assay: ", DefaultAssay(s))
+
+
 data <- GetAssayData(object = s, slot = "data")
 
 if("gene_id" %in% colnames(s@misc))
@@ -235,3 +246,7 @@ message("Completed plotting.")
 tex_file <- file.path(opt$outdir, paste("plot.rdims.genes", geneset, "tex", sep="."))
 
 writeTex(tex_file, tex)
+
+message("plot_rdims_gene.R final default assay: ", DefaultAssay(s))
+
+message("completed")
