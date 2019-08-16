@@ -54,6 +54,8 @@ s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 Idents(s) <- cluster_ids
 
+message("seurat_dm.R running with default assay: ", DefaultAssay(s))
+
 ## run the diffusion map algorithm
 if(opt$usegenes)
 {
@@ -164,6 +166,6 @@ tex_file <- file.path(opt$outdir,
 writeTex(tex_file, tex)
 
 
-
+message("seurat_dm.R final default assay: ", DefaultAssay(s))
 
 message("Completed")

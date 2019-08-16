@@ -38,7 +38,7 @@ annotation:
     # When set to "default" the default host of the biomaRt package will be used.
     # The default biomaRt host is currently "www.ensembl.org".
     # If the default host is down try e.g. "uswest.ensembl.org" or "useast.ensembl.org"
-    enseml_host: default
+    ensembl_host: default
 
 # Pre-run subsetting (optional)
 # -----------------------------
@@ -218,6 +218,7 @@ dimreduction:
     # Projection method used for visualisation (umap is recommended)
     # Choices: 'umap'|'tsne'
     visualisation: umap
+
 
 # Plotting parameters
 # -------------------

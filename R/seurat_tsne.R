@@ -51,6 +51,8 @@ cluster_ids <- readRDS(opt$clusterids)
 Idents(s) <- cluster_ids
 print(head(Idents(s)))
 
+message("seurat_tsne.R running with default assay: ", DefaultAssay(s))
+
 ## check that the perplexity value specified is sensible
 ncells <- ncol(GetAssayData(object = s))
 message("no. cells:", ncells)
@@ -98,3 +100,5 @@ if(opt$perplexity > floor(ncells/5))
 message("Completed")
 
     }
+
+message("seurat_tsne.R final default assay: ", DefaultAssay(s))

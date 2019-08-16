@@ -16,8 +16,6 @@ stopifnot(
 # Options ----
 
 option_list <- list(
-    make_option(c("--seuratobject"), default="begin.Robj",
-                help="A seurat object after PCA"),
     make_option(c("--resolutions"), default=NULL,
                 help="a comma separated list of the cluster resolutions"),
     make_option(c("--clusteridfiles"), default=NULL,

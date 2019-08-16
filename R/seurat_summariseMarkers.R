@@ -19,6 +19,8 @@ stopifnot(
 option_list <- list(
     make_option(c("--seuratobject"), default="begin.Robj",
                 help="A seurat object after PCA"),
+    make_option(c("--seuratassay"), default="RNA",
+                help="The seurat assay to use"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
     make_option(c("--subgroup"), default=NULL,
@@ -38,6 +40,11 @@ s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 Idents(s) <- cluster_ids
 
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+message("seurat_summariseMarkers.R running with default assay: ", DefaultAssay(s))
+
 idents.all = sort(unique(cluster_ids))
 
 if(!length(idents.all) > 1)
@@ -45,6 +52,7 @@ if(!length(idents.all) > 1)
     stop("Only one cluster present")
 }
 
+## Construct a data frame containing the findMarkers results for all clusters
 gde.all = data.frame()
 
 for (i in 1:length(idents.all)) {
@@ -108,9 +116,9 @@ for(x in cluster_levels)
     clust_cells <- names(cluster_ids[cluster_ids==x])
     other_cells <- names(cluster_ids[cluster_ids!=x])
 
-    xmean <- apply(expm1(GetAssayData(object = s)[fgenes,clust_cells]),1,mean)
-    omean <- apply(expm1(GetAssayData(object = s)[fgenes,other_cells]),1,mean)
-    xfreq <- apply(GetAssayData(object = s)[fgenes,clust_cells],1,function(x) length(x[x>0])/length(x))
+    xmean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]),1,mean)
+    omean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]),1,mean)
+    xfreq <- apply(GetAssayData(object = s, slot="data")[fgenes,clust_cells],1,function(x) length(x[x>0])/length(x))
 
     filtered_markers[[paste0(x,"_exprs")]] <- xmean
     filtered_markers[[paste0(x,"_freq")]] <- xfreq
@@ -253,3 +261,8 @@ write.table(sumdf,
             paste(outPrefix,"stats","txt",
                   sep="."),
             quote=F,sep="\t",row.names=F)
+
+
+message("seurat_summariseMarkers.R final default assay: ", DefaultAssay(s))
+
+message("completed")

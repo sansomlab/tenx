@@ -46,6 +46,11 @@ option_list <- list(
       c("--seuratobject"),
       default="none",
       help="The seurat object (typically begin.rds)"
+    ),
+    make_option(
+      c("--seuratassay"),
+      default="RNA",
+      help="The seurat assay from which the counts will be retrieved",
       ),
     make_option(
       c("--subgroupfactor"),
@@ -180,6 +185,13 @@ for(group_var in group_vars)
 # Plot numbers of genes/cell and counts/cell ----
 
 s <- readRDS(opt$seuratobject)
+
+## set the default assay
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+message("plot_group_numbers.R running with default assay: ", DefaultAssay(s))
+
 cdata <- GetAssayData(object = s, slot = "counts")
 
 ngenes <- apply(cdata,2,function(x) sum(x>0))
@@ -240,3 +252,7 @@ for(group_var in group_vars)
 ## write out latex snippet
 writeTex(file.path(opt$outdir, paste("number","plots","tex", sep=".")),
          tex)
+
+message("plot_group_numbers.R final default assay: ", DefaultAssay(s))
+
+message("completed")

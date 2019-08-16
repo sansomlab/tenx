@@ -102,6 +102,12 @@ wildtype.seurat.dir/begin.rds
 knockout.seurat.dir/begin.rds
 aggregated.seurat.dir/begin.rds
 
+The supplied object must contain an RNA assay with populated "data" and "scale.data" slots for all genes (i.e. you need to run NormlizeData and ScaleData on the RNA assay).
+
+The seurat "JackStraw" and "ScoreJackStraw" functions must have run on the reduced dimensions (e.g. pca) of the default assay of the saved object.
+
+The default assay of the saved object will be used for cell-level analyses such as cluster discovery, computation of tSNE/umap coordinates and pseudotime. Hence, if, for example, integration has been performed, "integrated" should be set as the default assay. For gene level analyses the pipeline will always use the RNA assay regardless of the default assay.
+
 (Optional - velocity) Starting from aggregated dropEst output matrix.
 
 Typically involves linking "dropEst-datasets.dir" subfolders from the
@@ -732,6 +738,7 @@ def knownMarkerViolins(infile, outfile):
     statement = '''Rscript %(tenx_dir)s/R/plot_violins.R
                        --genetable=%(knownmarkers_file)s
                        --seuratobject=%(seurat_object)s
+                       --seuratassay=RNA
                        --clusterids=%(cluster_ids)s
                        --outprefix=%(outprefix)s
                        --plotdirvar=knownmarkersDir
@@ -961,6 +968,7 @@ def plotRdimsGenes(infile, outfile):
                            --method=%(rdims_vis_method)s
                            --table=%(rdims_table)s
                            --seuratobject=%(seurat_object)s
+                           --seuratassay=RNA
                            --rdim1=%(rdim1)s
                            --rdim2=%(rdim2)s
                            %(shape)s
@@ -1054,6 +1062,7 @@ def plotGroupNumbers(infile, outfile):
     statement = '''Rscript %(tenx_dir)s/R/plot_group_numbers.R
                    --table=%(rdims_table)s
                    --seuratobject=%(seurat_object)s
+                   --seuratassay=RNA
                     %(groupfactors)s
                     %(subgroupfactor)s
                    --outdir=%(outdir)s
@@ -1158,6 +1167,7 @@ def findMarkers(infile, outfile):
         logfile = outfile.replace(".sentinel", "." + str(i) + ".log")
         statements.append('''Rscript %(tenx_dir)s/R/seurat_FindMarkers.R
                    --seuratobject=%(seurat_object)s
+                   --seuratassay=RNA
                    --clusterids=%(cluster_ids)s
                    --cluster=%(i)s
                    --testuse=%(test)s
@@ -1205,9 +1215,11 @@ def summariseMarkers(infile, outfile):
 
     log_file = outfile.replace(".sentinel", ".log")
 
+
     # make sumamary tables and plots of the differentially expressed genes
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkers.R
                    --seuratobject=%(seurat_object)s
+                   --seuratassay=RNA
                    --clusterids=%(cluster_ids)s
                    %(subgroup)s
                    --outdir=%(outdir)s
@@ -1265,6 +1277,7 @@ def characteriseClusterMarkers(infile, outfile):
                     Rscript %(tenx_dir)s/R/seurat_characteriseClusterDEGenes.R
                     --degenes=%(marker_table)s
                     --seuratobject=%(seurat_object)s
+                    --seuratassay=RNA
                     --clusterids=%(cluster_ids)s
                     --cluster=%(i)s
                     --outdir=%(outdir)s
@@ -1435,6 +1448,7 @@ def plotRdimsMarkers(infile, outfile):
                            --method=%(rdims_vis_method)s
                            --table=%(rdims_table)s
                            --seuratobject=%(seurat_object)s
+                           --seuratassay=RNA
                            --rdim1=%(rdim1)s
                            --rdim2=%(rdim2)s
                            %(shape)s
@@ -1488,7 +1502,7 @@ def plotRdimsMarkers(infile, outfile):
 @active_if(PARAMS["findmarkers_between"])
 @follows(getGenesetAnnotations)
 @transform(cluster,
-           regex(r"(all.*|agg.*|aligned.*)/cluster.dir/cluster.sentinel"),
+           regex(r"(all.*|agg.*|aligned.*|integrated.*)/cluster.dir/cluster.sentinel"),
            r"\1/condition.markers.dir/findMarkersBetweenConditions.sentinel")
 def findMarkersBetweenConditions(infile, outfile):
     '''
@@ -1540,6 +1554,7 @@ def findMarkersBetweenConditions(infile, outfile):
         logfile = outfile.replace(".sentinel", "." + str(i) + ".log")
         statements.append('''Rscript %(tenx_dir)s/R/seurat_FindMarkers.R
                    --seuratobject=%(seurat_object)s
+                   --seuratassay=RNA
                    --clusterids=%(cluster_ids)s
                    --cluster=%(i)s
                    --testfactor=%(testfactor)s
@@ -1591,6 +1606,7 @@ def summariseMarkersBetweenConditions(infile, outfile):
     # make sumamary tables and plots of the differentially expressed genes
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkersBetween.R
                    --seuratobject=%(seurat_object)s
+                   --seuratassay=RNA
                    --testfactor=%(findmarkers_between_testfactor)s
                    --a=%(findmarkers_between_a)s
                    --b=%(findmarkers_between_b)s
@@ -1653,6 +1669,7 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
                     Rscript %(tenx_dir)s/R/seurat_characteriseClusterDEGenes.R
                     --degenes=%(marker_table)s
                     --seuratobject=%(seurat_object)s
+                    --seuratassay=RNA
                     --clusterids=%(cluster_ids)s
                     --cluster=%(i)s
                     --testfactor=%(testfactor)s
