@@ -14,6 +14,7 @@
   * DropletUtils
   * dplyr
   * ggplot2
+  * ggraph
   * ggrepel
   * gplots
   * grid
@@ -27,10 +28,12 @@
   * reshape2
   * roxygen2
   * R.utils
+  * rtracklayer
   * S4Vectors
-  * Seurat >= version 3
+  * Seurat >= 3.0.0
   * scran
   * scater
+  * tidygraph
   * velocyto.R (see [INSTALL](INSTALL.md))
   * xtable
   * gsfisher (see [INSTALL](INSTALL.md))

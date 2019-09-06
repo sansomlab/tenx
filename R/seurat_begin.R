@@ -534,8 +534,8 @@ save_ggplots(file.path(opt$outdir, "qc.vlnPlot"),
 message("Drawing scatter plots")
 plot_fn <- function() {
     par(mfrow=c(1, 2))
-    FeatureScatter(s, "nCount_RNA", "percent.mito", cex.use=1)
-    FeatureScatter(s, "nCount_RNA", "nFeature_RNA", cex.use=1)
+    FeatureScatter(s, "nCount_RNA", "percent.mito", pt.size=1)
+    FeatureScatter(s, "nCount_RNA", "nFeature_RNA", pt.size=1)
     par(mfrow=c(1, 1))
 }
 
