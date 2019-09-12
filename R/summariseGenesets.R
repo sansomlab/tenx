@@ -305,14 +305,14 @@ for(geneset in genesets)
 
                     if("description" %in% colnames(tmp))
                     {
-                       desc_col <- "description"
-                    } else { desc_col <- "geneset_id" }
+                       name_col <- "description"
+                    } else { name_col <- "geneset_id" }
 
                     if(nrow(tmp) > 1)
                         {
                         gp <- visualiseClusteredGenesets(tmp,
                                                          highlight=genesets_to_show[genesets_to_show %in% tmp$geneset_id],
-                                                         desc_col=desc_col)
+                                                         name_col=name_col)
 
                         detailed_plotfn <- paste(opt$outprefix,
                                                  geneset, "circle_plot", cluster, sep=".")
