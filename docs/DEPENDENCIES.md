@@ -14,11 +14,11 @@
   * DropletUtils
   * dplyr
   * ggplot2
-  * ggraph
   * ggrepel
   * gplots
   * grid
   * gridExtra
+  * gsfisher (see [INSTALL](INSTALL.md))
   * Matrix
   * methods
   * openxlsx
@@ -33,9 +33,7 @@
   * Seurat >= 3.0.0
   * scran
   * scater
-  * tidygraph
   * velocyto.R (see [INSTALL](INSTALL.md))
   * xtable
-  * gsfisher (see [INSTALL](INSTALL.md))
   * tenxutils (see [INSTALL](INSTALL.md))
 * Latex
