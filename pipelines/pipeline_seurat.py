@@ -351,20 +351,34 @@ def genClusterJobs():
 
     samples = glob.glob("*.seurat.dir")
 
+    subdir = "cluster.dir"
+    outname = "cluster.sentinel"
+
     for sample in samples:
-        for pca in pcs:
-            for resolution in resolutions:
+
+        infile = os.path.join(sample, "begin.rds")
+
+        for test in tests:
+
+            for pca in pcs:
+
                 for algorithm in algos:
-                    for test in tests:
-                        infile = os.path.join(sample, "begin.rds")
-                        spec = "_".join([pca, resolution, algorithm, test])
-                        outdir = spec
-                        subdir = "cluster.dir"
-                        outname = "cluster.sentinel"
+
+                    if PARAMS["runspecs_predefined_clusters"] :
+                        outdir = "_".join([pca, "predefined", algorithm, test])
                         if(os.path.join(sample, outdir) in skip):
                             continue
                         outfile = os.path.join(sample, outdir, subdir, outname)
                         yield [infile, outfile]
+
+
+                    for resolution in resolutions:
+
+                            outdir = "_".join([pca, resolution, algorithm, test])
+                            if(os.path.join(sample, outdir) in skip):
+                                continue
+                            outfile = os.path.join(sample, outdir, subdir, outname)
+                            yield [infile, outfile]
 
 
 @follows(beginSeurat)
@@ -387,6 +401,8 @@ def cluster(infile, outfile):
     components, resolution, algorithm, test = outdir.split(
         "/")[-2].split("_")
 
+    sample = outdir.split(".seurat.dir/")[0]
+
     reductiontype = PARAMS["dimreduction_method"]
 
     if(components=="sig"):
@@ -398,9 +414,23 @@ def cluster(infile, outfile):
 
     log_file = outfile.replace(".sentinel", ".log")
 
+    if resolution == "predefined":
+
+        cluster_file = sample + ".cluster_ids.rds"
+
+        if os.path.exists(cluster_file):
+            predefined = "--predefined=%(cluster_file)s" % locals()
+
+        else:
+            raise ValueError("Predefined cluster assignement file (%(cluster_file)s) not found" % locals())
+
+    else:
+        predefined = ""
+
     statement = '''Rscript %(tenx_dir)s/R/seurat_cluster.R
                    --seuratobject=%(infile)s
                    %(comp)s
+                   %(predefined)s
                    --resolution=%(resolution)s
                    --algorithm=%(algorithm)s
                    --outdir=%(outdir)s
