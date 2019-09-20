@@ -9,8 +9,7 @@ stopifnot(
   require(Matrix),
   require(reshape2),
   require(tenxutils),
-  require(xtable),
-  require(tenxutils)
+  require(xtable)
 )
 
 # Options ----
