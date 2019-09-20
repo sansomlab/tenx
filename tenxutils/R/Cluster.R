@@ -12,7 +12,7 @@ clusterCor <- function(seurat_object=NULL,
                        cluster_average=FALSE)
 {
   pcomps <- t(seurat_object@reductions[[dr_type]]@cell.embeddings)[comps,]
-  clusters = as.numeric(as.vector(unique(Idents(seurat_object))))
+  clusters = as.character(as.vector(unique(Idents(seurat_object))))
   clusters <- clusters[order(clusters)]
   names(clusters) <- paste0("C",clusters)
   n=length(clusters)
