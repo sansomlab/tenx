@@ -108,7 +108,7 @@ if(!identical(names(cluster_ids), rownames(s[[]])))
 }
 
 # Set the identities of the cells groups to be tested
-id <- levels(cluster_ids)[opt$cluster+1] #idents.all[i]
+id <- opt$cluster #idents.all[i]
 ident <- rep("ignore",length(cluster_ids))
 names(ident) <- names(cluster_ids)
 # Set the grouping factor across which markers should be conserved
