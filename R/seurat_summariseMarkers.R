@@ -107,7 +107,7 @@ print(dim(filtered_markers))
 ## (i) per-cluster expression levels
 ## (ii) per-cluster expression frequencies
 ## With lots of markers this is slow and memory intensive.
-clusters <- as.character(unique(as.vector(cluster_ids)))
+clusters <- as.numeric(unique(as.vector(cluster_ids)))
 cluster_levels <- clusters[order(clusters)]
 for(x in cluster_levels)
 {
