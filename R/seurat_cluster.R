@@ -9,7 +9,8 @@ stopifnot(
   require(Matrix),
   require(reshape2),
   require(tenxutils),
-  require(xtable)
+  require(xtable),
+  require(tenxutils)
 )
 
 # Options ----
@@ -39,10 +40,6 @@ opt <- parse_args(OptionParser(option_list=option_list))
 
 cat("Running with options:\n")
 print(opt)
-
-# set the run specs
-run_specs <- paste(opt$components,opt$resolution,opt$algorithm,opt$testuse,sep="_")
-
 
 message(sprintf("readRDS: %s", opt$seuratobject))
 s <- readRDS(opt$seuratobject)
