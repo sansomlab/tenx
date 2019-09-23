@@ -21,6 +21,8 @@ option_list <- list(
                 help="use significant principle component"),
     make_option(c("--components"), type="integer", default=10,
                 help="if usesigcomponents is FALSE, the number of principle components to use"),
+    make_option(c("--predefined"), default=NULL,
+                help="An rds file containing a named vector of predefined cell cluster assignments"),
     make_option(c("--resolution"), type="double", default=1,
                 help="cluster resolution"),
     make_option(c("--algorithm"), type="integer", default=3,
@@ -38,12 +40,9 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
-# set the run specs
-run_specs <- paste(opt$components,opt$resolution,opt$algorithm,opt$testuse,sep="_")
-
-
 message(sprintf("readRDS: %s", opt$seuratobject))
 s <- readRDS(opt$seuratobject)
+
 
 message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
 
@@ -65,36 +64,61 @@ if(opt$usesigcomponents)
 
 if(toupper(opt$reductiontype)=="PCA")
 {
-        ## Make a table of the retained principle components
-        x <- as.data.frame(s@reductions$pca@jackstraw@overall.p.values)
-        x$p.adj <- p.adjust(x$Score, method="BH")
-        x$significant <- "no"
-        x$significant[x$p.adj < 0.05] <- "yes"
-        x <- x[x$PC %in% comps,]
-        x$sdev <- s@reductions$pca@stdev[x$PC]
+    ## Make a table of the retained principle components
+    x <- as.data.frame(s@reductions$pca@jackstraw@overall.p.values)
+    x$p.adj <- p.adjust(x$Score, method="BH")
+    x$significant <- "no"
+    x$significant[x$p.adj < 0.05] <- "yes"
+    x <- x[x$PC %in% comps,]
+    x$sdev <- s@reductions$pca@stdev[x$PC]
 
-        print(
-    xtable(sprintfResults(x), caption=paste("Table of the selected (n=",
-                                            nrow(x),
-                                            ") principle components",
-                                            sep="")),
-    file=file.path(opt$outdir, "selected.principal.components.tex")
+    print(
+        xtable(sprintfResults(x), caption=paste("Table of the selected (n=",
+                                                nrow(x),
+                                                ") principle components",
+                                                sep="")),
+        file=file.path(opt$outdir, "selected.principal.components.tex")
     )
 }
 
-message(sprintf("FindClusters"))
-s <- FindNeighbors(s,
-                   reduction.type = "pca",
-                   dims = comps)
+
+if(is.null(opt$predefined))
+{
 
 
-s <- FindClusters(s,
-                  resolution = opt$resolution,
-                  algorithm = opt$algorithm)
-#                  print.output = 0,
-#                  save.SNN = F)
+    message(sprintf("FindClusters"))
+    s <- FindNeighbors(s,
+                       reduction.type = "pca",
+                       dims = comps)
 
-cluster_ids <- Idents(s) #
+
+    s <- FindClusters(s,
+                      resolution = opt$resolution,
+                      algorithm = opt$algorithm)
+
+
+    cluster_ids <- Idents(s) #
+
+} else {
+
+    user_ids <- readRDS(opt$predefined)
+
+    ## check that the barcodes match.
+    if(!all(names(user_ids) %in% Cells(s)) | length(user_ids)!= length(Cells(s)))
+    {
+        stop(paste("The cluster assignments supplied by the user do not contain ",
+                   "the same cells as the seurat object", sep=""))
+    }
+
+    cluster_ids <- user_ids[Cells(s)]
+
+    Idents(s) <- cluster_ids
+
+    ## reorder the cells to match the seurat object
+
+}
+
+
 
 nclusters <- length(unique(cluster_ids))
 

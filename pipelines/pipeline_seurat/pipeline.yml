@@ -87,9 +87,16 @@ runspecs:
     # (see Seurat::FindClusters)
     cluster_algorithms: 1,3
 
+
     # Differential expression testing method(s)
     # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
     de_tests: wilcox
+
+    # To manually specify cluster assignments set to True
+    # - Manual cluster assignmets should be provided as sample_name.cluster_ids.rds file(s)
+    # - one per sample must be present in the run directory
+    # - the .rds files should contained a name vector of cell barcodes (names) and clusters (values)
+    predefined_clusters: False
 
     # Runs to skip (comma separated list of subfolders within each sample directory)
     skip:

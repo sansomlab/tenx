@@ -553,8 +553,8 @@ cell_numbers <- getCellNumbers(s, groupby=opt$groupby)
 
 stats$no_cells <- ncol(GetAssayData(object = s))
 stats$qc_min_gene_threshold <- opt$qcmingenes
-stats$qc_max_percent_mito_threshold <- opt$maxpercentmito
-
+stats$qc_min_percent_mito_threshold <- opt$qcminpercentmito
+stats$qc_max_percent_mito_threshold <- opt$qcmaxpercentmito
 
 s <- subset(s, subset = nFeature_RNA > opt$qcmingenes &
                    percent.mito > opt$qcminpercentmito &
