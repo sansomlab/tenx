@@ -104,7 +104,7 @@ for(group in unique(genes$group))
     {
         plot_names <- make.unique(paste(tmp$plot_name," (",tmp$gene_name,")",sep=""))
     } else {
-        plot_names <- make.unique(tmp$gene)
+        plot_names <- make.unique(tmp$gene_name)
     }
     tmp$plot_name <- plot_names
 

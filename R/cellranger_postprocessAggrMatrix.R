@@ -195,7 +195,7 @@ barcodes <- scan(gzfile(barcodeFile), "character")
 ## Blacklist
 if (!identical(opt$blacklist, "none")){
     stopifnot(file.exists(opt$blacklist))
-    cat("Importing blacklisted barcodes from:", barcodeFile, " ... ")
+    cat("Importing blacklisted barcodes from:", opt$blacklist, " ... ")
     blacklist <- scan(opt$blacklist, "character")
     cat("... Done.\n")
     blacklistTable <- barcode2table(blacklist)
