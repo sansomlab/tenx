@@ -11,10 +11,12 @@
   * ComplexHeatmap >= 1.99.0
   * data.table
   * DESeq2
+  * destiny
   * DropletUtils
   * dplyr
   * ggplot2
   * ggrepel
+  * ggstance
   * gplots
   * grid
   * gridExtra
