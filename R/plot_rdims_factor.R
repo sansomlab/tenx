@@ -91,6 +91,10 @@ message("Reading in rdims table")
 plot_data <- read.table(opt$table, sep="\t", header=TRUE)
 rownames(plot_data) <- plot_data$barcode
 
+if ("cluster" %in% colnames(plot_data)){
+  plot_data$cluster <- factor(plot_data$cluster, levels=sort(as.numeric(unique(plot_data$cluster))))
+}
+
 color_vars <- strsplit(opt$colorfactors,",")[[1]]
 tex = ""
 
