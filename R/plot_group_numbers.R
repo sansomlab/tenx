@@ -111,7 +111,7 @@ for(group_var in group_vars)
     if(opt$subgroupfactor=="none" | !(opt$subgroupfactor %in% colnames(data)))
     {
 
-        plot_data <- data %>% group_by_at(group_var) %>% summarise(count=n()) %>% mutate(proportion= count/sum(count))
+        plot_data <- data %>% group_by_(group_var) %>% summarise(count=n()) %>% mutate(proportion= count/sum(count))
 
         gp1 <- ggplot(plot_data, aes_string(group_var, "count"))
         gp1 <- gp1 + geom_bar(stat="identity")
@@ -122,7 +122,7 @@ for(group_var in group_vars)
 
     } else {
 
-        plot_data <- data %>% group_by_at(opt$subgroupfactor, group_var) %>% summarise(count=n()) %>% mutate(proportion= count/sum(count))
+        plot_data <- data %>% group_by_(opt$subgroupfactor, group_var) %>% summarise(count=n()) %>% mutate(proportion= count/sum(count))
 
 
         gp1 <- ggplot(plot_data, aes_string(group_var, "count", group="count", fill=opt$subgroupfactor))
