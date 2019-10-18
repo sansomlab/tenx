@@ -20,6 +20,18 @@ resources:
   # (ScaleData and JackStraw)
   numcores: 12
 
+  # Memory options for the different steps
+  # Memory_low is used for tasks: velocity,
+  # characteriseClusterMarkers*, plotMarkerNumbers*,
+  # clustree, plotTSNEPerplexities, getGenesetAnnotation,
+  # aggregateUMIsPseudobulks
+  memory_low: 10G
+  # Memory_standard is used if not further specified
+  memory_standard: 20G
+  # Memory_high is used for tasks: findMarkers, summariseMarkers,
+  # diffusionMap
+  memory_high: 50G
+
 
 # Gene annotations
 # ----------------
@@ -284,7 +296,6 @@ diffusionmap:
   # results.
   usegenes: False
   maxdim: 10
-  job_memory: "20G"
 
 # RNA Velocity
 # ------------
