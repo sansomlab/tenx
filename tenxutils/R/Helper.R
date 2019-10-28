@@ -112,7 +112,7 @@ getSigPC <- function(seurat_oject=NULL,
                      p_threshold=0.05,
                      order_by_sig=FALSE)
 {
-    x <- as.data.frame(s@reductions$pca@jackstraw@overall.p.values)
+    x <- as.data.frame(seurat_object@reductions$pca@jackstraw@overall.p.values)
 
     ## adjust the p values
     if(adjust_p)
