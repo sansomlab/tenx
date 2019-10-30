@@ -209,7 +209,7 @@ def beginSeurat(infile, outfile):
 
     sample_name = infile.split("/")[-1].split(".")[0]
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
     job_threads = PARAMS["resources_numcores"]
 
     log_file = outfile.replace(".rds", ".log")
@@ -410,7 +410,7 @@ def cluster(infile, outfile):
     else:
         comp="--components=%(components)s" % locals()
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     log_file = outfile.replace(".sentinel", ".log")
 
@@ -482,6 +482,8 @@ def clustree(infile, outfile):
 
     log_file = outfile.replace("sentinel","log")
 
+    job_memory=PARAMS["resources_memory_low"]
+
     statement = '''Rscript %(tenx_dir)s/R/seurat_clustree.R
                    --resolutions=%(res_str)s
                    --clusteridfiles=%(id_files_str)s
@@ -524,7 +526,7 @@ def tSNE(infile, outfile):
 
     reductiontype = PARAMS["dimreduction_method"]
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     perplexity_values = set(
         PARAMS["tsne_perplexities"].strip().replace(" ", "").split(",") +
@@ -597,6 +599,8 @@ def plotTSNEPerplexities(infile, outfile):
 
     log_file = outfile.replace(".sentinel", ".log")
 
+    job_memory = PARAMS["resources_memory_low"]
+
     statement = '''Rscript %(tenx_dir)s/R/plot_tsne_hyperparameters.R
                    --table=%(long_table)s
                    --shapefactor=%(plot_shape)s
@@ -646,7 +650,7 @@ def UMAP(infile, outfile):
     else:
         comp="--components=%(components)s" % locals()
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     tenx_dir = PARAMS["tenx_dir"]
 
@@ -706,7 +710,7 @@ def diffusionMap(infile, outfile):
     else:
         usegenes="--usegenes=FALSE"
 
-    job_memory = PARAMS["diffusionmap_job_memory"]
+    job_memory = PARAMS["resources_memory_high"]
 
     tenx_dir = PARAMS["tenx_dir"]
 
@@ -764,6 +768,8 @@ def knownMarkerViolins(infile, outfile):
     outprefix = outfile.replace(".sentinel", "")
 
     log_file = outfile.replace(".sentinel", ".log")
+
+    job_memory = PARAMS["resources_memory_low"]
 
     statement = '''Rscript %(tenx_dir)s/R/plot_violins.R
                        --genetable=%(knownmarkers_file)s
@@ -839,7 +845,7 @@ def velocity(infile, outfile):
     log_file = outfile.replace(".sentinel", ".log")
 
     job_threads = PARAMS["velocity_ncores"]
-    job_memory = "10G"
+    job_memory = PARAMS["resources_memory_low"]
 
     rdims_vis_method = RDIMS_VIS_METHOD
     rdim1 = RDIMS_VIS_COMP_1
@@ -889,7 +895,7 @@ def plotRdimsFactors(infile, outfile):
     '''
 
     outdir = os.path.dirname(outfile)
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     if RDIMS_VIS_METHOD == "tsne":
         rdims_table = infile.replace(
@@ -975,7 +981,7 @@ def plotRdimsGenes(infile, outfile):
         genelists = glob.glob(
             os.path.join(PARAMS["exprsreport_genelist_dir"], "*.txt"))
 
-        job_memory = "20G"
+        job_memory = PARAMS["resources_memory_standard"]
 
         if RDIMS_VIS_METHOD == "tsne":
             rdims_table = infile.replace(
@@ -1059,7 +1065,7 @@ def plotGroupNumbers(infile, outfile):
     sample_dir = str(Path(outdir).parents[1])
     seurat_object = os.path.join(sample_dir, "begin.rds")
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     if RDIMS_VIS_METHOD == "tsne":
         rdims_table = infile.replace(
@@ -1128,6 +1134,8 @@ def getGenesetAnnotations(infile, outfile):
 
     log_file = outfile.replace(".sentinel", ".log")
 
+    job_memory = PARAMS["resources_memory_low"]
+
     if PARAMS["annotation_ensembl_host"] == "default":
         ensembl_host = ""
     else:
@@ -1187,7 +1195,7 @@ def findMarkers(infile, outfile):
     else:
         conserved_options = ""
 
-    job_memory = "30G"
+    job_memory = PARAMS["resources_memory_high"]
 
     tenx_dir = PARAMS["tenx_dir"]
     statements = []
@@ -1241,7 +1249,7 @@ def summariseMarkers(infile, outfile):
     else:
         subgroup = ""
 
-    job_memory = "50G"
+    job_memory = PARAMS["resources_memory_high"]
 
     log_file = outfile.replace(".sentinel", ".log")
 
@@ -1289,7 +1297,7 @@ def characteriseClusterMarkers(infile, outfile):
     seurat_object = os.path.join(Path(outdir).parents[1],
                                "begin.rds")
 
-    job_memory = "10G"
+    job_memory = PARAMS["resources_memory_low"]
 
     # not all clusters may have degenes
     degenes = pd.read_csv(marker_table, sep="\t")
@@ -1344,7 +1352,7 @@ def plotMarkerNumbers(infile, outfile):
                                "cluster.dir",
                                "cluster_ids.rds")
 
-    job_memory = "10G"
+    job_memory = PARAMS["resources_memory_low"]
 
     log_file = outfile.replace(".sentinel", ".log")
 
@@ -1452,7 +1460,7 @@ def plotRdimsMarkers(infile, outfile):
         markers_file = os.path.join(outdir, file_name)
         d.to_csv(markers_file, header=True, sep="\t")
 
-        job_memory = "20G"
+        job_memory = PARAMS["resources_memory_standard"]
 
         log_name = ".".join(["plot.rdims.top", name, "cluster.markers.log"])
         log_file = os.path.join(outdir, log_name)
@@ -1560,7 +1568,7 @@ def findMarkersBetweenConditions(infile, outfile):
     threshuse = PARAMS["findmarkers_threshuse"]
     minpct = PARAMS["findmarkers_minpct"]
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     statements = []
 
@@ -1627,7 +1635,7 @@ def summariseMarkersBetweenConditions(infile, outfile):
     seurat_object = os.path.join(Path(outdir).parents[1],
                                "begin.rds")
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     testname = os.path.basename(outfile).split(".")[1]
 
@@ -1678,7 +1686,7 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
     seurat_object = os.path.join(Path(outdir).parents[1],
                                "begin.rds")
 
-    job_memory = "10G"
+    job_memory = PARAMS["resources_memory_low"]
 
     # not all clusters may have degenes
     degenes = pd.read_csv(marker_table, sep="\t")
@@ -1744,7 +1752,7 @@ def plotMarkerNumbersBetweenConditions(infile, outfile):
                                "cluster.dir",
                                "cluster_ids.rds")
 
-    job_memory = "10G"
+    job_memory = PARAMS["resources_memory_low"]
 
     log_file = outfile.replace(".sentinel", ".log")
 
@@ -1853,7 +1861,7 @@ def genesetAnalysis(infiles, outfile):
                            "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     statements = []
 
@@ -1917,7 +1925,7 @@ def summariseGenesetAnalysis(infile, outfile):
                            "nclusters.txt"), "r") as nclust:
         nclusters = nclust.readline().strip()
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     logfile = outfile.replace(".sentinel", ".log")
 
@@ -1992,7 +2000,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
         nclusters = nclust.readline().strip()
 
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
 
     statements = []
 
@@ -2060,7 +2068,8 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
         nclusters = nclust.readline().strip()
 
 
-    job_memory = "20G"
+    job_memory = PARAMS["resources_memory_standard"]
+
 
     logfile = outfile.replace(".sentinel", ".log")
 
@@ -2530,6 +2539,8 @@ def aggregateUMIsPseudobulks(infile, outfile):
     tenxdir = os.path.join(run_dir, 'data.dir', sample_data_dir)
 
     log_file = os.path.join(outdir, 'aggregated_clusters.log')
+
+    job_memory = PARAMS["resources_memory_low"]
 
     statement = '''Rscript %(tenx_dir)s/R/aggregate_umis_pseudobulks.R
                            --tenxdir=%(tenxdir)s
