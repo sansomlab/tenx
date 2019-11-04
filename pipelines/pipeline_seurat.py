@@ -1867,6 +1867,8 @@ def genesetAnalysis(infiles, outfile):
 
     species = PARAMS["annotation_species"]
     tenx_dir = PARAMS["tenx_dir"]
+    
+    adjpthreshold = PARAMS["genesets_marker_adjpthreshold"]
 
     for i in range(0, int(nclusters)):
 
@@ -1890,7 +1892,7 @@ def genesetAnalysis(infiles, outfile):
                             --gmt_names=%(gmt_names)s
                             --gmt_files=%(gmt_files)s
                             --cluster=%(i)s
-                            --adjpthreshold=0.1
+                            --adjpthreshold=%(adjpthreshold)s
                             --direction=positive
                             --outdir=%(outdir)s
                             &> %(logfile)s
@@ -2006,6 +2008,8 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     species = PARAMS["annotation_species"]
     tenx_dir = PARAMS["tenx_dir"]
+    
+    adjpthreshold = PARAMS["genesets_marker_adjpthreshold"]
 
     for i in range(0, int(nclusters)):
 
@@ -2035,7 +2039,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
                             --gmt_names=%(gmt_names)s
                             --gmt_files=%(gmt_files)s
                             --cluster=%(i)s
-                            --adjpthreshold=0.1
+                            --adjpthreshold=%(adjpthreshold)s
                             --direction=both
                             --prefix=genesets.between
                             --outdir=%(outdir)s
