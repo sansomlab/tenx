@@ -415,6 +415,10 @@ exprsreport:
 # (GO categories and KEGG pathways are analysed by default)
 
 genesets:
+  # Marker adjusted p-value threshold for it to be included in the geneset analysis (genesetAnalysis.R)
+  # This value will also be used in the geneset analysis for within cluster DE
+  marker_adjpthreshold: 0.1
+  
     # A method recognised by the R "p.adjust" function
   # The adjustment is applied to the combined results from
   # all of the clusters.
