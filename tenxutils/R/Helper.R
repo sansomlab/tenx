@@ -105,7 +105,7 @@ categoriseGenes <- function(data,m_col="avg_logFC", use_fc=TRUE,
 #' @param p_threshold The significance threshold
 #' @param order_by_sig If true, PCs are selected based on significance
 #' @param seurat_object A seurat object on which JackStraw and JackStrawPlot have been run
-getSigPC <- function(seurat_object=NULL,
+getSigPC <- function(seurat_oject=NULL,
                      ncomp=Inf,
                      adjust_p=TRUE,
                      p_adjust_method="BH",
