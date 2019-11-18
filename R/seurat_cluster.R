@@ -133,7 +133,7 @@ saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 ## which computes distance between clusters averages
 ## using the expression levels of the variable genes
 
-if(DefaultAssay(s) != "SCT")
+if(DefaultAssay(s) != "SCT" && length(VariableFeatures(s)) > 0)
 {
     ## see: https://github.com/satijalab/seurat/issues/1677
 
