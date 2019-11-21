@@ -88,7 +88,7 @@ if(is.null(opt$predefined))
 
     message(sprintf("FindClusters"))
     s <- FindNeighbors(s,
-                       reduction = "pca",
+                       reduction = opt$reductiontype,
                        dims = comps)
 
 
