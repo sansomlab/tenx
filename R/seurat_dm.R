@@ -77,7 +77,7 @@ diff.data <- t(GetAssayData(s, slot = "scale.data")[VariableFeatures(s),])
 
     message("Running diffussion with reduced dimensions")
 
-    diff.data <- Embeddings(s, reduction="pca")[,comps]
+    diff.data <- Embeddings(s, reduction=opt$reductiontype)[,comps]
 }
 
 message("making the diffusion map")
