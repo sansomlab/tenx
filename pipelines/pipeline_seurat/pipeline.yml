@@ -135,6 +135,9 @@ qc:
     # Retain cells where at most this proportion of UMI are assigned to mitochondrial genes
     # Note that the default 5% (0.05) can be excessively stringent in some cases
     maxpercentmito: 0.05
+    # Retain cells that have less than the given UMI maximum count. This would remove very large
+    # cells with an unusually high UMI count. This threshold is not active by default
+    maxcount: none
     # Whether to downsample to a common number of cells
     # Choices: False|True
     downsamplecells: False

@@ -117,6 +117,12 @@ option_list <- list(
             )
         ),
     make_option(
+      c("--qcmaxcount"),
+      type="integer",
+      default=NULL,
+      help="Max nCount_RNA to retain a cell"
+      ),
+    make_option(
         c("--normalizationmethod"),
         default="log-normalization",
         help="The normlization method to use"
@@ -556,9 +562,17 @@ stats$qc_min_gene_threshold <- opt$qcmingenes
 stats$qc_min_percent_mito_threshold <- opt$qcminpercentmito
 stats$qc_max_percent_mito_threshold <- opt$qcmaxpercentmito
 
-s <- subset(s, subset = nFeature_RNA > opt$qcmingenes &
+if (! is.null(opt$qcmaxcount)) {
+  s <- subset(s, subset = nFeature_RNA > opt$qcmingenes &
                    percent.mito > opt$qcminpercentmito &
-                   percent.mito < opt$qcmaxpercentmito)
+                   percent.mito < opt$qcmaxpercentmito &
+                   nCount_RNA < opt$qcmaxcount)
+  stats$qc_max_count_threshold <- opt$qcmaxcount
+  } else {
+    s <- subset(s, subset = nFeature_RNA > opt$qcmingenes &
+                     percent.mito > opt$qcminpercentmito &
+                     percent.mito < opt$qcmaxpercentmito)
+    }
 
 
 stats$no_cells_after_qc <- ncol(GetAssayData(object = s))

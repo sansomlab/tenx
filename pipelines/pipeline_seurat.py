@@ -277,6 +277,12 @@ def beginSeurat(infile, outfile):
     # Turn Python boolean into R logical
     downsamplecells = str(PARAMS["qc_downsamplecells"]).upper()
 
+    # Deal with maxcount option
+    if PARAMS["qc_maxcount"] != "none":
+        maxcount = '''--qcmaxcount=%(qc_maxcount)s''' % PARAMS
+    else:
+        maxcount = ""
+
     statement = '''Rscript %(tenx_dir)s/R/seurat_begin.R
                    --tenxdir=%(infile)s
                    --project=%(sample_name)s
@@ -307,6 +313,7 @@ def beginSeurat(infile, outfile):
                    %(seed)s
                    %(cell_cycle_genes)s
                    %(cell_cycle_regress)s
+                   %(maxcount)s
                    &> %(log_file)s
                 '''
 
