@@ -161,6 +161,9 @@ from scipy.stats.mstats import gmean
 import cgatcore.experiment as E
 from cgatcore import pipeline as P
 import cgatcore.iotools as IOTools
+import rpy2.robjects as robjects
+from rpy2.robjects import pandas2ri
+pandas2ri.activate()
 
 # -------------------------- < parse parameters > --------------------------- #
 
@@ -1206,9 +1209,14 @@ def findMarkers(infile, outfile):
 
     tenx_dir = PARAMS["tenx_dir"]
     statements = []
-
-    for i in range(0, int(nclusters)):
-
+    
+    # Define cluster ids
+    readRDS = robjects.r['readRDS']
+    df = readRDS(cluster_ids)
+    df = list(df.get_values().astype(int))
+    
+    for i in range(min(df), max(df)+1):
+        
         logfile = outfile.replace(".sentinel", "." + str(i) + ".log")
         statements.append('''Rscript %(tenx_dir)s/R/seurat_FindMarkers.R
                    --seuratobject=%(seurat_object)s
@@ -1593,8 +1601,13 @@ def findMarkersBetweenConditions(infile, outfile):
         '''
     else:
         conserved_options = ""
-
-    for i in range(0, int(nclusters)):
+        
+    # Define cluster ids
+    readRDS = robjects.r['readRDS']
+    df = readRDS(cluster_ids)
+    df = list(df.get_values().astype(int))
+    
+    for i in range(min(df), max(df)+1):
 
         logfile = outfile.replace(".sentinel", "." + str(i) + ".log")
         statements.append('''Rscript %(tenx_dir)s/R/seurat_FindMarkers.R

@@ -80,6 +80,9 @@ tex = ""
 print("Making tSNE plots for the grouping variables")
 
 color_var <- opt$colorfactor
+plot_data[,color_var] <- factor(plot_data[,color_var], 
+                                levels=sort(as.numeric(unique(plot_data[,color_var]))))
+
 print(paste("Making",color_var,"tSNE plot"))
 
 ## convert the hyperparameter into a factor with correct
@@ -90,8 +93,6 @@ param_levels <- sort(unique(param_values))
 param_factor <- factor(as.character(param_values),levels=as.character(param_levels))
 
 plot_data[[opt$hyperparameter]]  <- param_factor
-
-plot_data[[color_var]] <- as.character(plot_data[[color_var]])
 
 if(opt$shapefactor=="none" | !(opt$shapefactor %in% colnames(plot_data)))
     {

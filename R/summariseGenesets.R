@@ -334,6 +334,7 @@ for(geneset in genesets)
 
     } else {
             # draw an empty plot with an error message
+            per_sample_tex = c()
             pngfn <- paste(plotfn, "png", sep=".")
             png(pngfn,width=8,height=8,units="in",res=100)
             plot.new()
