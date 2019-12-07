@@ -334,7 +334,8 @@ for(geneset in genesets)
 
     } else {
             # draw an empty plot with an error message
-            pngfn <- paste(plotfn, "png", sep=".")
+            per_sample_tex = c()
+	    pngfn <- paste(plotfn, "png", sep=".")
             png(pngfn,width=8,height=8,units="in",res=100)
             plot.new()
             text(0.5,0.5,paste0("no significant genesets for:\n",geneset))

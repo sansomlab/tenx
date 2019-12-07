@@ -396,7 +396,7 @@ def cluster(infile, outfile):
        The single-cells are clustered using the given number of PCA components,
        resolution and alogorithm.
 
-       The number of clusters is written to "nclusters.txt".
+       Clusters are written to "nclusters.txt".
     '''
 
     outdir = os.path.dirname(outfile)
@@ -1180,9 +1180,11 @@ def findMarkers(infile, outfile):
     outdir = os.path.dirname(outfile)
 
     cluster_ids = infile.replace(".sentinel","_ids.rds")
-
-    with open(os.path.join(indir, "nclusters.txt"), "r") as nclust:
-        nclusters = nclust.readline().strip()
+    
+    clusters = pd.read_table(os.path.join(indir, "nclusters.txt"),  
+                            header=None)
+    clusters = clusters[clusters.columns[0]].tolist()
+    nclusters = len(clusters)
 
     seurat_object = os.path.join(Path(outdir).parents[1],
                                  "begin.rds")
@@ -1207,7 +1209,7 @@ def findMarkers(infile, outfile):
     tenx_dir = PARAMS["tenx_dir"]
     statements = []
 
-    for i in range(0, int(nclusters)):
+    for i in range(min(clusters), max(clusters)+1):
 
         logfile = outfile.replace(".sentinel", "." + str(i) + ".log")
         statements.append('''Rscript %(tenx_dir)s/R/seurat_FindMarkers.R
@@ -1563,8 +1565,10 @@ def findMarkersBetweenConditions(infile, outfile):
 
     cluster_ids = infile.replace(".sentinel", "_ids.rds")
 
-    with open(os.path.join(indir, "nclusters.txt"), "r") as nclust:
-        nclusters = nclust.readline().strip()
+    clusters = pd.read_table(os.path.join(indir, "nclusters.txt"),  
+                            header=None)
+    clusters = clusters[clusters.columns[0]].tolist()
+    nclusters = len(clusters)
 
     seurat_object = os.path.join(Path(outdir).parents[1],
                                  "begin.rds")
@@ -1594,7 +1598,7 @@ def findMarkersBetweenConditions(infile, outfile):
     else:
         conserved_options = ""
 
-    for i in range(0, int(nclusters)):
+    for i in range(min(clusters), max(clusters)+1):
 
         logfile = outfile.replace(".sentinel", "." + str(i) + ".log")
         statements.append('''Rscript %(tenx_dir)s/R/seurat_FindMarkers.R
@@ -1862,11 +1866,13 @@ def genesetAnalysis(infiles, outfile):
     param_keys = ["gmt_celltype_files_",
                   "gmt_pathway_files_"]
     gmt_names, gmt_files = parseGMTs(param_keys=param_keys)
-
-    with open(os.path.join(Path(outdir).parents[0],
+    
+    clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"), "r") as nclust:
-        nclusters = nclust.readline().strip()
+                           "nclusters.txt"),  
+                            header=None)
+    clusters = clusters[clusters.columns[0]].tolist()
+    nclusters = len(clusters)
 
     job_memory = PARAMS["resources_memory_standard"]
 
@@ -1877,7 +1883,7 @@ def genesetAnalysis(infiles, outfile):
     
     adjpthreshold = PARAMS["genesets_marker_adjpthreshold"]
 
-    for i in range(0, int(nclusters)):
+    for i in range(min(clusters), max(clusters)+1):
 
         logfile = os.path.join(outdir, "geneset.analysis." + str(i) + ".log")
 
@@ -1928,12 +1934,17 @@ def summariseGenesetAnalysis(infile, outfile):
     param_keys = ["gmt_celltype_files_",
                   "gmt_pathway_files_"]
     gmt_names, gmt_files = parseGMTs(param_keys=param_keys)
-
-    with open(os.path.join(Path(outdir).parents[0],
+    
+    # Read clusters
+    clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"), "r") as nclust:
-        nclusters = nclust.readline().strip()
+                           "nclusters.txt"),  
+                            header=None)
+    clusters = clusters[clusters.columns[0]].tolist()
+    nclusters = len(clusters)
+    firstcluster = min(clusters)
 
+    # Read job memory parameter
     job_memory = PARAMS["resources_memory_standard"]
 
     logfile = outfile.replace(".sentinel", ".log")
@@ -1948,6 +1959,7 @@ def summariseGenesetAnalysis(infile, outfile):
                          --gmt_names=%(gmt_names)s
                          --show_detailed=%(show_detailed)s
                          --nclusters=%(nclusters)s
+                         --firstcluster=%(firstcluster)s
                          --mingenes=%(genesets_min_fg_genes)s
                          --pvaluethreshold=%(genesets_pvalue_threshold)s
                          --padjustmethod=%(genesets_padjust_method)s
@@ -2001,14 +2013,15 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     gmt_names, gmt_files = parseGMTs(param_keys=["gmt_pathway_files_"])
 
-
-
-    with open(os.path.join(Path(outdir).parents[0],
+    # Read custers
+    clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"), "r") as nclust:
-        nclusters = nclust.readline().strip()
+                           "nclusters.txt"),  
+                            header=None)
+    clusters = clusters[clusters.columns[0]].tolist()
+    nclusters = len(clusters)
 
-
+    # Read job memory params
     job_memory = PARAMS["resources_memory_standard"]
 
     statements = []
@@ -2018,7 +2031,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
     
     adjpthreshold = PARAMS["genesets_marker_adjpthreshold"]
 
-    for i in range(0, int(nclusters)):
+    for i in range(min(clusters), max(clusters)+1):
 
         logfile = os.path.join(
             outdir, "geneset.analysis.between." + str(i) + ".log")
@@ -2073,12 +2086,15 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
 
     genesetdir = os.path.dirname(infile)
 
-    with open(os.path.join(Path(outdir).parents[0],
+    # Read clusters
+    clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"), "r") as nclust:
-        nclusters = nclust.readline().strip()
-
-
+                           "nclusters.txt"),  
+                            header=None)
+    clusters = clusters[clusters.columns[0]].tolist()
+    nclusters = len(clusters)
+    
+    # Read memory params
     job_memory = PARAMS["resources_memory_standard"]
 
 
