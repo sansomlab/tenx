@@ -120,10 +120,11 @@ if(is.null(opt$predefined))
 
 
 
-nclusters <- length(unique(cluster_ids))
+nclusters <- sort(unique(cluster_ids))
 
 message(sprintf("write"))
-write(nclusters, file=file.path(opt$outdir,"nclusters.txt"))
+write.table(nclusters, file=file.path(opt$outdir,"nclusters.txt"), 
+            quote=FALSE, col.names = FALSE, row.names = FALSE)
 message(sprintf("saveRDS"))
 saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 

@@ -578,7 +578,7 @@ markerComplexHeatmap <- function(seurat_object,
   # set up the cluster color palette
   nclust <- length(unique(clusters))
   cluster_cols <- gg_color_hue(nclust)
-  names(cluster_cols) <- 0:(nclust-1)
+  names(cluster_cols) <- sort(as.numeric(as.character(unique(clusters))))
 
   # get the vector of per-cell cluster names
   cell_clusters <- clusters[colnames(x)]
