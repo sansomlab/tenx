@@ -434,10 +434,13 @@ def cluster(infile, outfile):
     else:
         predefined = ""
 
+    cluster_nneighbours = PARAMS["cluster_nneighbors"]
+
     statement = '''Rscript %(tenx_dir)s/R/seurat_cluster.R
                    --seuratobject=%(infile)s
                    %(comp)s
                    %(predefined)s
+                   --nneighbors=%(cluster_nneighbors)s
                    --resolution=%(resolution)s
                    --algorithm=%(algorithm)s
                    --outdir=%(outdir)s
@@ -720,9 +723,12 @@ def UMAP(infile, outfile):
 
     tenx_dir = PARAMS["tenx_dir"]
 
+    umap_method = PARAMS["umap_method"]
     umap_nneighbors = PARAMS["umap_nneighbors"]
     umap_mindist = PARAMS["umap_mindist"]
     umap_metric = PARAMS["umap_metric"]
+    umap_nepochs = PARAMS["umap_nepochs"]
+    umap_seed = PARAMS["umap_seed"]
 
     outname = outfile.replace(".sentinel", ".txt")
     logfile = outname.replace(".txt", ".log")
@@ -732,9 +738,12 @@ def UMAP(infile, outfile):
                              --clusterids=%(cluster_ids)s
                              %(comp)s
                              --reductiontype=%(reductiontype)s
+                             --method=%(umap_method)s
                              --nneighbors=%(umap_nneighbors)s
                              --mindist=%(umap_mindist)s
                              --metric=%(umap_metric)s
+                             --nepochs=%(umap_nepochs)s
+                             --seed=%(umap_seed)s
                              --outfile=%(outname)s
                              &> %(logfile)s
                           ''' % locals()
@@ -1239,8 +1248,8 @@ def findMarkers(infile, outfile):
     outdir = os.path.dirname(outfile)
 
     cluster_ids = infile.replace(".sentinel","_ids.rds")
-    
-    clusters = pd.read_table(os.path.join(indir, "nclusters.txt"),  
+
+    clusters = pd.read_table(os.path.join(indir, "nclusters.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -1624,7 +1633,7 @@ def findMarkersBetweenConditions(infile, outfile):
 
     cluster_ids = infile.replace(".sentinel", "_ids.rds")
 
-    clusters = pd.read_table(os.path.join(indir, "nclusters.txt"),  
+    clusters = pd.read_table(os.path.join(indir, "nclusters.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -1925,10 +1934,10 @@ def genesetAnalysis(infiles, outfile):
     param_keys = ["gmt_celltype_files_",
                   "gmt_pathway_files_"]
     gmt_names, gmt_files = parseGMTs(param_keys=param_keys)
-    
+
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"),  
+                           "nclusters.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -1939,7 +1948,7 @@ def genesetAnalysis(infiles, outfile):
 
     species = PARAMS["annotation_species"]
     tenx_dir = PARAMS["tenx_dir"]
-    
+
     adjpthreshold = PARAMS["genesets_marker_adjpthreshold"]
 
     for i in range(min(clusters), max(clusters)+1):
@@ -1993,11 +2002,11 @@ def summariseGenesetAnalysis(infile, outfile):
     param_keys = ["gmt_celltype_files_",
                   "gmt_pathway_files_"]
     gmt_names, gmt_files = parseGMTs(param_keys=param_keys)
-    
+
     # Read clusters
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"),  
+                           "nclusters.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -2075,7 +2084,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
     # Read custers
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"),  
+                           "nclusters.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -2087,7 +2096,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     species = PARAMS["annotation_species"]
     tenx_dir = PARAMS["tenx_dir"]
-    
+
     adjpthreshold = PARAMS["genesets_marker_adjpthreshold"]
 
     for i in range(min(clusters), max(clusters)+1):
@@ -2148,11 +2157,11 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
     # Read clusters
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"),  
+                           "nclusters.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
-    
+
     # Read memory params
     job_memory = PARAMS["resources_memory_standard"]
 

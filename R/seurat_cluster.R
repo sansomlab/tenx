@@ -23,6 +23,8 @@ option_list <- list(
                 help="if usesigcomponents is FALSE, the number of principle components to use"),
     make_option(c("--predefined"), default=NULL,
                 help="An rds file containing a named vector of predefined cell cluster assignments"),
+    make_option(c("--nneighbors"), type="integer", default=20L,
+                help="number of neighbors (k.param)"),
     make_option(c("--resolution"), type="double", default=1,
                 help="cluster resolution"),
     make_option(c("--algorithm"), type="integer", default=3,
@@ -89,6 +91,7 @@ if(is.null(opt$predefined))
     message(sprintf("FindClusters"))
     s <- FindNeighbors(s,
                        reduction = opt$reductiontype,
+                       k.param = opt$nneighbors,
                        dims = comps)
 
 
@@ -123,7 +126,7 @@ if(is.null(opt$predefined))
 nclusters <- sort(unique(cluster_ids))
 
 message(sprintf("write"))
-write.table(nclusters, file=file.path(opt$outdir,"nclusters.txt"), 
+write.table(nclusters, file=file.path(opt$outdir,"nclusters.txt"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
 message(sprintf("saveRDS"))
 saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
