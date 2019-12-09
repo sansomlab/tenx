@@ -21,6 +21,8 @@ option_list <- list(
                 help="A list object containing the cluster identities"),
     make_option(c("--annotation"), default="none",
                 help="A file containing the mapping of gene_id, gene_name and seurat_id"),
+    make_option(c("--method"), default="umap-learn",
+                help="uwot or umap-learn"),
     make_option(c("--usesigcomponents"), default=FALSE,
                 help="use significant principle component"),
     make_option(c("--components"), type="integer", default=10,
@@ -31,6 +33,10 @@ option_list <- list(
                 help="controls how tightly the embedding is allowed to compress points together"),
     make_option(c("--metric"), type="character", default="correlation",
                 help="the choice of metric used to measure distance in the input space"),
+    make_option(c("--nepochs"), type="integer", default=500L,
+                help="Number of epochs, set to NULL to allow Seurat to set automatically"),
+    make_option(c("--seed"), type="integer", default=42L,
+                help="Seed, set to NULL for a random seed"),
     make_option(c("--project"), default="SeuratAnalysis",
                 help="project name"),
     make_option(c("--reductiontype"), default="pca",
@@ -65,6 +71,7 @@ if(opt$usesigcomponents)
 ## run UMAP
 message("RunUMAP")
 s <- RunUMAP(s,
+             method = opt$method,
              reduction = opt$reductiontype,
              dims = comps,
              n.components = 2L,
@@ -73,7 +80,8 @@ s <- RunUMAP(s,
              n.neighbors = opt$nneighbors,
              min.dist = opt$mindist,
              metric = opt$metric,
-             seed.use = 42)
+             n.epochs = opt$nepochs,
+             seed.use = opt$seed)
 
 ## extract the UMAP coordinates from the seurat object
 umap <- as.data.frame(s@reductions$umap@cell.embeddings)

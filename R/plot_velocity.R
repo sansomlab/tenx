@@ -119,7 +119,7 @@ nclust <- length(unique(rdims$cluster))
 
 ## set the cell colors according to cluster
 cmap <- gg_color_hue(nclust)
-names(cmap) <- c(0:(nclust-1))
+names(cmap) <- c(sort(as.numeric(unique(rdims$cluster))))
 cell.colors <- cmap[as.character(rdims$cluster)]
 names(cell.colors) <- rdims$barcode
 
