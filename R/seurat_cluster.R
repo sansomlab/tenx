@@ -127,6 +127,10 @@ write.table(nclusters, file=file.path(opt$outdir,"nclusters.txt"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
 message(sprintf("saveRDS"))
 saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
+cluster_ids_df <- data.frame(barcodes=as.character(names(cluster_ids)), cluster_id=as.character(cluster_ids))
+cluster_ids_df$barcodes <- as.character(cluster_ids_df$barcodes)
+cluster_ids_df$cluster_id <- as.character(cluster_ids_df$cluster_id)
+saveRDS(cluster_ids_df, file=file.path(opt$outdir,"cluster_ids_df.rds"))
 
 ## Visualise the relationship between the clusters.
 
