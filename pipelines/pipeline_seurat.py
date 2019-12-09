@@ -546,12 +546,15 @@ def runPaga(infile, outfile):
     
     tenx_dir = PARAMS["tenx_dir"]
     
+    k = PARAMS["paga_k"]
+    
     statement = '''python %(tenx_dir)s/python/run_paga.py 
                    --pcs=%(pcs)s
                    --outdir=%(outdir)s
                    --cluster_ids=%(cluster_ids)s
                    --comps=%(comps)s
                    --resolution=%(resolution)s
+                   --k=%(k)s
                    &> %(log_file)s
                 '''
     

@@ -24,12 +24,14 @@ parser.add_argument("--outdir", default=1, type=str, help="path to output direct
 parser.add_argument("--cluster_ids", default=1, type=str, help="RDS files with cluster ids")
 parser.add_argument("--comps", default="1", type=str, help="Number of PCs to include in knn and umap computation")
 parser.add_argument("--resolution", default=1, type=str, help="cluster resolution")
+parser.add_argument("--k", default=20, type=int, help="number of neighbors")
 
 args = parser.parse_args()
 pcs = args.pcs
 outdir = args.outdir
 comps = args.comps
 resolution = args.resolution
+k = args.k
 clusterids = args.cluster_ids
 
 
@@ -65,7 +67,9 @@ df = df[None][['cluster_id']]
 adata.obs['cluster_id'] = df.values
 
 # Run neighbors
-sc.pp.neighbors(adata, n_neighbors=20, use_rep='X_pca')
+message = "Using " + str(k) + " neighbors"
+print(message)
+sc.pp.neighbors(adata, n_neighbors = k, use_rep = 'X_pca')
 
 # Run, plot and save umap
 sc.tl.umap(adata)

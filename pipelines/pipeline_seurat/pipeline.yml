@@ -324,6 +324,12 @@ velocity:
   showaxes: TRUE
   plotcex: 1
 
+# PAGA parameters
+# ---------------
+
+paga: 
+  # K is the number of neighbors used to compute the nearest neighbors in scanpy
+  k: 20
 
 # Known marker genes
 # ------------------
