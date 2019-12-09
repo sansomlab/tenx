@@ -502,6 +502,62 @@ def clustree(infile, outfile):
 
     IOTools.touch_file(outfile)
 
+# ################################ #
+# ############# Paga ############# #
+# ################################ #
+
+@transform(cluster,
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/paga.dir/paga.sentinel")
+def runPaga(infile, outfile):
+    '''
+
+    '''
+
+    outdir = os.path.dirname(outfile)
+    
+    print(outdir) 
+    
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    cluster_ids = os.path.join(Path(outdir).parents[0],
+                               "cluster.dir",
+                               "cluster_ids_df.rds")
+
+    seurat_dir = Path(outdir).parents[1]
+    pcs = os.path.join(seurat_dir, "pcs.tsv.gz")
+    sigcomps = os.path.join(seurat_dir, "sig_comps.txt")
+
+    components, resolution, algorithm, test = outdir.split(
+        "/")[-2].split("_")
+    
+    if components == "sig":
+        comps = pd.read_table(sigcomps, header=None)
+        comps = comps[comps.columns[0]].tolist()
+        comps = ','.join([ str(item) for item in comps])
+    else :
+        comps = list(range (1, int(components)+1))
+        comps = ','.join([ str(item) for item in comps])
+        
+    job_memory = PARAMS["resources_memory_standard"]
+    
+    log_file = outfile.replace("sentinel","log")
+    
+    tenx_dir = PARAMS["tenx_dir"]
+    
+    statement = '''python %(tenx_dir)s/python/run_paga.py 
+                   --pcs=%(pcs)s
+                   --outdir=%(outdir)s
+                   --cluster_ids=%(cluster_ids)s
+                   --comps=%(comps)s
+                   --resolution=%(resolution)s
+                   &> %(log_file)s
+                '''
+    
+    P.run(statement)
+    IOTools.touch_file(outfile)
+    
 # ########################################################################### #
 # ############### tSNE analysis and related plots ########################### #
 # ########################################################################### #
@@ -2141,6 +2197,7 @@ def genesets():
 # ########################################################################### #
 
 @follows(clustree,
+         runPaga,
          plotTSNEPerplexities,
          plotRdimsFactors,
          plotRdimsGenes,
