@@ -924,12 +924,54 @@ def subsetAndDownsample(infiles, outfile):
     IOTools.touch_file(outfile)
 
 
+@active_if(PARAMS["dropest_run"])
+@follows(subsetAndDownsample)
+@transform("dropEst-datasets.dir/*.log",
+           regex(r"dropEst-datasets.dir/subsetAndDownsample.(.*).log"),
+           r"dropEst-datasets.dir/exportDropEstLayers.sentinel")
+def exportDropEstLayers(infile, outfile):
+    '''
+    Generate datasets that include subsets of the 10x samples.
+
+    Optionally downsample UMI counts to normalise between samples.
+    '''
+
+    dataset = infile.split(".")[-2]
+
+    matrix_dir = os.path.join(os.path.dirname(infile),
+                              dataset)
+
+
+    out_dir = os.path.join(os.path.dirname(outfile),
+                          dataset + ".layers")
+
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+    job_memory = PARAMS["postprocess_memory"]
+
+    tenx_dir = PARAMS["tenx_dir"]
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    statement = '''Rscript %(tenx_dir)s/R/dropest_export_layers.R
+                       --tenxdir=%(matrix_dir)s
+                       --outdir=%(out_dir)s
+                       &> %(log_file)s
+                    ''' % locals()
+
+    P.run(statement)
+
+    IOTools.touch_file(outfile)
+
+
 
 
 # ---------------------------------------------------
 # Generic pipeline tasks
 
-@follows(subsetAndDownsample, metrics, plotMetrics, dropEstAggrAndSubset)
+@follows(subsetAndDownsample, metrics, plotMetrics, dropEstAggrAndSubset,
+         exportDropEstLayers)
 def full():
     '''
     Run the full pipeline.
