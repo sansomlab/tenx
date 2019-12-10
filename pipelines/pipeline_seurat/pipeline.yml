@@ -90,9 +90,12 @@ runspecs:
     # To use automatically identified significant pca components
     # use "sig" (this uses BH adjusted p-values from the JackStraw analysis).
     #
-    # * use of sig is not recommended with sctransform - it typically *
-    # * only identifies a very small number of PCs after sctransform. *
-    #
+    # Note. Use of sig is not recommended with sctransform as it typically
+    #       only identifies a very small number components. In fact, the
+    #       authors of sctransform recommend using a larger number of
+    #       components (see: https://satijalab.org/seurat/v3.1/sctransform_vignette.html,
+    #       where they recommend 30 for PBMC 3k dataset vs only 10 for log norm).
+
     n_components: 20,30,50
 
     # Clustering resolution(s)
@@ -185,8 +188,12 @@ cellcycle:
 
 regress:
     ## Removal of unwanted variation (see Seurat::ScaleData)
-    # Latent variables to regress out
-    latentvars: nCount_RNA,percent.mito
+    # Latent variables to regress out e.g. nCount_RNA, percent.mito
+    # - note that if sctransform is used the no. umis will be corrected
+    #   (sctransform param do.correct.umi=TRUE), so regression of
+    #    nCount_RNA is unnessecary (see e.g.
+    #    https://github.com/satijalab/seurat/issues/1739)
+    latentvars: percent.mito
     # Model used to regress out latent variables
     # Choices: 'linear'|'poisson'|'negbinom'
     modeluse: linear
