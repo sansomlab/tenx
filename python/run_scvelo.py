@@ -32,6 +32,8 @@ parser.add_argument("--dropest_dir", default=1, type=str,
                     help="File with dropest layers")
 parser.add_argument("--outdir",default=1, type=str,
                     help="path to output directory")
+parser.add_argument("--cluster_assignments", default=1, type=str,
+                                        help="gzipped tsv file with cell cluster assignments")
 parser.add_argument("--cluster_colors", default=1, type=str,
                     help="tsv file with the color palette for the clusters")
 parser.add_argument("--rdims", default="1", type=str,
@@ -76,6 +78,10 @@ adata.obs = metadata
 
 L.info("AnnData initialised")
 
+clusters = pd.read_csv(args.cluster_assignments, sep="\t")
+clusters.index = clusters["barcodes"]
+
+adata.obs['cluster'] = clusters.loc[adata.obs.index,"cluster_id"].astype("category").values
 
 # ########################################################################### #
 # ################### Get rdims (e.g. umap) info  ########################### #
@@ -86,11 +92,10 @@ rdims = pd.read_csv(args.rdims, sep="\t")
 rdims.index = rdims["barcode"]
 
 rdata = adata[rdims.index]
-rdata.obs["clusters"] = rdims["cluster"].values
+# rdata.obs["clusters"] = rdims["cluster"].values
 rdata.obsm["X_" + args.rdim_method] = rdims[[args.rdim1, args.rdim2]].values
 
 L.info("Rdims info added")
-
 
 # ########################################################################### #
 # ############################ run scvelo ################################### #
@@ -116,18 +121,19 @@ L.info("Velocity calculation completed")
 
 # make the plots
 scv.pl.velocity_embedding_stream(rdata, basis=args.rdim_method,dpi=300,
-                                 palette=ggplot_palette,
-                                 save="stream.png")
+                                 color="cluster", palette=ggplot_palette,
+                                 save=args.rdim_method + "_stream.png")
 
 scv.pl.velocity_embedding(rdata, basis=args.rdim_method,
                           arrow_length=2, arrow_size=1.5,
                           dpi=300,
-                          palette=ggplot_palette,
-                          save="velocity.png")
+                          color="cluster", palette=ggplot_palette,
+                          save=args.rdim_method + "_velocity.png")
 
 scv.pl.velocity_embedding_grid(rdata, basis=args.rdim_method,
                                dpi=300,
-                               palette=ggplot_palette,
-                               save="grid.png")
+                               color="cluster", palette=ggplot_palette,
+                               save=args.rdim_method + "_grid.png")
+
 
 L.info("Plotting finished")
