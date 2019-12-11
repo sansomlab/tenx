@@ -146,4 +146,12 @@ sc.tl.draw_graph(adata, init_pos='paga')
 sc.pl.draw_graph(adata, color='cluster_id', legend_loc='on data',
                  save=".paga.initialised.png", show=False, palette=ggplot_palette)
 
+
+paga_fa2 = pd.DataFrame(adata.obsm["X_draw_graph_fa"],
+                                    index=adata.obs['barcode'],
+                                    columns=["FA1","FA2"])
+
+paga_fa2.to_csv(os.path.join(args.outdir, "paga_init_fa2.txt.gz"),
+                             sep="\t")
+
 L.info("Complete")

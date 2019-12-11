@@ -962,6 +962,7 @@ else:
 #     IOTools.touch_file(outfile)
 
 @active_if(PARAMS["velocity_run"])
+@follows(paga)
 @transform(RDIMS_VIS_TASK,
            regex(r"(.*)/(.*).dir/(.*).sentinel"),
            r"\1/velocity.dir/scvelo.sentinel")
@@ -1003,7 +1004,9 @@ def scvelo(infile, outfile):
         raise ValueError("dropest output not found. Please check that you "
                          "have symlinked the .layers directory")
 
-    # job_threads = PARAMS["velocity_ncores"]
+    cluster_assignments = os.path.join(Path(outdir).parents[0],
+                                           "cluster.dir",
+                                           "cluster_assignments.txt.gz")
 
     job_memory = PARAMS["resources_memory_standard"]
 
@@ -1011,19 +1014,42 @@ def scvelo(infile, outfile):
     log_file = outfile.replace(".sentinel", ".log")
     tenx_dir = PARAMS["tenx_dir"]
 
+    runs = { "default": { "method": rdims_vis_method,
+                          "table": rdims_table,
+                          "rdim1": rdim1, "rdim2": rdim2 }}
 
-    statement = '''python %(tenx_dir)s/python/run_scvelo.py
+    if PARAMS["paga_run"]:
+
+        pagafdg_table = os.path.join(Path(outdir).parents[0],
+                                     "paga.dir",
+                                     "paga_init_fa2.txt.gz")
+
+        runs["pagafdg"] = {"method": "paga_fdg",
+                           "table": pagafdg_table,
+                           "rdim1": "FA1", "rdim2": "FA2"}
+
+    statements = []
+
+    for run, details in runs.items():
+
+        r_method, r_tab, r_1, r_2 = details["method"], details["table"], \
+                                    details["rdim1"], details["rdim2"]
+
+        s = '''python %(tenx_dir)s/python/run_scvelo.py
                    --dropest_dir=%(layers_dir)s
                    --outdir=%(outdir)s
+                   --cluster_assignments=%(cluster_assignments)s
                    --cluster_colors=%(cluster_colors)s
-                   --rdim_method=%(rdims_vis_method)s
-                   --rdims=%(rdims_table)s
-                   --rdim1=%(rdim1)s
-                   --rdim2=%(rdim2)s
+                   --rdim_method=%(r_method)s
+                   --rdims=%(r_tab)s
+                   --rdim1=%(r_1)s
+                   --rdim2=%(r_2)s
                 &> %(log_file)s
-                '''
+                ''' % locals()
 
-    P.run(statement)
+        statements.append(s)
+
+    P.run(statements)
     IOTools.touch_file(outfile)
 
 
@@ -2587,14 +2613,14 @@ def summaryReport(infile, outfile):
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/diffusionSection.tex
         '''
 
-    if(PARAMS["velocity_run"]):
-        statement += '''
-         \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloSection.tex
-        '''
-
     if(PARAMS["paga_run"]):
         statement += '''
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/pagaSection.tex
+        '''
+
+    if(PARAMS["velocity_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloSection.tex
         '''
 
     if(PARAMS["knownmarkers_run"]):
