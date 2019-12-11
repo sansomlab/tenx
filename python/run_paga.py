@@ -64,7 +64,7 @@ ggplot_palette = [x for x in pd.read_csv(args.cluster_colors,
 
 ggplot_cmap = ListedColormap(sns.color_palette(ggplot_palette).as_hex())
 
-sc.set_figure_params(dpi=300, dpi_save=300)
+sc.settings.set_figure_params(dpi=300, dpi_save=300)
 
 # ########################################################################### #
 # ############################### Run PAGA ################################## #
@@ -135,3 +135,15 @@ umap_pos.to_csv(out,index=False)
 
 # Write output file
 adata.write(results_file)
+
+# Compute and plot the force directed graph (FDG)
+sc.tl.draw_graph(adata)
+sc.pl.draw_graph(adata, color='cluster_id', legend_loc='on data',
+                 save=".png", show=False, palette=ggplot_palette)
+
+# Compute and plot the PAGA initialised FDG
+sc.tl.draw_graph(adata, init_pos='paga')
+sc.pl.draw_graph(adata, color='cluster_id', legend_loc='on data',
+                 save=".paga.initialised.png", show=False, palette=ggplot_palette)
+
+L.info("Complete")
