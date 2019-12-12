@@ -4,8 +4,15 @@
 \alias{categoriseGenes}
 \title{Function to add "top" and "sig" indicator columns to degenes list}
 \usage{
-categoriseGenes(data, m_col = "avg_logFC", use_fc = TRUE, p_col = "p.adj",
-  p_threshold = 0.05, ngenes = 7, id_col = "gene")
+categoriseGenes(
+  data,
+  m_col = "avg_logFC",
+  use_fc = TRUE,
+  p_col = "p.adj",
+  p_threshold = 0.05,
+  ngenes = 7,
+  id_col = "gene"
+)
 }
 \arguments{
 \item{data}{The data}
@@ -19,8 +26,6 @@ categoriseGenes(data, m_col = "avg_logFC", use_fc = TRUE, p_col = "p.adj",
 \item{ngenes}{The number of genes to demarcate}
 
 \item{id_col}{A column containing a unique identifier}
-
-\item{m_col}{The column containing the log2 ratio}
 }
 \description{
 Function to add "top" and "sig" indicator columns to degenes list

@@ -9,6 +9,9 @@ plotDownsampling(matrixUMI, metadata, basename)
 \arguments{
 \item{basename}{}
 }
+\value{
+
+}
 \description{
 Plot
 }

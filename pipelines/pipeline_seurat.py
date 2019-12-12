@@ -110,7 +110,7 @@ The default assay of the saved object will be used for cell-level analyses such 
 
 (Optional - velocity) Starting from aggregated dropEst output matrix.
 
-Typically involves linking "dropEst-datasets.dir" subfolders from the
+Typically involves linking "dropEst-datasets.dir/sample.layers" subfolders from the
 pipeline_cellranger.py run.
 
 Similar to (A), a "data.velocity.dir" folder has to be created with
@@ -396,7 +396,7 @@ def cluster(infile, outfile):
        The single-cells are clustered using the given number of PCA components,
        resolution and alogorithm.
 
-       Clusters are written to "nclusters.txt".
+       Clusters are written to "cluster_ids.txt".
     '''
 
     outdir = os.path.dirname(outfile)
@@ -429,7 +429,7 @@ def cluster(infile, outfile):
             predefined = "--predefined=%(cluster_file)s" % locals()
 
         else:
-            raise ValueError("Predefined cluster assignement file (%(cluster_file)s) not found" % locals())
+            raise ValueError("Predefined cluster assignment file (%(cluster_file)s) not found" % locals())
 
     else:
         predefined = ""
@@ -509,10 +509,11 @@ def clustree(infile, outfile):
 # ############# Paga ############# #
 # ################################ #
 
+@active_if(PARAMS["paga_run"])
 @transform(cluster,
            regex(r"(.*)/cluster.dir/cluster.sentinel"),
            r"\1/paga.dir/paga.sentinel")
-def runPaga(infile, outfile):
+def paga(infile, outfile):
     '''
 
     '''
@@ -524,9 +525,13 @@ def runPaga(infile, outfile):
     if not os.path.exists(outdir):
         os.mkdir(outdir)
 
-    cluster_ids = os.path.join(Path(outdir).parents[0],
-                               "cluster.dir",
-                               "cluster_ids_df.rds")
+    cluster_assignments = os.path.join(Path(outdir).parents[0],
+                                           "cluster.dir",
+                                           "cluster_assignments.txt.gz")
+
+    cluster_colors = os.path.join(Path(outdir).parents[0],
+                                  "cluster.dir",
+                                  "cluster_colors.txt")
 
     seurat_dir = Path(outdir).parents[1]
     pcs = os.path.join(seurat_dir, "pcs.tsv.gz")
@@ -554,9 +559,9 @@ def runPaga(infile, outfile):
     statement = '''python %(tenx_dir)s/python/run_paga.py
                    --pcs=%(pcs)s
                    --outdir=%(outdir)s
-                   --cluster_ids=%(cluster_ids)s
+                   --cluster_assignments=%(cluster_assignments)s
+                   --cluster_colors=%(cluster_colors)s
                    --comps=%(comps)s
-                   --resolution=%(resolution)s
                    --k=%(k)s
                    &> %(log_file)s
                 '''
@@ -889,21 +894,96 @@ else:
 # ########################### RNA Velocity ################################## #
 # ########################################################################### #
 
+# @active_if(PARAMS["velocity_run"])
+# @transform(RDIMS_VIS_TASK,
+#            regex(r"(.*)/(.*).dir/(.*).sentinel"),
+#            r"\1/velocity.dir/plot.velocity.sentinel")
+# def velocity(infile, outfile):
+#     '''
+#        Plot the RNA velocity.
+#        This analysis is highly parameterised and different configurations can
+#        suggest different interpretations of the data: it is strong recommended
+#        to determine the best settings manually!
+#     '''
+
+#     outdir = os.path.dirname(outfile)
+#     if not os.path.exists(outdir):
+#         os.makedirs(outdir)
+
+#     if RDIMS_VIS_METHOD == "tsne":
+#         rdims_table = infile.replace(
+#             "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+#     elif RDIMS_VIS_METHOD == "umap":
+#         rdims_table = infile.replace(
+#             ".sentinel", ".txt")
+
+#     sample = infile.split(".seurat.dir")[0]
+
+#     matrixdir = os.path.join("data.velocity.dir",
+#                              sample + ".dir")
+
+#     log_file = outfile.replace(".sentinel", ".log")
+
+#     job_threads = PARAMS["velocity_ncores"]
+#     job_memory = PARAMS["resources_memory_low"]
+
+#     rdims_vis_method = RDIMS_VIS_METHOD
+#     rdim1 = RDIMS_VIS_COMP_1
+#     rdim2 = RDIMS_VIS_COMP_2
+
+#     statement = '''Rscript %(tenx_dir)s/R/plot_velocity.R
+#                 --ncores=%(velocity_ncores)s
+#                 --rdimstable=%(rdims_table)s
+#                 --rdim1=%(rdim1)s
+#                 --rdim2=%(rdim2)s
+#                 --matrixdir=%(matrixdir)s
+#                 --minmaxclustavemat=%(velocity_minmaxclustavemat)s
+#                 --minmaxclustavnmat=%(velocity_minmaxclustavnmat)s
+#                 --deltat=%(velocity_deltat)s
+#                 --kcells=%(velocity_kcells)s
+#                 --fitquantile=%(velocity_fitquantile)s
+#                 --neighbourhoodsize=%(velocity_neighbourhoodsize)s
+#                 --velocityscale=%(velocity_velocityscale)s
+#                 --arrowscale=%(velocity_arrowscale)s
+#                 --arrowlwd=%(velocity_arrowlwd)s
+#                 --gridflow=%(velocity_gridflow)s
+#                 --mingridcellmass=%(velocity_mingridcellmass)s
+#                 --gridn=%(velocity_gridn)s
+#                 --cellalpha=%(velocity_cellalpha)s
+#                 --cellborderalpha=%(velocity_cellborderalpha)s
+#                 --showaxes=%(velocity_showaxes)s
+#                 --plotdirvar=velocityDir
+#                 --plotcex=%(velocity_plotcex)s
+#                 --outdir=%(outdir)s
+#                 &> %(log_file)s
+#                 '''
+
+#     P.run(statement)
+#     IOTools.touch_file(outfile)
+
 @active_if(PARAMS["velocity_run"])
+@follows(paga)
 @transform(RDIMS_VIS_TASK,
            regex(r"(.*)/(.*).dir/(.*).sentinel"),
-           r"\1/velocity.dir/plot.velocity.sentinel")
-def velocity(infile, outfile):
+           r"\1/velocity.dir/scvelo.sentinel")
+def scvelo(infile, outfile):
     '''
        Plot the RNA velocity.
        This analysis is highly parameterised and different configurations can
-       suggest different interpretations of the data: it is strong recommended
-       to determine the best settings manually!
+       suggest different interpretations of the data.
     '''
 
     outdir = os.path.dirname(outfile)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
+
+    cluster_assignments = os.path.join(Path(outdir).parents[0],
+                                           "cluster.dir",
+                                           "cluster_assignemnts.txt.gz")
+
+    cluster_colors = os.path.join(Path(outdir).parents[0],
+                                  "cluster.dir",
+                                  "cluster_colors.txt")
 
     if RDIMS_VIS_METHOD == "tsne":
         rdims_table = infile.replace(
@@ -912,49 +992,66 @@ def velocity(infile, outfile):
         rdims_table = infile.replace(
             ".sentinel", ".txt")
 
-    sample = infile.split(".seurat.dir")[0]
-
-    matrixdir = os.path.join("data.velocity.dir",
-                             sample + ".dir")
-
-    log_file = outfile.replace(".sentinel", ".log")
-
-    job_threads = PARAMS["velocity_ncores"]
-    job_memory = PARAMS["resources_memory_low"]
-
     rdims_vis_method = RDIMS_VIS_METHOD
     rdim1 = RDIMS_VIS_COMP_1
     rdim2 = RDIMS_VIS_COMP_2
 
-    statement = '''Rscript %(tenx_dir)s/R/plot_velocity.R
-                --ncores=%(velocity_ncores)s
-                --rdimstable=%(rdims_table)s
-                --rdim1=%(rdim1)s
-                --rdim2=%(rdim2)s
-                --matrixdir=%(matrixdir)s
-                --minmaxclustavemat=%(velocity_minmaxclustavemat)s
-                --minmaxclustavnmat=%(velocity_minmaxclustavnmat)s
-                --deltat=%(velocity_deltat)s
-                --kcells=%(velocity_kcells)s
-                --fitquantile=%(velocity_fitquantile)s
-                --neighbourhoodsize=%(velocity_neighbourhoodsize)s
-                --velocityscale=%(velocity_velocityscale)s
-                --arrowscale=%(velocity_arrowscale)s
-                --arrowlwd=%(velocity_arrowlwd)s
-                --gridflow=%(velocity_gridflow)s
-                --mingridcellmass=%(velocity_mingridcellmass)s
-                --gridn=%(velocity_gridn)s
-                --cellalpha=%(velocity_cellalpha)s
-                --cellborderalpha=%(velocity_cellborderalpha)s
-                --showaxes=%(velocity_showaxes)s
-                --plotdirvar=velocityDir
-                --plotcex=%(velocity_plotcex)s
-                --outdir=%(outdir)s
-                &> %(log_file)s
-                '''
+    sample = infile.split(".seurat.dir")[0]
+    layers_dir = os.path.join("data.velocity.dir",
+                             sample + ".dir")
 
-    P.run(statement)
+    if not os.path.exists(os.path.join(layers_dir,"exons.mtx.gz")):
+        raise ValueError("dropest output not found. Please check that you "
+                         "have symlinked the .layers directory")
+
+    cluster_assignments = os.path.join(Path(outdir).parents[0],
+                                           "cluster.dir",
+                                           "cluster_assignments.txt.gz")
+
+    job_memory = PARAMS["resources_memory_standard"]
+
+
+    log_file = outfile.replace(".sentinel", ".log")
+    tenx_dir = PARAMS["tenx_dir"]
+
+    runs = { "default": { "method": rdims_vis_method,
+                          "table": rdims_table,
+                          "rdim1": rdim1, "rdim2": rdim2 }}
+
+    if PARAMS["paga_run"]:
+
+        pagafdg_table = os.path.join(Path(outdir).parents[0],
+                                     "paga.dir",
+                                     "paga_init_fa2.txt.gz")
+
+        runs["pagafdg"] = {"method": "paga_fdg",
+                           "table": pagafdg_table,
+                           "rdim1": "FA1", "rdim2": "FA2"}
+
+    statements = []
+
+    for run, details in runs.items():
+
+        r_method, r_tab, r_1, r_2 = details["method"], details["table"], \
+                                    details["rdim1"], details["rdim2"]
+
+        s = '''python %(tenx_dir)s/python/run_scvelo.py
+                   --dropest_dir=%(layers_dir)s
+                   --outdir=%(outdir)s
+                   --cluster_assignments=%(cluster_assignments)s
+                   --cluster_colors=%(cluster_colors)s
+                   --rdim_method=%(r_method)s
+                   --rdims=%(r_tab)s
+                   --rdim1=%(r_1)s
+                   --rdim2=%(r_2)s
+                &> %(log_file)s
+                ''' % locals()
+
+        statements.append(s)
+
+    P.run(statements)
     IOTools.touch_file(outfile)
+
 
 
 # ########################################################################### #
@@ -1249,7 +1346,7 @@ def findMarkers(infile, outfile):
 
     cluster_ids = infile.replace(".sentinel","_ids.rds")
 
-    clusters = pd.read_table(os.path.join(indir, "nclusters.txt"),
+    clusters = pd.read_table(os.path.join(indir, "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -1633,7 +1730,7 @@ def findMarkersBetweenConditions(infile, outfile):
 
     cluster_ids = infile.replace(".sentinel", "_ids.rds")
 
-    clusters = pd.read_table(os.path.join(indir, "nclusters.txt"),
+    clusters = pd.read_table(os.path.join(indir, "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -1937,7 +2034,7 @@ def genesetAnalysis(infiles, outfile):
 
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"),
+                           "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -2006,7 +2103,7 @@ def summariseGenesetAnalysis(infile, outfile):
     # Read clusters
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"),
+                           "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -2084,7 +2181,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
     # Read custers
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"),
+                           "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -2157,7 +2254,7 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
     # Read clusters
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
                            "cluster.dir",
-                           "nclusters.txt"),
+                           "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
@@ -2209,14 +2306,14 @@ def genesets():
 # ########################################################################### #
 
 @follows(clustree,
-         runPaga,
+         paga ,
          plotTSNEPerplexities,
          plotRdimsFactors,
          plotRdimsGenes,
          plotRdimsMarkers,
          diffusionMap,
          plotGroupNumbers,
-         velocity,
+         scvelo,
          knownMarkerViolins)
 def plots():
     '''
@@ -2309,6 +2406,9 @@ def latexVars(infile, outfile):
     velocityDir = os.path.join(runDir,
                                "velocity.dir")
 
+    pagaDir = os.path.join(runDir,
+                               "paga.dir")
+
     # runDir is the directory containing the begin.rds object.
     sampleDir = Path(outdir).parents[1]
 
@@ -2373,6 +2473,7 @@ def latexVars(infile, outfile):
             "rdimsVisDir": "%(rdimsVisDir)s" % locals(),
             "rdimsVisMethod": "%(rdimsVisMethod)s" % locals() ,
             "velocityDir": "%(velocityDir)s" % locals(),
+            "pagaDir": "%(pagaDir)s" % locals(),
             "runName": "%(runName)s" % locals(),
             "runDetails": "%(runDetails)s" % locals(),
             "tenxDir": "%(tenx_dir)s" % PARAMS,
@@ -2512,9 +2613,14 @@ def summaryReport(infile, outfile):
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/diffusionSection.tex
         '''
 
+    if(PARAMS["paga_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/pagaSection.tex
+        '''
+
     if(PARAMS["velocity_run"]):
         statement += '''
-         \\input %(tenx_dir)s/pipelines/pipeline_seurat/velocitySection.tex
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloSection.tex
         '''
 
     if(PARAMS["knownmarkers_run"]):

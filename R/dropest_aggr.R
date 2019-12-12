@@ -57,6 +57,7 @@ all_mat <- list()
 
 emat_names <- c()
 nmat_names <- c()
+smat_names <- c()
 cell_names <- c()
 for(sample_id in samples$sample_id)
 {
@@ -69,25 +70,28 @@ for(sample_id in samples$sample_id)
     rownames(emat) <- paste0("ex_", rownames(emat))
 
     nmat <- m$intron
-
     rownames(nmat) <- paste0("in_", rownames(nmat))
 
+    smat <- m$spanning
+    rownames(smat) <- paste0("sp_", rownames(smat))
 
     if(colnames(emat)!=colnames(nmat)) { stop("This is not expected.") }
 
 
-    all_mat[[sample_id]] <- rbind(emat,nmat)
+    all_mat[[sample_id]] <- rbind(emat,nmat,smat)
+
     colnames(all_mat[[sample_id]]) <- paste(colnames(all_mat[[sample_id]]),
                                             samples[sample_id,"agg_id"],
                                             sep="-")
 
     emat_names <- unique(c(emat_names, rownames(emat)))
     nmat_names <- unique(c(nmat_names, rownames(nmat)))
+    smat_names <- unique(c(smat_names, rownames(smat)))
 
     cell_names <- c(cell_names, colnames(all_mat[[sample_id]]))
 }
 
-gene_names <- c(emat_names, nmat_names)
+gene_names <- c(emat_names, nmat_names, smat_names)
 
 results <- Matrix(data=0,
                   length(gene_names),

@@ -123,17 +123,30 @@ if(is.null(opt$predefined))
 
 
 
-nclusters <- sort(unique(cluster_ids))
+unique_cluster_ids <- sort(unique(cluster_ids))
 
-message(sprintf("write"))
-write.table(nclusters, file=file.path(opt$outdir,"nclusters.txt"),
+message(sprintf("saving a unique list ofe cluster ids"))
+write.table(unique_cluster_ids, file=file.path(opt$outdir,"cluster_ids.txt"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
+
+cluster_colors <- gg_color_hue(length(unique_cluster_ids))
+message(sprintf("saving the cluster colors (ggplot)"))
+write.table(cluster_colors, file=file.path(opt$outdir,"cluster_colors.txt"),
+            quote=FALSE, col.names = FALSE, row.names = FALSE)
+
 message(sprintf("saveRDS"))
 saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
-cluster_ids_df <- data.frame(barcodes=as.character(names(cluster_ids)), cluster_id=as.character(cluster_ids))
-cluster_ids_df$barcodes <- as.character(cluster_ids_df$barcodes)
-cluster_ids_df$cluster_id <- as.character(cluster_ids_df$cluster_id)
-saveRDS(cluster_ids_df, file=file.path(opt$outdir,"cluster_ids_df.rds"))
+
+cluster_assignments <- data.frame(barcodes=as.character(names(cluster_ids)),
+                                  cluster_id=as.character(cluster_ids), as.is=T)
+
+write.table(cluster_assignments,
+            gzfile(file.path(opt$outdir, "cluster_assignments.txt.gz")),
+            sep="\t", col.names=T, row.names=F, quote=F)
+
+# cluster_ids_df$barcodes <- as.character(cluster_ids_df$barcodes)
+# cluster_ids_df$cluster_id <- as.character(cluster_ids_df$cluster_id)
+# saveRDS(cluster_ids_df, file=file.path(opt$outdir,"cluster_ids_df.rds"))
 
 ## Visualise the relationship between the clusters.
 

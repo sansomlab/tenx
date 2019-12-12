@@ -4,8 +4,16 @@
 \alias{plotVolcano}
 \title{Make an volcano-style plot}
 \usage{
-plotVolcano(data, xlab = "xlab", ylab = "ylab", m_col = "M",
-  a_col = "A", p_col = "p.adj", top_col = "top", label_col = "gene")
+plotVolcano(
+  data,
+  xlab = "xlab",
+  ylab = "ylab",
+  m_col = "M",
+  a_col = "A",
+  p_col = "p.adj",
+  top_col = "top",
+  label_col = "gene"
+)
 }
 \arguments{
 \item{data}{Matrix or dataframe}

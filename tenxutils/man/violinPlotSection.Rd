@@ -4,10 +4,20 @@
 \alias{violinPlotSection}
 \title{Make a latex section containing a set of violin plots}
 \usage{
-violinPlotSection(data, seurat_object, cluster_ids, type = "positive",
-  group.by = opt$testfactor, ident.include = opt$identinclude,
-  ncol = ncol, outdir = opt$outdir, analysis_title = "violin plots",
-  fc_type = "fold change", use.minfc = FALSE)
+violinPlotSection(
+  data,
+  seurat_object,
+  cluster_ids,
+  type = "positive",
+  group.by = opt$testfactor,
+  ident.include = opt$identinclude,
+  ncol = ncol,
+  outdir = opt$outdir,
+  analysis_title = "violin plots",
+  fc_type = "fold change",
+  plot_dir_var = "plotsDir",
+  use.minfc = FALSE
+)
 }
 \arguments{
 \item{data}{The data}

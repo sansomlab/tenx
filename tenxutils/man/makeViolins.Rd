@@ -4,8 +4,16 @@
 \alias{makeViolins}
 \title{Function to draw a block of horizontal violin lots}
 \usage{
-makeViolins(ggData, title = NULL, ncol = 8, group = NULL, colors = NULL,
-  alpha = 1, clusters = NULL, xlab = NULL)
+makeViolins(
+  ggData,
+  title = NULL,
+  ncol = 8,
+  group = NULL,
+  colors = NULL,
+  alpha = 1,
+  clusters = NULL,
+  xlab = NULL
+)
 }
 \arguments{
 \item{ggData}{melted dataframe ready for plotting}

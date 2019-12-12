@@ -932,7 +932,7 @@ writeTex(tex_file, tex)
 # perform PCA using the variable genes
 s <- RunPCA(s,
             pc.genes=VariableFeatures(object = s),
-            pcs.compute=50,
+            npcs=100,
             do.print=FALSE)
 
 n_cells_pca <- min(1000, length(colnames(x = s)))

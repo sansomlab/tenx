@@ -4,8 +4,16 @@
 \alias{plotMA}
 \title{Make an MA-style plot}
 \usage{
-plotMA(data, xlab = "xlab", ylab = "ylab", m_col = "M", a_col = "A",
-  p_col = "p.adj", top_col = "top", label_col = "gene")
+plotMA(
+  data,
+  xlab = "xlab",
+  ylab = "ylab",
+  m_col = "M",
+  a_col = "A",
+  p_col = "p.adj",
+  top_col = "top",
+  label_col = "gene"
+)
 }
 \arguments{
 \item{data}{Matrix or dataframe}
