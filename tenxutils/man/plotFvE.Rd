@@ -4,9 +4,15 @@
 \alias{plotFvE}
 \title{Make a plot of frequency versus expression level}
 \usage{
-plotFvE(data, p_col = "p.adj", label_col = "gene", m_col = "M",
-  freq_col = "L", xlab = "change in expression (log2)",
-  ylab = "change in frequency (log2)")
+plotFvE(
+  data,
+  p_col = "p.adj",
+  label_col = "gene",
+  m_col = "M",
+  freq_col = "L",
+  xlab = "change in expression (log2)",
+  ylab = "change in frequency (log2)"
+)
 }
 \arguments{
 \item{data}{Matrix or dataframe}

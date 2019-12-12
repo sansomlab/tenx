@@ -4,8 +4,15 @@
 \alias{save_plots}
 \title{Wrapper function for saving base R plots in both pdf and png format}
 \usage{
-save_plots(filepath = NULL, plot_fn = NULL, width = 6, height = 8,
-  res = 300, to_pdf = TRUE, to_png = TRUE)
+save_plots(
+  filepath = NULL,
+  plot_fn = NULL,
+  width = 6,
+  height = 8,
+  res = 300,
+  to_pdf = TRUE,
+  to_png = TRUE
+)
 }
 \arguments{
 \item{filepath}{The name of the file to write to (without .pdf or .png extension)}
