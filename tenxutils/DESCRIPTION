@@ -6,4 +6,4 @@ Author: Steve Sansom
 Maintainer: Steve Sansom <stephen.sansom@kennedy.ox.ac.uk>
 Description: Contains utility functions for Rscripts in the tenx pipelines
 License: GPL-2
-RoxygenNote: 6.0.1
+RoxygenNote: 7.0.0

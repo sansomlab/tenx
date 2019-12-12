@@ -4,11 +4,22 @@
 \alias{plotViolins}
 \title{Function to make sets of violin plots.}
 \usage{
-plotViolins(data, seurat_object, cluster_ids, type = "positive",
-  group.by = NULL, ident.include = NULL, ncol = ncol, use.minfc = FALSE,
-  minfc_col = "min_logFC", maxfc_col = "max_logFC",
-  avgfc_col = "avg_logFC", m_col = "avg_logFC", p_col = "p.adj",
-  id_col = "gene")
+plotViolins(
+  data,
+  seurat_object,
+  cluster_ids,
+  type = "positive",
+  group.by = NULL,
+  ident.include = NULL,
+  ncol = ncol,
+  use.minfc = FALSE,
+  minfc_col = "min_logFC",
+  maxfc_col = "max_logFC",
+  avgfc_col = "avg_logFC",
+  m_col = "avg_logFC",
+  p_col = "p.adj",
+  id_col = "gene"
+)
 }
 \arguments{
 \item{data}{The data}

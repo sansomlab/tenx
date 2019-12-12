@@ -4,7 +4,7 @@
 \alias{writeMatrix}
 \title{Write count data in the 10x format, with additional metadata}
 \usage{
-writeMatrix(dir, matrix, barcodes, gene_tsv_file, metadata)
+writeMatrix(dir, matrix, barcodes, features_tsv_file, metadata, gzip = TRUE)
 }
 \arguments{
 \item{dir}{Path to the output directory.
@@ -15,9 +15,11 @@ writeMatrix(dir, matrix, barcodes, gene_tsv_file, metadata)
 \item{barcodes}{A character vector of cell barcodes,
 one per column of \code{x}.}
 
-\item{gene_tsv_file}{The path to the original genes.tsv file.}
+\item{features_tsv_file}{The path to the original features tsv file.}
 
-\item{metadata}{Table of cell metadata.
+\item{metadata}{Table of cell metadata.}
+
+\item{gzip}{Should the output files be compresssed?
 Includes \code{c("code", "agg_id", "barcode", "seq_id", "sample_id"}
 and any metadata encoded in the sample file names.}
 }

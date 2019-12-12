@@ -4,9 +4,18 @@
 \alias{plotHorizontalViolins}
 \title{Make a plot (or return a grob) of a set of horizontal violin plots from a seurat object.}
 \usage{
-plotHorizontalViolins(seurat_object, genes, clusters = NULL, title = NULL,
-  ncol = 8, xlab = "normalised expression level", group = NULL,
-  colors = NULL, alpha = 1, plot = TRUE)
+plotHorizontalViolins(
+  seurat_object,
+  genes,
+  clusters = NULL,
+  title = NULL,
+  ncol = 8,
+  xlab = "normalised expression level",
+  group = NULL,
+  colors = NULL,
+  alpha = 1,
+  plot = TRUE
+)
 }
 \arguments{
 \item{seurat_object}{A seurat object.}
