@@ -518,9 +518,9 @@ def runPaga(infile, outfile):
     '''
 
     outdir = os.path.dirname(outfile)
-    
-    print(outdir) 
-    
+
+    print(outdir)
+
     if not os.path.exists(outdir):
         os.mkdir(outdir)
 
@@ -534,7 +534,7 @@ def runPaga(infile, outfile):
 
     components, resolution, algorithm, test = outdir.split(
         "/")[-2].split("_")
-    
+
     if components == "sig":
         comps = pd.read_table(sigcomps, header=None)
         comps = comps[comps.columns[0]].tolist()
@@ -542,16 +542,16 @@ def runPaga(infile, outfile):
     else :
         comps = list(range (1, int(components)+1))
         comps = ','.join([ str(item) for item in comps])
-        
+
     job_memory = PARAMS["resources_memory_standard"]
-    
+
     log_file = outfile.replace("sentinel","log")
-    
+
     tenx_dir = PARAMS["tenx_dir"]
-    
+
     k = PARAMS["paga_k"]
-    
-    statement = '''python %(tenx_dir)s/python/run_paga.py 
+
+    statement = '''python %(tenx_dir)s/python/run_paga.py
                    --pcs=%(pcs)s
                    --outdir=%(outdir)s
                    --cluster_ids=%(cluster_ids)s
@@ -560,10 +560,10 @@ def runPaga(infile, outfile):
                    --k=%(k)s
                    &> %(log_file)s
                 '''
-    
+
     P.run(statement)
     IOTools.touch_file(outfile)
-    
+
 # ########################################################################### #
 # ############### tSNE analysis and related plots ########################### #
 # ########################################################################### #
@@ -2600,12 +2600,103 @@ def export(infile, outfile):
 
     IOTools.touch_file(outfile)
 
+# ########################################################################### #
+# ############## Generate cellbrowser output for sharing #################### #
+# ########################################################################### #
+
+@active_if(PARAMS["cellbrowser_run"])
+@follows(mkdir("cellbrowser.dir"), summaryReport)
+@transform("data.dir/*.dir",
+           regex(r"data.dir/(.*).dir"),
+           r"cellbrowser.dir/\1/cellbrowser.sentinel")
+def makeCellbrowser(infile, outfile):
+    '''
+    Prepare cellbrowser instance for exploratory analysis or to share with
+    collaborators. A cellbrowser instance is only generated for a defined
+    runspecs configuration and only once per sample.'''
+
+    # read in yml entries
+    samples_specs = [s for s in PARAMS.keys()
+                     if s.startswith("cellbrowser_")]
+    samples_specs = [s for s in samples_specs if not "run" in s]
+
+    # only run if sample ID from job is listed in yml
+    sample_name = infile.split("/")[-1][:-len(".dir")]
+
+    log_file = outfile.replace(".sentinel", ".log")
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    # make cellbrowser if sample is mentioned in yml file
+    if "cellbrowser_"+sample_name in samples_specs:
+        settings_use = PARAMS[str("".join([k for k in samples_specs
+                                           if str(sample_name) in k]))]
+        outdir_settings = os.path.join(outdir, str(settings_use))
+        # set up required subfolders
+        if not os.path.exists(outdir_settings):
+            os.makedirs(outdir_settings)
+        # cellbrowser input files written into following folder
+        outdir_folder = os.path.join(outdir_settings, "infiles")
+        if not os.path.exists(outdir_folder):
+            os.makedirs(outdir_folder)
+
+        seurat_path = sample_name + ".seurat.dir"
+
+        # Rscript to generate input files
+        statement = '''Rscript %(tenx_dir)s/R/cellbrowser_prep.R
+                         --outdir=%(outdir_folder)s
+                         --seurat_path=%(seurat_path)s
+                         --runspecs=%(settings_use)s
+                       &> %(log_file)s
+                      '''
+        P.run(statement)
+
+        # python code to make configuration file
+        out = open(os.path.join(outdir_settings, "cellbrowser.conf"), "w")
+        conf = ""
+        # cannot use projectname from pipeline.yml here as only letters/digits
+        # allowed in name
+        conf += 'name = "seuratPipeline"\n'
+        conf += 'coords = [{"file":"infiles/UMAP.tsv","shortLabel":"UMAP"}]\n'
+        conf += 'shortLabel = "%s"\n' %PARAMS["projectname"]
+        conf += 'exprMatrix = "infiles/exprMatrix.tsv.gz"\n'
+        conf += 'meta = "infiles/meta.tsv"\n'
+        conf += 'enumFields = ["cluster"]\n'
+        conf += 'clusterField = "cluster"\n'
+        conf += 'labelField = "cluster"\n'
+        conf += 'colors = "infiles/colors.tsv"\n'
+        out.write(conf)
+        out.close()
+
+
+        # python code to run cellbrowser
+        cellbrowser_log = os.path.join(outdir_settings,
+                                       "build_cb.log")
+        cellbrowser_conf = os.path.join(outdir_settings, "cellbrowser.conf")
+        outdir_cellbrowser = os.path.join(outdir_settings, "outfiles")
+        statement = '''cbBuild -i %(cellbrowser_conf)s
+                                -o %(outdir_cellbrowser)s
+                                &> %(cellbrowser_log)s '''
+        P.run(statement)
+
+    else:
+        # no cellbrowser for this sample
+        statement = ''' echo "Do not generate cellbrowser"
+                        > %(log_file)s '''
+
+
+    #IOTools.touch_file(outfile)
+
+
+
+
 
 # --------------------------- < report target > ----------------------------- #
 
 # This is the target normally used to execute the pipeline.
 
-@follows(export)
+@follows(export, makeCellbrowser)
 def report():
     pass
 

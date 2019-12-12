@@ -352,7 +352,7 @@ velocity:
 # PAGA parameters
 # ---------------
 
-paga: 
+paga:
   # K is the number of neighbors used to compute the nearest neighbors in scanpy
   k: 20
 
@@ -512,3 +512,14 @@ gmt_celltype_files:
   #
   # xCell: /gfs/mirror/xCell/xCell_entrezID.gmt
   #
+
+
+# Cellbrowser
+# ------------------------------------
+# (Only one cellbrowser instance is generated according to the specified
+# runspecs for each sample)
+cellbrowser:
+  # Whether or not to make cellbrowser
+  run: 0
+  # Specify the folder name for each sample that should be used for cellbrowser
+  # sample1: 25_0.4_1_wilcox

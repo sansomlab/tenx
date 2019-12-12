@@ -2,6 +2,15 @@
 
 * Cellranger (from 10x Genomics) >= version 3
 * Python3
+  * paga
+  * pyreadr
+  * leidenalg
+  * umap-learn
+  * scanpy
+  * python-igraph
+  * louvain
+  * cellbrowser (optional)
+
 * The dropEst pipeline (https://github.com/hms-dbmi/dropEst) for RNA velocity analysis
 * The [cgat-core pipeline system](https://github.com/cgat-developers/cgat-core/) and a compatible queue manager
 * R >= 3.6
@@ -38,4 +47,5 @@
   * velocyto.R (see [INSTALL](INSTALL.md))
   * xtable
   * tenxutils (see [INSTALL](INSTALL.md))
+  * tidyselect
 * Latex
