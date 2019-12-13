@@ -45,4 +45,5 @@
   * scater
   * xtable
   * tenxutils (see [INSTALL](INSTALL.md))
+  * ggalluvial
 * Latex
