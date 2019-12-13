@@ -2258,6 +2258,7 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
+    firstcluster = min(clusters)
 
     # Read memory params
     job_memory = PARAMS["resources_memory_standard"]
@@ -2277,6 +2278,7 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
                          --gmt_names=%(gmt_names)s
                          --show_detailed=%(show_detailed)s
                          --nclusters=%(nclusters)s
+                         --firstcluster=%(firstcluster)s
                          --mingenes=%(genesets_min_fg_genes)s
                          --pvaluethreshold=%(genesets_pvalue_threshold)s
                          --padjustmethod=%(genesets_padjust_method)s

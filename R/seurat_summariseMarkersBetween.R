@@ -161,6 +161,11 @@ saveWorkbook(wb, file=gsub(".txt.gz",".xlsx",out_fn),
 
 ##
 rownames(stats) <- stats$cluster
+
+stats <- stats[order(as.numeric(stats$cluster)),]
+stats$cluster <- factor(stats$cluster,
+                        levels=stats$cluster[order(as.numeric(stats$cluster))])
+
 stats$nde <- 0
 for(cluster in clusters)
 {
@@ -173,6 +178,7 @@ colnames(stats) <- c("cluster",
                      paste0("ncells_",opt$a),
                      paste0("ncells_",opt$b),
                      "n_de_genes")
+
 
 tex_fn <- file.path(
     opt$outdir,
