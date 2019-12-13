@@ -152,6 +152,7 @@ from ruffus import *
 from pathlib import Path
 import sys
 import os
+import re
 import shutil
 import glob
 import sqlite3
@@ -318,8 +319,6 @@ def beginSeurat(infile, outfile):
                 '''
 
     P.run(statement)
-
-
 
 # ########################################################################### #
 # ############ Begin per-parameter combination analysis runs ################ #
@@ -510,6 +509,38 @@ def clustree(infile, outfile):
 # ################################ #
 
 @active_if(PARAMS["paga_run"])
+@follows(beginSeurat)
+@transform("*.seurat.dir/begin.rds",
+           regex(r"(.*)/begin.rds"),
+           r"\1/paga_input.sentinel")
+def pagaPrepareInput(infile, outfile):
+    '''
+    '''
+    seurat_obj = infile
+    outdir = os.path.dirname(outfile)
+    log_file = outfile.replace("sentinel","log")
+    reductiontype = PARAMS["dimreduction_method"]
+    
+    if bool(re.search("sig", PARAMS["runspecs_n_components"])) : 
+        comp="--usesigcomponents=TRUE"
+    else :
+        comp="--usesigcomponents=FALSE"
+    
+    statement = '''Rscript %(tenx_dir)s/R/paga_prepare_input.R
+                   --seuratobject=%(seurat_obj)s
+                   --reductiontype=%(reductiontype)s
+                   --outdir=%(outdir)s
+                   %(comp)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+
+    IOTools.touch_file(outfile)
+    
+
+@active_if(PARAMS["paga_run"])
+@follows(pagaPrepareInput)
 @transform(cluster,
            regex(r"(.*)/cluster.dir/cluster.sentinel"),
            r"\1/paga.dir/paga.sentinel")
@@ -519,8 +550,6 @@ def paga(infile, outfile):
     '''
 
     outdir = os.path.dirname(outfile)
-
-    print(outdir)
 
     if not os.path.exists(outdir):
         os.mkdir(outdir)
@@ -534,13 +563,13 @@ def paga(infile, outfile):
                                   "cluster_colors.txt")
 
     seurat_dir = Path(outdir).parents[1]
-    pcs = os.path.join(seurat_dir, "pcs.tsv.gz")
-    sigcomps = os.path.join(seurat_dir, "sig_comps.txt")
+    reduced_dims_matrix_file = os.path.join(seurat_dir, "reduced_dims.tsv.gz")
 
     components, resolution, algorithm, test = outdir.split(
         "/")[-2].split("_")
 
     if components == "sig":
+        sigcomps = os.path.join(seurat_dir, "sig_comps.txt")
         comps = pd.read_table(sigcomps, header=None)
         comps = comps[comps.columns[0]].tolist()
         comps = ','.join([ str(item) for item in comps])
@@ -557,7 +586,7 @@ def paga(infile, outfile):
     k = PARAMS["paga_k"]
 
     statement = '''python %(tenx_dir)s/python/run_paga.py
-                   --pcs=%(pcs)s
+                   --reduced_dims_matrix_file=%(reduced_dims_matrix_file)s
                    --outdir=%(outdir)s
                    --cluster_assignments=%(cluster_assignments)s
                    --cluster_colors=%(cluster_colors)s
@@ -2306,7 +2335,7 @@ def genesets():
 # ########################################################################### #
 
 @follows(clustree,
-         paga ,
+         paga,
          plotTSNEPerplexities,
          plotRdimsFactors,
          plotRdimsGenes,
