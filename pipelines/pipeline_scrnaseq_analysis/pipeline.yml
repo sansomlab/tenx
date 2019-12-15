@@ -1,0 +1,529 @@
+#
+# Pipeline pipeline_seurat.py configuration file
+# ==============================================
+#
+
+# General options
+# ---------------
+
+# Project name
+projectname: 10x single cell analysis
+
+# Author
+author: Sansom group
+
+
+# compute resource options
+# ------------------------
+resources:
+  # Number of cores used for parallel jobs
+  # (ScaleData and JackStraw)
+  numcores: 12
+
+  # Memory options for the different steps
+  # Memory_low is used for tasks: velocity,
+  # characteriseClusterMarkers*, plotMarkerNumbers*,
+  # clustree, plotTSNEPerplexities, getGenesetAnnotation,
+  # aggregateUMIsPseudobulks
+  memory_low: 10G
+  # Memory_standard is used if not further specified
+  memory_standard: 20G
+  # Memory_high is used for tasks: findMarkers, summariseMarkers,
+  # diffusionMap
+  memory_high: 50G
+
+
+# Gene annotations
+# ----------------
+
+annotation:
+    # Species
+    # Used to obtain gene annotations for gene set analyses
+    # Choices: 'hs' (for human) | 'mm' (for mouse)
+    species: hs
+
+    # Release of Ensembl gene annotations
+    # Choices: 'latest' or a specific number, e.g. 89,90 etc
+    ensembl_release: latest
+
+    # The ensembl host to use
+    # When set to "default" the default host of the biomaRt package will be used.
+    # The default biomaRt host is currently "www.ensembl.org".
+    # If the default host is down try e.g. "uswest.ensembl.org" or "useast.ensembl.org"
+    ensembl_host: default
+
+# Pre-run subsetting (optional)
+# -----------------------------
+
+subset:
+    # Type of subsetting strategy.
+    # Choices: 'True|'False'
+    # If 'type: 'whitelist', specify the location of sample-specific
+    # header-less text files containing the identifier of cells to retain (1 per line).
+    # To retain all the cells for a sample use the string "use.all"
+    whitelist: False
+
+    sample_one: /path/to/sample_one_cells_to_keep.txt
+    sample_two: use.all
+    sample_three: stimulated
+
+    # Subset by a categorical metadata factor
+    # Choices: 'none' or the name of a column in the metadata.tsv
+    factor: none
+    level: none
+
+    # Cells present in the blacklist will be removed
+    # Choices: none or path to headerless barcode file
+    blacklist: none
+
+
+# Run specifications
+# ------------------
+# - Parameters in "runspecs" accept comma separated lists of arguments
+# - All combinations of these parameters will be run.
+
+
+# QC parameters
+# -------------
+
+qc:
+    # A column in metadata.tsv by which cells will be grouped for
+    # QC plots, and (if enabled) downsampling
+    groupby: sample_id
+    ## Creation of the Seurat object (see ?CreateSeuratObject)
+    # Include cells where at least this many genes are detected.
+    initial_mingenes: 200
+    # Include genes with detected expression in at least this many cells.
+    mincells: 3
+    ## QC Filtering of the Seurat object (see ?FilterCells)
+    # Retain cells where at least this many genes are detected
+    mingenes: 500
+    # Retain cells that have the given minimum proportion of UMI assiged to mitochondrial genes
+    # can be used to filter out contaminating nuclei from lysed cells
+    minpercentmito: 0
+    # Retain cells where at most this proportion of UMI are assigned to mitochondrial genes
+    # Note that the default 5% (0.05) can be excessively stringent in some cases
+    maxpercentmito: 0.05
+    # Retain cells that have less than the given UMI maximum count. This would remove very large
+    # cells with an unusually high UMI count. This threshold is not active by default
+    maxcount: none
+    # Whether to downsample to a common number of cells
+    # Choices: False|True
+    downsamplecells: False
+    # Seed to use for downsampling
+    # Either "none" or an integer.
+    seed: none
+
+
+
+runspecs:
+    # Number(s) of components for initial dimensions reduction
+    # (see Seurat::FindClusters)
+    #
+    # To use automatically identified significant pca components
+    # use "sig" (this uses BH adjusted p-values from the JackStraw analysis).
+    #
+    # Note. Use of sig is not recommended with sctransform as it typically
+    #       only identifies a very small number components. In fact, the
+    #       authors of sctransform recommend using a larger number of
+    #       components (see: https://satijalab.org/seurat/v3.1/sctransform_vignette.html,
+    #       where they recommend 30 for PBMC 3k dataset vs only 10 for log norm).
+
+    n_components: 20,30,50
+
+    # Clustering resolution(s)
+    # (see Seurat::FindClusters)
+    cluster_resolutions: 0.6,1
+
+    # Clustering algorithm(s)
+    # (see Seurat::FindClusters)
+    # 1 = louvain, 4 = leiden
+    cluster_algorithms: 1,4
+
+
+    # Differential expression testing method(s)
+    # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
+    de_tests: wilcox
+
+    # To manually specify cluster assignments set to True
+    # - Manual cluster assignmets should be provided as sample_name.cluster_ids.rds file(s)
+    # - one per sample must be present in the run directory
+    # - the .rds files should contained a name vector of cell barcodes (names) and clusters (values)
+    predefined_clusters: False
+
+    # Runs to skip (comma separated list of subfolders within each sample directory)
+    skip:
+
+
+
+# Normalization
+# -------------
+
+normalization:
+  # Choose between standard "log-normalization" or newer "sctransform"
+  method: sctransform
+
+
+
+# Regression parameters
+# ---------------------
+
+cellcycle:
+
+  # If lists of cell cycle genes are supplied
+  # cycle-cycle effects will be visualised by the pipeline.
+  # The lists will also be used for regression if specified below.
+  #
+  # > mouse cell cycle genes >
+  #
+  # sgenes: /gfs/archive/sansom/datasets/cell_cycle/mouse/s_genes.txt
+  # g2mgenes: /gfs/archive/sansom/datasets/cell_cycle/mouse/g2m_genes.txt
+  #
+  # > human cell cycle genes >
+  #
+  # sgenes: /gfs/archive/sansom/datasets/cell_cycle/human/wang.g1-s.txt
+  # g2mgenes: /gfs/archive/sansom/datasets/cell_cycle/human/wang.g2-m.txt
+
+  sgenes: none
+  g2mgenes: none
+
+
+regress:
+    ## Removal of unwanted variation (see Seurat::ScaleData)
+    # Latent variables to regress out e.g. nCount_RNA, percent.mito
+    # - note that if sctransform is used the no. umis will be corrected
+    #   (sctransform param do.correct.umi=TRUE), so regression of
+    #    nCount_RNA is unnessecary (see e.g.
+    #    https://github.com/satijalab/seurat/issues/1739)
+    latentvars: percent.mito
+    # Model used to regress out latent variables
+    # Choices: 'linear'|'poisson'|'negbinom'
+    modeluse: linear
+    # see http://satijalab.org/seurat/cell_cycle_vignette.html
+    # Choices: 'none'|'all'|'difference'
+    # - Use "all" to regress out all cell cycle effects.
+    # - Use "difference" to regress out the difference between G2M and S phase scores
+    # (i.e. the Alternate Workflow in the link above)
+    cellcycle: none
+
+
+# Variable gene identification parameters
+# ---------------------------------------
+
+vargenes:
+    # Either "mean.var.plot" or "dispersion" or "trendvar"
+    # use of trendvar is recommended and requires the
+    # bioconductor packages "scran" and "scater"
+    method: trendvar
+    #
+    # options for mean.var.plot method
+    # --------------------------------
+    # Bottom cutoff on y-axis for identifying variable genes (see y.cutoff=...)
+    sdcutoff: 1
+    # Bottom cutoff on x-axis for identifying variable genes (see x.low.cutoff=...)
+    xlowcutoff: 0.1
+    # Top cutoff on x-axis for identifying variable genes (see x.high.cutoff=...)
+    xhighcutoff: 8
+    #
+    # options for dispersion method
+    # -----------------------------
+    # The number of top genes
+    topgenes: 1000
+    #
+    # options for trendvar method
+    # ---------------------------
+    # Implementation experimental, use at own risk!
+    # threshold for identification of genes with significant biological variation
+    padjust: 0.05
+    # Minimum average expression for inclusion as a variable gene
+    # It is has been recommeded to leave this at 0 to allow identification of weak signals
+    # from rare cell types. Equivalent to "xlowcutoff" for seurat.
+    minmean: 0.01
+
+# Dimension reduction parameters
+# ------------------------------
+
+dimreduction:
+    ## Determine statistical significance of PCA scores (see seurat_jackstraw.R)
+    # Number of replicate samplings to perform (see Seurat::JackStraw)
+    jackstraw_n_replicate: 100
+    # Type of dimensionality reduction to use for clustering and t-SNE
+    # (see Seurat::FindClusters, Seurat::RunTSNE)
+    # Choices: 'pca'|'ica'
+    method: pca
+    # Projection method used for visualisation (umap is recommended)
+    # Choices: 'umap'|'tsne'
+    visualisation: umap
+
+
+# Clustering parameters
+# ---------------------
+cluster:
+  # The number of neighbors to use when constructing the nearest neighbor graph
+  # - it is recommended to match the value chosen for UMAP
+  nneighbors: 20
+
+  # By default Seurat will use the RANN package to build the nearest-neighbor
+  # graph before clustering. This package uses the euclidean (L2) metric.
+
+# Plotting parameters
+# -------------------
+
+plot:
+    # Groups to be visualised in tSNE/bar plots
+    # e.g. 'genotype,cluster'
+    # 'cluster' is automatically added if not specified.
+    groups: cluster
+    # Subgroup used to break down the bar plots and cell counts.
+    # Note that it also visualised in t-SNE plots and marker heatmaps
+    subgroup:
+    # QC variable to be visualised on the tSNE plot
+    qcvars: nCount_RNA,percent.mito
+    # Column in metadata.tsv represented by the shape of data points
+    shape:
+    # Opacity of data points
+    pointalpha: 0.8
+    # Size of data points
+    pointsize: 0.5
+
+
+# tSNE parameters
+# ---------------
+
+tsne:
+  # Specify up to 9 different values of the perplexity parameters to test
+  # Only values strictly less than `floor(ncells/5)` will be considered
+  perplexities: 5,10,20,30,50,100
+  # A single perplexity value used for downstream plotting and analysis
+  perplexity: 30
+  maxiter: 10000
+  # Choices: True|False
+  fast: True
+
+
+# UMAP parameters
+# ----------------
+
+umap:
+  # method: umap-learn (to use the python implementation) or uwot (R)
+  # See: https://jlmelville.github.io/uwot/pycompare
+  # umap-learn has superior performance but requires the python package,
+  # which can be achieved with "pip install umap-learn"
+  # Choices: umap-learn|uwot
+  method: umap-learn
+  # number of neighboring points used for local approximation of the manifold
+  # structure. In scanpy the default is 15, in seurat it is 30
+  nneighbors: 20
+  # how tightly the embedding is allowed to compress points together
+  # the seurat default is 0.3, in scanpy it is 0.5, in umap-learn 0.1.
+  mindist: 0.5
+  # the choice of metric used to measure distance in the input space
+  # Seurat defaults to cosine, scanpy to euclidean
+  # Choices include: cosine|correlation|euclidean
+  metric: euclidean
+  # seed: either a number or NULL for no seed
+  seed: 42
+  # epochs
+  # seurat varies this between 200-500, scanpy sets to 500
+  # Choices NULL (Seurat will set automatically) | int
+  nepochs: 500
+
+# Diffusion map parameters
+# ------------------------
+
+diffusionmap:
+  run: False
+  # if usegenes is set to True, the significantly variable genes are used
+  # instead of the reduced dimensions - slower but may give better
+  # results.
+  usegenes: False
+  maxdim: 10
+
+# RNA Velocity
+# ------------
+
+velocity:
+  run: False
+
+  ncores: 8
+  minmaxclustavemat: 0.2
+  minmaxclustavnmat: 0.05
+  deltat: 1
+  kcells: 15
+  fitquantile: 0.02
+  neighbourhoodsize: 100
+  velocityscale: log
+  arrowscale: 3
+  arrowlwd: 1.3
+  gridflow: TRUE
+  mingridcellmass: 0.5
+  gridn: 40
+  cellalpha: 1
+  cellborderalpha: 0.5
+  showaxes: TRUE
+  plotcex: 1
+
+# PAGA parameters
+# ---------------
+
+paga:
+  run: True
+  # K is the number of neighbors used to compute the nearest neighbors in scanpy
+  k: 20
+
+# Known marker genes
+# ------------------
+
+knownmarkers:
+  run: False
+  # Sets of genes that are specified here will be included in the
+  # main report as violin plots.
+  #
+  # tab-delimited .txt files with columns:
+  # gene_id, gene_name, group
+  file:
+
+# FindMarkers parameters
+# ----------------------
+
+findmarkers:
+    ## Differential expression parameters (see Seurat::FindMarkers)
+    # Limit testing to genes which show, on average, at least X-fold difference
+    # (see logfc.threshold=...)
+    threshuse: 0.25
+    # Only test genes that are detected in a minimum fraction of min.pct cells
+    # (see min.pct=...)
+    minpct: 0.1
+    #
+    # Within-cluster differential expression (optional)
+    # ------------------------------------------------
+    # Whether to perform within-cluster DE analysis
+    # Choices: False|True
+    between: False
+
+    # Column in metadata.tsv that contains the factor
+    # for within-cluster differential expression analysis, e.g.
+    # testfactor: genotype
+    between_testfactor: genotype
+
+    # Names of the two levels to compare
+    # Note that 'a' is the numerator, 'b' the denominator of fold-changes, e.g.
+    # between_a: knockout
+    # between_b: wildtype
+    between_a: knockout
+    between_b: wildtype
+
+    # Conserved cluster marker identification (optional)
+    # -------------------------------------------------
+    # Identify conserved cluster markers
+    conserved: False
+
+    # Set the below to a colname in seurat@metadata
+    # to find cluster markers that are conserved
+    # across all levels of this factor
+    conserved_factor: stim
+
+    conserved_padj: 0.05
+
+    # Conserved differential expression between conditions  (optional)
+    # ---------------------------------------------------------------
+
+    # Identify conserved differences between conditions (within-cluster)
+    conserved_between: False
+
+    # Set the below to a colname in seurat@metadata
+    # to find gene expression differences that are conserved
+    # between condition across all levels of this factor
+    # (it should be orthogonal to "between_testfactor")
+    conserved_between_factor: none
+
+    conserved_between_padj: 0.05
+
+
+# Gene expression report options
+# ------------------------------
+
+exprsreport:
+
+   # Count of up-regulated markers to represent in tSNE plots for each cluster
+    n_positive: 50
+    # Count of down-regulated markers to represent in tSNE plots for each cluster
+    n_negative: 25
+
+    # Make plots from user-defined genelists?
+    genelists: False
+
+    # a directory containing manually defined gene lists as
+    # tab-delimited .txt files with columns:
+    # gene_id, gene_name, common_name (common_name is optional)
+    genelist_dir:
+
+
+# Geneset over-representation analysis
+# ------------------------------------
+# (GO categories and KEGG pathways are analysed by default)
+
+genesets:
+  # Marker adjusted p-value threshold for it to be included in the geneset analysis (genesetAnalysis.R)
+  # This value will also be used in the geneset analysis for within cluster DE
+  marker_adjpthreshold: 0.1
+
+  # A method recognised by the R "p.adjust" function
+  # The adjustment is applied to the combined results from
+  # all of the clusters.
+  padjust_method: BH
+
+  # Should the adjusted p-value be used for producing the
+  # summary heatmaps?
+  use_adjusted_pvalues: True
+
+  # The p-value threshold to be used for producing the
+  # summary heatmaps.
+  pvalue_threshold: 0.05
+
+  # The minimum odds ratio to be used for inclusion in the
+  # plots
+  min_odds_ratio: 1.5
+
+  # The minimum number of over-represented genes for
+  # inclusion in the plots
+  min_fg_genes: 3
+
+  # Should genesets significantly enriched in all clusters
+  # be shown in the summary heatmaps?
+  show_common: True
+
+  # Make per-cluster geneset plots where genesets are
+  # clustered by over-represented genes
+  # either "none" or a comma-separated list of geneset names
+  show_detailed: GO.BP
+
+gmt_pathway_files:
+
+  # Arbitrary genesets can be specified here using gmt files.
+  # the key is taken as the set name, and the value as the path to the gmt file, i.e.
+  # set_name: gmt_file_path
+  #
+  # note that the below files are species and site specific
+  #
+  # > human msigdb sets >
+  #
+  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.gmt
+  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.reactome.v6.1.entrez.gmt
+  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.gmt
+  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.gmt
+  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.gmt
+  #
+  # > mouse msigdb sets >
+  #
+  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.mouse.gmt
+  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.reactome.v6.1.entrez.mouse.gmt
+  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.mouse.gmt
+  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.mouse.gmt
+  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.mouse.gmt
+
+gmt_celltype_files:
+  # > human cell types >
+  #
+  # xCell: /gfs/mirror/xCell/xCell_entrezID.gmt
+  #

@@ -1,0 +1,131 @@
+# The location of the input 10x matrix
+tenxdir:
+
+# Project name
+project: 
+
+#location for the ouput files
+outdir: NULL 
+# $metadata, string, path to file containing the cell metadata ("barcode" column
+#   must be present)
+# $groupby, string, The name of a column in the metadata table by which to group'
+#   samples (e.g. sample_id)
+# $mingenes, integer, default=200
+# $mincells, integer, default=3, Include genes with detected expression in at 
+#   least this many cells.See Seurat::CreateSeuratObject(min.cells=...)."
+# $downsamplecells, boolean, default=FALSE, Whether to randomly downsample cells 
+#   so that each group has the sample number of cells."
+# $seed, integer, default=NULL, The seed (an integer) to use when down sampling 
+#   the cells
+# $qcmingenes,integer,default=500, Minimal count of genes detected to retain a 
+#   cell. See Seurat::FilterCells(subset.names='nGene', low.thresholds= ...)
+# $qcminpercentmito, double, default=-Inf, Minimum percentage of UMI assigned 
+#   to mitochondrial genes. See Seurat::FilterCells(subset.names='percent.mito', 
+#   low.thresholds= ...)
+# $qcmaxpercentmito", double, default=0.05, Maximal percentage of UMI assigned
+#   to mitochondrial genes.", See Seurat::FilterCells(subset.names = 
+#   'percent.mito', high.thresholds= ...)
+# $qcmaxcount, integer, default=NULL, Max nCount_RNA to retain a cell
+normalizationmethod"),
+        default="log-normalization",
+        help="The normlization method to use"
+
+latentvars"),
+        default="nUMI,percent.mito",
+        help=paste(
+            "Latent variables to regress out.",
+            "See Seurat::ScaleData(vars.to.regress=..., model.use=opt$modeluse)"
+
+modeluse"),
+        default="linear",
+        help=paste(
+            "Model used to regress out latent variables.",
+            "See Seurat::ScaleData(model.use=opt$modeluse)"
+vargenesmethod"),
+        default="mean.var.plot",
+        help=paste(
+            "Method for variable gene selection.",
+            "Either top.genes or mean.var.plot"
+topgenes"),
+        type="integer",
+        default=1000,
+        help=paste(
+            "Number of highly variable genes to retain"
+sdcutoff"),
+        type="double",
+        default=0.5,
+        help=paste(
+            "Bottom cutoff on y-axis for identifying variable genes.",
+            "See Seurat::FindVariableFeatures(y.cutoff=...)"
+xlowcutoff"),
+        type="double",
+        default=0.1,
+        help=paste(
+            "Bottom cutoff on x-axis for identifying variable genes",
+            "See Seurat::FindVariableFeatures(x.low.cutoff=...)"
+xhighcutoff"),
+        type="double",
+        default=8,
+        help=paste(
+            "Top cutoff on x-axis for identifying variable genes",
+            "See Seurat::FindVariableFeatures(x.low.cutoff=...)"
+minmean"),
+        type="double",
+        default=0,
+        help=paste(
+            "minimum mean of log counts when using trendvar method"
+vargenespadjust"),
+        type="double",
+        default=0.05,
+        help=paste(
+            "significance threshold for trendvar method"
+subsetcells"),
+        default="use.all",
+        help=paste(
+            "A file containing the list of barcode ids to retain",
+            "(no header, 1 per line)."
+subsetfactor"),
+        default=NULL,
+        help="A factor specified in metadata.tsv on which to subset"
+subsetlevel"),
+        default="none",
+        help="The desired level of the sub-setting factor"),
+blacklist"),
+        default=NULL,
+        help=paste(
+            "A file containing a list of barcode ids to remove (if present)",
+            "(no header, 1 per line)."
+cellcycle"),
+        default="none",
+        help="type of cell cycle regression to apply (none|all|difference)"
+sgenes"),
+        default="none",
+        help=paste(
+            "A vector of Ensembl gene ids associated with S phases.",
+            "See Seurat::CellCycleScoring(s.genes=...)"
+g2mgenes"),
+        default="none",
+        help=paste(
+            "A vector of Ensembl gene ids associated with G2M phase.",
+            "See Seurat::CellCycleScoring(g2m.genes=...)"
+jackstrawnumreplicates"),
+        type="integer",
+        default=100,
+        help="Number of replicates for the jackstraw analysis"
+numcores"),
+        type="integer",
+        default=12,
+        help="Number of cores to be used for the Jackstraw analysis"
+usesigcomponents"), default=FALSE,
+                help="use significant principle component"),
+components"), type="integer", default=10,
+                help="if usesigcomponents is FALSE, the number of principle components to use"),
+plotdirvar"),
+        default="sampleDir",
+        help="latex var containig plot location"
+    )
+
+
+    )
+
+opt <- parse_args(OptionParser(option_list=option_list))

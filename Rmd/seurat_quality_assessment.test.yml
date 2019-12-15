@@ -1,0 +1,14 @@
+tenxdir: "/gfs/archive/sansom/test_data/pipeline_seurat/irf5/data.dir/all.dir/"
+
+# location for the ouput files
+outdir: "."      
+
+#Path to file containing the cell metadata ("barcode" column must be present) 
+metadata: "/gfs/archive/sansom/test_data/pipeline_seurat/irf5/data.dir/all.dir/metadata.tsv.gz"
+
+# The name of a column in the metadata table by which to group samples 
+# (e.g. sample_id)
+qc_groupby: "genotype"
+
+cellcycle_sgenes: "/gfs/archive/sansom/datasets/cell_cycle/mouse/s_genes.txt"
+cellcycle_g2mgenes: "/gfs/archive/sansom/datasets/cell_cycle/mouse/g2m_genes.txt"
