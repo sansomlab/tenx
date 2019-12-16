@@ -508,14 +508,19 @@ def clustree(infile, outfile):
 # ############# Paga ############# #
 # ################################ #
 
-@active_if(PARAMS["paga_run"])
 @follows(beginSeurat)
 @transform("*.seurat.dir/begin.rds",
            regex(r"(.*)/begin.rds"),
-           r"\1/paga_input.sentinel")
-def pagaPrepareInput(infile, outfile):
+           r"\1/export_for_python.sentinel")
+def exportForPython(infile, outfile):
     '''
+    Export data matrices, embeddings etc for analysis with
+    python (e.g. with scanpy).
+
+    When Seurat is fully loom compliant we may simply switch
+    to storing the Seurat results in .loom rather than .rds
     '''
+
     seurat_obj = infile
     outdir = os.path.dirname(outfile)
     log_file = outfile.replace("sentinel","log")
@@ -526,9 +531,20 @@ def pagaPrepareInput(infile, outfile):
     else :
         comp="--usesigcomponents=FALSE"
 
-    statement = '''Rscript %(tenx_dir)s/R/paga_prepare_input.R
+    export_counts = "FALSE"
+    export_data = "FALSE"
+
+    if PARAMS["phate_active"]:
+        export_scaled_data = "TRUE"
+    else:
+        export_scaled_data = "FALSE"
+
+    statement = '''Rscript %(tenx_dir)s/R/export_for_python.R
                    --seuratobject=%(seurat_obj)s
                    --reductiontype=%(reductiontype)s
+                   --counts=%(export_counts)s
+                   --data=%(export_data)s
+                   --scaled=%(export_scaled_data)s
                    --outdir=%(outdir)s
                    %(comp)s
                    &> %(log_file)s
@@ -540,13 +556,14 @@ def pagaPrepareInput(infile, outfile):
 
 
 @active_if(PARAMS["paga_run"])
-@follows(pagaPrepareInput)
+@follows(exportForPython)
 @transform(cluster,
            regex(r"(.*)/cluster.dir/cluster.sentinel"),
            r"\1/paga.dir/paga.sentinel")
 def paga(infile, outfile):
     '''
-
+       Run partition-based graph abstraction (PAGA)
+       see: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1663-x
     '''
 
     outdir = os.path.dirname(outfile)
@@ -563,7 +580,13 @@ def paga(infile, outfile):
                                   "cluster_colors.txt")
 
     seurat_dir = Path(outdir).parents[1]
-    reduced_dims_matrix_file = os.path.join(seurat_dir, "reduced_dims.tsv.gz")
+
+    reductiontype = PARAMS["dimreduction_method"]
+    reduced_dims_matrix_file = os.path.join(seurat_dir,
+                                            "embedding." + reductiontype + ".tsv.gz")
+
+    barcode_file = os.path.join(seurat_dir,
+                                  "barcodes.txt.gz")
 
     components, resolution, algorithm, test = outdir.split(
         "/")[-2].split("_")
@@ -587,6 +610,7 @@ def paga(infile, outfile):
 
     statement = '''python %(tenx_dir)s/python/run_paga.py
                    --reduced_dims_matrix_file=%(reduced_dims_matrix_file)s
+                   --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
                    --cluster_assignments=%(cluster_assignments)s
                    --cluster_colors=%(cluster_colors)s
@@ -597,6 +621,60 @@ def paga(infile, outfile):
 
     P.run(statement)
     IOTools.touch_file(outfile)
+
+
+@active_if(PARAMS["phate_run"])
+@follows(exportForPython)
+@transform(cluster,
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/phate.dir/phate.sentinel")
+def phate(infile, outfile):
+    '''
+       Run the PHATE dimension reduction alogorithm
+       see: https://www.nature.com/articles/s41587-019-0336-3
+    '''
+
+    outdir = os.path.dirname(outfile)
+
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    cluster_assignments = os.path.join(Path(outdir).parents[0],
+                                           "cluster.dir",
+                                           "cluster_assignments.txt.gz")
+
+    cluster_colors = os.path.join(Path(outdir).parents[0],
+                                  "cluster.dir",
+                                  "cluster_colors.txt")
+
+    seurat_dir = Path(outdir).parents[1]
+
+    assay_data = os.path.join(seurat_dir, "assay.scale.data.tsv.gz")
+
+    components, resolution, algorithm, test = outdir.split(
+        "/")[-2].split("_")
+
+    job_memory = PARAMS["resources_memory_standard"]
+
+    log_file = outfile.replace("sentinel","log")
+
+    tenx_dir = PARAMS["tenx_dir"]
+
+    k = PARAMS["phate_k"]
+
+    statement = '''python %(tenx_dir)s/python/run_phate.py
+                   --data=%(assay_data)s
+                   --outdir=%(outdir)s
+                   --cluster_assignments=%(cluster_assignments)s
+                   --cluster_colors=%(cluster_colors)s
+                   --k=%(k)s
+                   --gif=%(phate_gif)s
+                   &> %(log_file)s
+                '''
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
 
 # ########################################################################### #
 # ############### tSNE analysis and related plots ########################### #
@@ -2346,6 +2424,7 @@ def genesets():
          plotRdimsGenes,
          plotRdimsMarkers,
          diffusionMap,
+         phate,
          plotGroupNumbers,
          scvelo,
          knownMarkerViolins)
@@ -2444,6 +2523,9 @@ def latexVars(infile, outfile):
     pagaDir = os.path.join(runDir,
                                "paga.dir")
 
+    phateDir = os.path.join(runDir,
+                            "phate.dir")
+
     # runDir is the directory containing the begin.rds object.
     sampleDir = Path(outdir).parents[1]
 
@@ -2509,6 +2591,7 @@ def latexVars(infile, outfile):
             "rdimsVisMethod": "%(rdimsVisMethod)s" % locals() ,
             "velocityDir": "%(velocityDir)s" % locals(),
             "pagaDir": "%(pagaDir)s" % locals(),
+            "phateDir": "%(phateDir)s" % locals(),
             "runName": "%(runName)s" % locals(),
             "runDetails": "%(runDetails)s" % locals(),
             "tenxDir": "%(tenx_dir)s" % PARAMS,
@@ -2646,6 +2729,11 @@ def summaryReport(infile, outfile):
     if(PARAMS["diffusionmap_run"]):
         statement += '''
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/diffusionSection.tex
+        '''
+
+    if(PARAMS["phate_active"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/phateSection.tex
         '''
 
     if(PARAMS["paga_run"]):

@@ -2,7 +2,7 @@
 
 * Cellranger (from 10x Genomics) >= version 3
 * Python3
-* Python libraries
+* Python3 libraries
   * numpy
   * matplotlib
   * seaborn
@@ -15,6 +15,8 @@
   * umap-learn
   * louvain
   * paga (optional)
+  * scprep (optional)
+  * phate (optional)
   * pyreadr (optional)
   * cellbrowser (optional, version 0.7.6 or higher)
 * The dropEst pipeline (https://github.com/hms-dbmi/dropEst) for RNA velocity analysis

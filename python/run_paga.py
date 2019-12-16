@@ -34,6 +34,10 @@ sc.logging.print_versions()
 parser = argparse.ArgumentParser()
 parser.add_argument("--reduced_dims_matrix_file", default="reduced_dims.tsv.gz", type=str,
                     help="File with reduced dimensions")
+parser.add_argument("--barcode_file", default="barcodes.tsv.gz", type=str,
+                    help="File with the cell barcodes")
+# parser.add_argument("--features_file", default="features.tsv.gz", type=str,
+#                     help="File with the feature names")
 parser.add_argument("--outdir",default=1, type=str,
                     help="path to output directory")
 parser.add_argument("--cluster_assignments", default=1, type=str,
@@ -72,7 +76,9 @@ sc.settings.set_figure_params(dpi=300, dpi_save=300)
 
 
 # Read matrix of reduced dimensions, create anndata and add dimensions
-reduced_dims_mat = pd.read_table(args.reduced_dims_matrix_file)
+reduced_dims_mat = pd.read_csv(args.reduced_dims_matrix_file, sep="\t")
+reduced_dims_mat.index = pd.read_csv(args.barcode_file, header=None)[0]
+
 adata = sc.AnnData(obs=reduced_dims_mat.index)
 adata.obs.index = reduced_dims_mat.index
 adata.obs.rename(columns={0:'barcode'}, inplace=True)

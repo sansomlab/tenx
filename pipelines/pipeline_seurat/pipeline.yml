@@ -337,6 +337,22 @@ diffusionmap:
   usegenes: False
   maxdim: 10
 
+
+# PHATE parameters
+# ----------------
+
+phate:
+  active: True
+  # Run the phate DR algorithm
+  run: True
+
+  # k
+  k: 5
+
+  # draw a 3D gif (slow)
+  # Choices yes|no
+  gif: no
+
 # RNA Velocity
 # ------------
 
