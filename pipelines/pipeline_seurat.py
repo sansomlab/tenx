@@ -520,12 +520,12 @@ def pagaPrepareInput(infile, outfile):
     outdir = os.path.dirname(outfile)
     log_file = outfile.replace("sentinel","log")
     reductiontype = PARAMS["dimreduction_method"]
-    
-    if bool(re.search("sig", PARAMS["runspecs_n_components"])) : 
+
+    if bool(re.search("sig", PARAMS["runspecs_n_components"])) :
         comp="--usesigcomponents=TRUE"
     else :
         comp="--usesigcomponents=FALSE"
-    
+
     statement = '''Rscript %(tenx_dir)s/R/paga_prepare_input.R
                    --seuratobject=%(seurat_obj)s
                    --reductiontype=%(reductiontype)s
@@ -537,7 +537,7 @@ def pagaPrepareInput(infile, outfile):
     P.run(statement)
 
     IOTools.touch_file(outfile)
-    
+
 
 @active_if(PARAMS["paga_run"])
 @follows(pagaPrepareInput)
@@ -2746,7 +2746,7 @@ def export(infile, outfile):
 @transform("data.dir/*.dir",
            regex(r"data.dir/(.*).dir"),
            r"cellbrowser.dir/\1/cellbrowser.sentinel")
-def makeCellbrowser(infile, outfile):
+def cellbrowser(infile, outfile):
     '''
     Prepare cellbrowser instance for exploratory analysis or to share with
     collaborators. A cellbrowser instance is only generated for a defined
@@ -2781,6 +2781,7 @@ def makeCellbrowser(infile, outfile):
         seurat_path = sample_name + ".seurat.dir"
 
         # Rscript to generate input files
+        job_memory = PARAMS["resources_memory_standard"]
         statement = '''Rscript %(tenx_dir)s/R/cellbrowser_prep.R
                          --outdir=%(outdir_folder)s
                          --seurat_path=%(seurat_path)s
@@ -2827,6 +2828,20 @@ def makeCellbrowser(infile, outfile):
                         > %(log_file)s '''
         P.run(statement)
 
+
+    # add README to output folder
+    readme_file = "cellbrowser.dir/README"
+    if not os.path.exists(readme_file):
+        statement = ''' echo "# to run cellbrowser, go to the chosen sample "
+                        >> %(readme_file)s ;
+                        echo "# folder (e.g. wildtype/30_0.8_1_wilcox) and use the "
+                        >> %(readme_file)s ;
+                        echo "# following command to open it on a port of your choice: "
+                        >> %(readme_file)s ;
+                        echo "cbBuild -i cellbrowser.init -o outfiles/ -p 8888"
+                        >> %(readme_file)s  '''
+        P.run(statement)
+
     IOTools.touch_file(outfile)
 
 
@@ -2837,7 +2852,7 @@ def makeCellbrowser(infile, outfile):
 
 # This is the target normally used to execute the pipeline.
 
-@follows(export, makeCellbrowser)
+@follows(export, cellbrowser)
 def report():
     pass
 
