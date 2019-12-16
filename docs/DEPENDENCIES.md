@@ -16,7 +16,7 @@
   * louvain
   * paga (optional)
   * pyreadr (optional)
-  * cellbrowser (optional)
+  * cellbrowser (optional, version 0.7.6 or higher)
 * The dropEst pipeline (https://github.com/hms-dbmi/dropEst) for RNA velocity analysis
 * The [cgat-core pipeline system](https://github.com/cgat-developers/cgat-core/) and a compatible queue manager
 * R >= 3.6
