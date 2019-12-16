@@ -2,7 +2,7 @@
 
 * Cellranger (from 10x Genomics) >= version 3
 * Python3
-* Python libraries
+* Python3 libraries
   * numpy
   * matplotlib
   * seaborn
@@ -10,9 +10,15 @@
   * pandas
   * scipy
   * scvelo
-  * scprep
-  * phate
-  * cellbrowser
+  * python-igraph
+  * leidenalg
+  * umap-learn
+  * louvain
+  * paga (optional)
+  * scprep (optional)
+  * phate (optional)
+  * pyreadr (optional)
+  * cellbrowser (optional, version 0.7.6 or higher)
 * The dropEst pipeline (https://github.com/hms-dbmi/dropEst) for RNA velocity analysis
 * The [cgat-core pipeline system](https://github.com/cgat-developers/cgat-core/) and a compatible queue manager
 * R >= 3.6
@@ -48,5 +54,6 @@
   * scater
   * xtable
   * tenxutils (see [INSTALL](INSTALL.md))
+  * tidyselect
   * ggalluvial
 * Latex
