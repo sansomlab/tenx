@@ -521,7 +521,7 @@ def pagaPrepareInput(infile, outfile):
     log_file = outfile.replace("sentinel","log")
     reductiontype = PARAMS["dimreduction_method"]
 
-    if bool(re.search("sig", PARAMS["runspecs_n_components"])) :
+    if bool(re.search("sig", str(PARAMS["runspecs_n_components"]))) :
         comp="--usesigcomponents=TRUE"
     else :
         comp="--usesigcomponents=FALSE"
