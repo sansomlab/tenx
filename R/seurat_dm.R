@@ -96,17 +96,15 @@ print(head(dm_coord))
 print(dim(dm_coord))
 print(head(Idents(s)))
 
+rownames(dm_coord) <- Cells(s)
 dm_coord$cluster <- Idents(s)
 
 dm_coord <- merge(dm_coord, s[[]], by=0)
 
-rownames(dm_coord) <- dm_coord$Row.names
-dm_coord$Row.names <- NULL
-
 dm_coord$barcode <- row.names(dm_coord)
 
 ## save the annotated coordinates
-write.table(dm_coord, opt$outfile,
+write.table(dm_coord, gzfile(opt$outfile),
             sep="\t", quote=FALSE, row.names=FALSE)
 
 

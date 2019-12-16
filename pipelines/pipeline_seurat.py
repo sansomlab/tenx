@@ -520,12 +520,12 @@ def pagaPrepareInput(infile, outfile):
     outdir = os.path.dirname(outfile)
     log_file = outfile.replace("sentinel","log")
     reductiontype = PARAMS["dimreduction_method"]
-    
-    if bool(re.search("sig", PARAMS["runspecs_n_components"])) : 
+
+    if bool(re.search("sig", str(PARAMS["runspecs_n_components"]))) :
         comp="--usesigcomponents=TRUE"
     else :
         comp="--usesigcomponents=FALSE"
-    
+
     statement = '''Rscript %(tenx_dir)s/R/paga_prepare_input.R
                    --seuratobject=%(seurat_obj)s
                    --reductiontype=%(reductiontype)s
@@ -537,7 +537,7 @@ def pagaPrepareInput(infile, outfile):
     P.run(statement)
 
     IOTools.touch_file(outfile)
-    
+
 
 @active_if(PARAMS["paga_run"])
 @follows(pagaPrepareInput)
@@ -825,7 +825,7 @@ def diffusionMap(infile, outfile):
 
     diffmap_maxdim = PARAMS["diffusionmap_maxdim"]
 
-    outname = outfile.replace(".sentinel", ".txt")
+    outname = outfile.replace(".sentinel", ".txt.gz")
     logfile = outname.replace(".txt", ".log")
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_dm.R
@@ -1323,6 +1323,7 @@ def plotGroupNumbers(infile, outfile):
 #   is not set
 # - translating ensembl gene_ids to entrez gene_ids for the geneset
 #   analysis
+
 
 @follows(mkdir("annotation.dir"))
 @files(None, "annotation.dir/genesets.sentinel")
@@ -2025,6 +2026,7 @@ def parseGMTs(param_keys=["gmt_pathway_files_"]):
 
 # ------------------- < between cluster geneset analysis > ------------------ #
 
+@active_if(PARAMS["genesets_active"])
 @follows(summariseMarkers)
 @transform(findMarkers,
            regex(r"(.*)/cluster.markers.dir/.*.sentinel"),
@@ -2109,7 +2111,7 @@ def genesetAnalysis(infiles, outfile):
 
     IOTools.touch_file(outfile)
 
-
+@active_if(PARAMS["genesets_active"])
 @transform(genesetAnalysis,
            regex(r"(.*)/.*.sentinel"),
            r"\1/summarise.geneset.analysis.sentinel")
@@ -2172,6 +2174,7 @@ def summariseGenesetAnalysis(infile, outfile):
 
 # ------------------- < within cluster geneset analysis > ------------------- #
 
+@active_if(PARAMS["genesets_active"])
 @active_if(PARAMS["findmarkers_between"])
 @follows(summariseMarkersBetweenConditions)
 @transform(findMarkersBetweenConditions,
@@ -2264,7 +2267,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     IOTools.touch_file(outfile)
 
-
+@active_if(PARAMS["genesets_active"])
 @active_if(PARAMS["findmarkers_between"])
 @transform(genesetAnalysisBetweenConditions,
            regex(r"(.*)/.*.sentinel"),
@@ -2365,9 +2368,10 @@ def plots():
 
 @follows(markers,
          genesets,
-         plots)
-@transform(summariseGenesetAnalysis,
-           regex("(.*)/cluster.genesets.dir/summarise.geneset.analysis.sentinel"),
+         plots,
+         summariseGenesetAnalysis)
+@transform(plotRdimsFactors,
+           regex("(.*)/rdims.visualisation.dir/plot.rdims.factor.sentinel"),
            r"\1/latex.dir/report.vars.sty")
 def latexVars(infile, outfile):
     '''
@@ -2663,6 +2667,12 @@ def summaryReport(infile, outfile):
       \\input %(tenx_dir)s/pipelines/pipeline_seurat/markerReport.tex
       '''
 
+    if(PARAMS["genesets_active"]):
+        statement += '''
+        \\input %(tenx_dir)s/pipelines/pipeline_seurat/genesetSection.tex
+                     '''
+
+
     # When relevant, add section that compares
     # two conditions within each cluster
     if os.path.exists(
@@ -2672,6 +2682,12 @@ def summaryReport(infile, outfile):
         statement += '''
           \\input %(tenx_dir)s/pipelines/pipeline_seurat/%(wcc_section_name)s
           '''
+
+        if(PARAMS["genesets_active"]):
+            statement += '''
+        \\input %(tenx_dir)s/pipelines/pipeline_seurat/genesetBetweenSection.tex
+                         '''
+
 
     statement += '''\\input %(tenx_dir)s/latex/endmatter.tex'
     '''
