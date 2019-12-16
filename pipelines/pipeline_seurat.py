@@ -2774,6 +2774,8 @@ def makeCellbrowser(infile, outfile):
         conf += 'clusterField = "cluster"\n'
         conf += 'labelField = "cluster"\n'
         conf += 'colors = "infiles/colors.tsv"\n'
+        conf += '''markers = [{"file": "infiles/markers.tsv",
+                              "shortLabel": "Cluster markers identified by Seurat"}]\n'''
         out.write(conf)
         out.close()
 
@@ -2792,9 +2794,9 @@ def makeCellbrowser(infile, outfile):
         # no cellbrowser for this sample
         statement = ''' echo "Do not generate cellbrowser"
                         > %(log_file)s '''
+        P.run(statement)
 
-
-    #IOTools.touch_file(outfile)
+    IOTools.touch_file(outfile)
 
 
 
