@@ -1,4 +1,5 @@
 import os
+import re
 import argparse
 import numpy as np
 import matplotlib
@@ -31,8 +32,8 @@ sc.logging.print_versions()
 # ########################################################################### #
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--pcs", default=1, type=str,
-                    help="File with pcs")
+parser.add_argument("--reduced_dims_matrix_file", default="reduced_dims.tsv.gz", type=str,
+                    help="File with reduced dimensions")
 parser.add_argument("--outdir",default=1, type=str,
                     help="path to output directory")
 parser.add_argument("--cluster_assignments", default=1, type=str,
@@ -40,12 +41,11 @@ parser.add_argument("--cluster_assignments", default=1, type=str,
 parser.add_argument("--cluster_colors", default=1, type=str,
                     help="tsv file with the color palette for the clusters")
 parser.add_argument("--comps", default="1", type=str,
-                    help="Number of PCs to include in knn and umap computation")
+                    help="Number of dimensions to include in knn and umap computation")
 parser.add_argument("--k", default=20, type=int,
                     help="number of neighbors")
 
 args = parser.parse_args()
-
 
 # ########################################################################### #
 # ############## Create outdir and set results file ######################### #
@@ -71,20 +71,22 @@ sc.settings.set_figure_params(dpi=300, dpi_save=300)
 # ########################################################################### #
 
 
-# Read pcs, create anndata and add pcs
-pcs = pd.read_table(args.pcs)
-adata = sc.AnnData(obs=pcs.index)
-adata.obs.index = pcs.index
+# Read matrix of reduced dimensions, create anndata and add dimensions
+reduced_dims_mat = pd.read_table(args.reduced_dims_matrix_file)
+adata = sc.AnnData(obs=reduced_dims_mat.index)
+adata.obs.index = reduced_dims_mat.index
 adata.obs.rename(columns={0:'barcode'}, inplace=True)
 
-# Add pcs
+# Add dimensions to anndata
+colnames = list(reduced_dims_mat.columns)
+colname_prefix = list(set([re.sub(r'_[0-9]+', '', i) for i in colnames]))[0] + "_"
 select_comps = args.comps.split(",")
-select_comps = [ "PC_" + item for item in select_comps]
-pcs = pcs[select_comps]
+select_comps = [ colname_prefix + item for item in select_comps]
+reduced_dims_mat = reduced_dims_mat[select_comps]
 
-L.info("Using comps " + ', '.join(list(pcs.columns)))
+L.info("Using comps " + ', '.join(list(reduced_dims_mat.columns)))
 
-adata.obsm['X_pca'] = pcs.to_numpy(dtype="float32")
+adata.obsm['X_pca'] = reduced_dims_mat.to_numpy(dtype="float32")
 
 # Read and add cluster ids
 df = pd.read_csv(args.cluster_assignments,sep="\t")

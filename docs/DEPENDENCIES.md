@@ -53,4 +53,5 @@
   * xtable
   * tenxutils (see [INSTALL](INSTALL.md))
   * tidyselect
+  * ggalluvial
 * Latex

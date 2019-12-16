@@ -959,13 +959,6 @@ nPCs <- min(dim(Embeddings(object =s, reduction="pca"))[2],50)
 
 print(nPCs)
 
-# Write matrix of PCs
-cat("Writing matrix of PCs \n")
-pcs <- Embeddings(object = s, reduction = "pca")
-out = gzfile(file.path(opt$outdir,"/pcs.tsv.gz"), "wt")
-write.table(pcs, out,  quote = FALSE, sep = "\t", col.names = TRUE)
-close(out)
-
 # Write out the PCA elbow (scree) plot
 png(file.path(opt$outdir, "pcaElbow.png"),
     width=5, height=4, units="in",
@@ -998,9 +991,6 @@ s <- ScoreJackStraw(s, dims = 1:nPCs)
             gp,
             width=8,
             height=12)
-
-comps <- getSigPC(s)
-write.table(comps, file = paste0(opt$outdir, "/sig_comps.txt"), quote = FALSE, col.names = FALSE, row.names = FALSE)
 
 message("seurat_begin.R object final default assay: ", DefaultAssay(s))
 
