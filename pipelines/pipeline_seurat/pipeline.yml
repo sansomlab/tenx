@@ -462,6 +462,10 @@ exprsreport:
 # (GO categories and KEGG pathways are analysed by default)
 
 genesets:
+  # Should geneset analysis be run?
+  # Choices True|False
+  active: True
+
   # Marker adjusted p-value threshold for it to be included in the geneset analysis (genesetAnalysis.R)
   # This value will also be used in the geneset analysis for within cluster DE
   marker_adjpthreshold: 0.1

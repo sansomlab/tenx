@@ -520,6 +520,7 @@ gp <- VlnPlot(s,
               # size.title.use=14,
               # size.x.use=12,
               group.by=opt$groupby,
+              pt.size = 0,
               # x.lab.rot=TRUE,
               # point.size.use=0.1,
               ncol=3
@@ -827,7 +828,7 @@ if (!(is.null(opt$sgenes) | opt$sgenes=="none")
                           set.ident=TRUE)
 
     s <- RunPCA(object = s,
-                pc.genes = c(sgenes, g2mgenes),
+                features = c(sgenes, g2mgenes),
                 do.print = FALSE)
 
   ## PCA plot on cell cycle genes without regression
@@ -901,7 +902,7 @@ if ( identical(opt$cellcycle, "none") ) {
     }
 
     ## visualise the cells by PCA of cell cycle genes after regression
-    s <- RunPCA(object = s, pc.genes = c(sgenes, g2mgenes), do.print = FALSE)
+    s <- RunPCA(object = s, features = c(sgenes, g2mgenes), do.print = FALSE)
     gp <- PCAPlot(object = s)
 
     cc_plot_fn <- paste("cellcycle.regressed", opt$cellcycle, "pca", sep=".")
@@ -931,7 +932,7 @@ writeTex(tex_file, tex)
 
 # perform PCA using the variable genes
 s <- RunPCA(s,
-            pc.genes=VariableFeatures(object = s),
+            features=VariableFeatures(object = s),
             npcs=100,
             do.print=FALSE)
 
