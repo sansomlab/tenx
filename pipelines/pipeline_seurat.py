@@ -2764,7 +2764,9 @@ def makeCellbrowser(infile, outfile):
         # cannot use projectname from pipeline.yml here as only letters/digits
         # allowed in name
         conf += 'name = "seuratPipeline"\n'
-        conf += 'coords = [{"file":"infiles/UMAP.tsv","shortLabel":"UMAP"}]\n'
+        conf += '''coords = [{"file":"infiles/UMAP.tsv","shortLabel":"UMAP"},
+                             {"file":"infiles/FA.tsv","shortLabel":
+                              "PAGA initiated force-directed graph"}]\n'''
         conf += 'shortLabel = "%s"\n' %PARAMS["projectname"]
         conf += 'exprMatrix = "infiles/exprMatrix.tsv.gz"\n'
         conf += 'meta = "infiles/meta.tsv"\n'

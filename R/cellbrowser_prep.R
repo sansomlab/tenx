@@ -50,6 +50,13 @@ colnames(output) = c("cellId", "x", "y")
 write.table(output,file.path(opt$outdir, "UMAP.tsv"), quote = FALSE, row.names = FALSE,
             sep = "\t")
 
+## Load Force-directed graph coordinates
+cat("Load Force-directed graph coordinates ... \n")
+infile_gzip = gzfile(file.path(opt$seurat_path, opt$runspecs,"paga.dir", "paga_init_fa2.txt.gz"))
+output = read.table(infile_gzip, header=TRUE, as.is=TRUE, sep="\t")
+colnames(output) = c("cellId", "x", "y")
+write.table(output,file.path(opt$outdir, "FA.tsv"), quote = FALSE, row.names = FALSE,
+            sep = "\t")
 
 ## get metadata for cluster name
 cat("Process cluster ids for cells ... \n")
