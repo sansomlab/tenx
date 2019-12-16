@@ -10,6 +10,9 @@
   * pandas
   * scipy
   * scvelo
+  * scprep
+  * phate
+  * cellbrowser
 * The dropEst pipeline (https://github.com/hms-dbmi/dropEst) for RNA velocity analysis
 * The [cgat-core pipeline system](https://github.com/cgat-developers/cgat-core/) and a compatible queue manager
 * R >= 3.6
