@@ -127,9 +127,10 @@ for(group in unique(genes$group))
 
     message("prepared the expression data")
 
-    nclust <- length(unique(Idents(s)))
-    colors <- gg_color_hue(nclust)
-    names(colors) <- 0:(nclust-1)
+    cluster_uids <- unique(Idents(s))
+
+    colors <- gg_color_hue(length(cluster_uids))
+    names(colors) <- cluster_uids[order(as.numeric(cluster_uids))]
 
     ncol <- 10
 
