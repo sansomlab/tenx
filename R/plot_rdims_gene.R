@@ -166,7 +166,14 @@ npages = ceiling(ngenes/9)
 
 message("processing ", npages," pages (", ngenes, " genes)")
 
-for(page in 1:npages)
+
+seqWrapper <- function(lb, ub, by=1) {
+    s <- c()
+    if(!ub < lb) s <- seq(lb,ub, by=by)
+    return(s)
+}
+
+for(page in seqWrapper(1,npages))
 {
     message("working on page: ", page)
     start <- ((page-1)*9) + 1

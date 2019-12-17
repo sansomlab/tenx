@@ -3,6 +3,8 @@ import re
 import argparse
 import numpy as np
 import matplotlib
+matplotlib.use('Agg')
+
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as pl
@@ -14,7 +16,7 @@ import sys
 import scprep
 import phate
 
-matplotlib.use('Agg')
+
 
 # ########################################################################### #
 # ###################### Set up the logging ################################# #

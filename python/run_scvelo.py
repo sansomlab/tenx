@@ -1,16 +1,20 @@
-import scanpy as sc
-import anndata as ad
-import pandas as pd
-import numpy as np
-import scvelo as scv
-from scipy import io
 import os
 import logging
 import sys
-import matplotlib
-import argparse
+import numpy as np
+import pandas as pd
 
+import matplotlib
 matplotlib.use('Agg')
+
+from scipy import io
+import scanpy as sc
+import anndata as ad
+
+import scvelo as scv
+
+
+import argparse
 
 # ########################################################################### #
 # ###################### Set up the logging ################################# #
@@ -122,18 +126,21 @@ L.info("Velocity calculation completed")
 # make the plots
 scv.pl.velocity_embedding_stream(rdata, basis=args.rdim_method,dpi=300,
                                  color="cluster", palette=ggplot_palette,
-                                 save=args.rdim_method + "_stream.png")
+                                 save=args.rdim_method + "_stream.png",
+                                 show=False)
 
 scv.pl.velocity_embedding(rdata, basis=args.rdim_method,
                           arrow_length=2, arrow_size=1.5,
                           dpi=300,
                           color="cluster", palette=ggplot_palette,
-                          save=args.rdim_method + "_velocity.png")
+                          save=args.rdim_method + "_velocity.png",
+                          show=False)
 
 scv.pl.velocity_embedding_grid(rdata, basis=args.rdim_method,
                                dpi=300,
                                color="cluster", palette=ggplot_palette,
-                               save=args.rdim_method + "_grid.png")
+                               save=args.rdim_method + "_grid.png",
+                               show=False)
 
 
 L.info("Plotting finished")

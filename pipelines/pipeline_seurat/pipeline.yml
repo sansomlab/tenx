@@ -193,6 +193,7 @@ regress:
     #   (sctransform param do.correct.umi=TRUE), so regression of
     #    nCount_RNA is unnessecary (see e.g.
     #    https://github.com/satijalab/seurat/issues/1739)
+    # use "none" for no regression.
     latentvars: percent.mito
     # Model used to regress out latent variables
     # Choices: 'linear'|'poisson'|'negbinom'
