@@ -636,8 +636,14 @@ print(
 
 ## No cell cycle correction is applied at this stage.
 
-latent.vars <- strsplit(opt$latentvars, ",")[[1]]
-print(latent.vars)
+if(opt$latentvars == "none") {
+    latent.vars = NULL
+    message("no latent vars specified")
+} else {
+    latent.vars <- strsplit(opt$latentvars, ",")[[1]]
+    message("latent vars: ", latent.vars)
+}
+
 
 
 ## Currently, we need to log-normlize and scale the RNA assay
