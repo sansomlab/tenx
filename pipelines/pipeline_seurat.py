@@ -539,6 +539,8 @@ def exportForPython(infile, outfile):
     else:
         export_scaled_data = "FALSE"
 
+    job_memory=PARAMS["resources_memory_standard"]
+
     statement = '''Rscript %(tenx_dir)s/R/export_for_python.R
                    --seuratobject=%(seurat_obj)s
                    --reductiontype=%(reductiontype)s
