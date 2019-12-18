@@ -2862,7 +2862,7 @@ def cellbrowser(infile, outfile):
     samples_specs = [s for s in samples_specs if not "run" in s]
 
     # only run if sample ID from job is listed in yml
-    sample_name = infile.split("/")[-1][:-len(".dir")]
+    sample_name = infile[:-len(".seurat.dir")]
 
     log_file = outfile.replace(".sentinel", ".log")
     outdir = os.path.dirname(outfile)

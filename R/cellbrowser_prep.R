@@ -17,7 +17,7 @@ stopifnot(
 option_list <- list(
   make_option(
     c("--seurat_path"),
-    help="Location of the begin.rds and annotation.txt."
+    help="Location of the begin.rds (has to include annotation in misc slot)."
   ),
   make_option(
     c("--runspecs"),
@@ -29,20 +29,24 @@ option_list <- list(
     help="Location for outputs files. Must exist."
   )
 )
- 
+
 opt <- parse_args(OptionParser(option_list=option_list))
 
 cat("Running with options:\n")
 print(opt)
 
+
+cat("Read Seurat object ... \n")
+seurat_obj = readRDS(file.path(opt$seurat_path, "begin.rds"))
+
 # read in annotation to add gene names
-cat("Read gene annotations ... \n")
-annotation <- read.table(file.path(opt$seurat_path, "annotation.txt"))
+cat("Extract gene annotations ... \n")
+annotation <- seurat_obj@misc
 
 
 ## Load UMAP coordinates
 cat("Load UMAP coordinates ... \n")
-data_selected = read.table(file.path(opt$seurat_path, opt$runspecs,"umap.dir", "umap.txt"), 
+data_selected = read.table(file.path(opt$seurat_path, opt$runspecs,"umap.dir", "umap.txt"),
                            header=TRUE, as.is=TRUE, sep="\t")
 data_selected$cluster = as.character(data_selected$cluster)
 output = data_selected[,c("barcode", "UMAP_1", "UMAP_2")]
@@ -62,19 +66,18 @@ write.table(output,file.path(opt$outdir, "FA.tsv"), quote = FALSE, row.names = F
 cat("Process cluster ids for cells ... \n")
 print(table(data_selected$cluster))
 ## write csv for anno
-output = data_selected[,!grepl("UMAP", colnames(data_selected))] %>% 
+output = data_selected[,!grepl("UMAP", colnames(data_selected))] %>%
             dplyr::select(barcode, cluster, everything())
 write.table(output,file.path(opt$outdir, "meta.tsv"), quote = FALSE, row.names = FALSE,
             sep = "\t")
 
-## write out txt of expression for all included cells 
+## write out txt of expression for all included cells
 cat("Prepare expression matrix ... \n")
-seurat_obj = readRDS(file.path(opt$seurat_path, "begin.rds"))
 expr_data = as.data.frame(as.matrix(GetAssayData(seurat_obj, slot = "data")))
 expr_data = cbind(data.frame(gene=rownames(expr_data)),expr_data)
 print(dim(expr_data))
 out = gzfile(file.path(opt$outdir, "exprMatrix.tsv.gz"), "wt")
-write.table(expr_data, out, row.names = FALSE, quote = FALSE, 
+write.table(expr_data, out, row.names = FALSE, quote = FALSE,
             sep = "\t", col.names = TRUE)
 close(out)
 cat("Finished writing expression matrix ... \n")
@@ -87,7 +90,7 @@ cmap <- tenxutils::gg_color_hue(nclust+1)
 names(cmap) <- c(0:(nclust))
 out_color = data.frame(name = c(0:(nclust)),color = cmap, stringsAsFactors = FALSE)
 out_color$color = substr(out_color$color, 2, nchar(out_color$color)[1])
-write.table(out_color, file.path(opt$outdir,"colors.tsv"), quote = FALSE, 
+write.table(out_color, file.path(opt$outdir,"colors.tsv"), quote = FALSE,
             sep = "\t", row.names = FALSE)
 
 ## add marker genes
@@ -99,10 +102,11 @@ data_selected = openxlsx::read.xlsx(xlsxFile = file.path(opt$seurat_path, opt$ru
 output = data_selected[,c("gene","gene_id", "cluster","avg_logFC","p.adj")]
 output = output %>% group_by(cluster) %>% dplyr::arrange(desc(avg_logFC)) %>% do(head(.,n=20)) %>% ungroup()
 output$celltype = "top20_marker_Seurat_cluster"
-output$cluster_marker = paste(output$celltype, output$cluster, sep="_") 
+output$cluster_marker = paste(output$celltype, output$cluster, sep="_")
 output = output %>% dplyr::select(-celltype)
 colnames(output) = c("gene","gene_id","cluster","avg_logFC","p_adjusted","celltype_marker")
 output = output[,c("cluster","gene","p_adjusted","avg_logFC","celltype_marker")]
 write.table(output, file.path(opt$outdir, "markers.tsv"), sep = "\t",
           quote = FALSE, row.names = FALSE)
 
+cat("Completed")
