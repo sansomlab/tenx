@@ -2847,8 +2847,8 @@ def export(infile, outfile):
 
 @active_if(PARAMS["cellbrowser_run"])
 @follows(mkdir("cellbrowser.dir"), summaryReport)
-@transform("data.dir/*.dir",
-           regex(r"data.dir/(.*).dir"),
+@transform("*.seurat.dir",
+           regex(r"(.*).seurat.dir"),
            r"cellbrowser.dir/\1/cellbrowser.sentinel")
 def cellbrowser(infile, outfile):
     '''
@@ -2862,7 +2862,7 @@ def cellbrowser(infile, outfile):
     samples_specs = [s for s in samples_specs if not "run" in s]
 
     # only run if sample ID from job is listed in yml
-    sample_name = infile.split("/")[-1][:-len(".dir")]
+    sample_name = infile[:-len(".seurat.dir")]
 
     log_file = outfile.replace(".sentinel", ".log")
     outdir = os.path.dirname(outfile)
