@@ -2847,8 +2847,8 @@ def export(infile, outfile):
 
 @active_if(PARAMS["cellbrowser_run"])
 @follows(mkdir("cellbrowser.dir"), summaryReport)
-@transform("data.dir/*.dir",
-           regex(r"data.dir/(.*).dir"),
+@transform("*.seurat.dir",
+           regex(r"(.*).seurat.dir"),
            r"cellbrowser.dir/\1/cellbrowser.sentinel")
 def cellbrowser(infile, outfile):
     '''
