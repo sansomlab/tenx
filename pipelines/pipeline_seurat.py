@@ -518,7 +518,7 @@ def exportForPython(infile, outfile):
     python (e.g. with scanpy).
 
     When Seurat is fully loom compliant we may simply switch
-    to storing the Seurat results in .loom rather than .rds
+   to storing the Seurat results in .loom rather than .rds
     '''
 
     seurat_obj = infile
@@ -534,7 +534,7 @@ def exportForPython(infile, outfile):
     export_counts = "FALSE"
     export_data = "FALSE"
 
-    if PARAMS["phate_active"]:
+    if PARAMS["phate_run"]:
         export_scaled_data = "TRUE"
     else:
         export_scaled_data = "FALSE"
@@ -650,6 +650,8 @@ def phate(infile, outfile):
                                   "cluster_colors.txt")
 
     seurat_dir = Path(outdir).parents[1]
+    barcode_file = os.path.join(seurat_dir,
+                                  "barcodes.txt.gz")
 
     assay_data = os.path.join(seurat_dir, "assay.scale.data.tsv.gz")
 
@@ -666,6 +668,7 @@ def phate(infile, outfile):
 
     statement = '''python %(tenx_dir)s/python/run_phate.py
                    --data=%(assay_data)s
+                   --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
                    --cluster_assignments=%(cluster_assignments)s
                    --cluster_colors=%(cluster_colors)s
@@ -682,6 +685,7 @@ def phate(infile, outfile):
 # ############### tSNE analysis and related plots ########################### #
 # ########################################################################### #
 
+@active_if(PARAMS["tsne_run"])
 @transform(cluster,
            regex(r"(.*)/cluster.dir/cluster.sentinel"),
            r"\1/tsne.dir/tsne.sentinel")
@@ -745,6 +749,7 @@ def tSNE(infile, outfile):
     P.run(statements)
     IOTools.touch_file(outfile)
 
+@active_if(PARAMS["tsne_run"])
 @transform(tSNE,
            regex(r"(.*)/tsne.sentinel"),
            r"\1/plot.tsne.perplexities.sentinel")
@@ -1137,12 +1142,26 @@ def scvelo(infile, outfile):
                            "table": pagafdg_table,
                            "rdim1": "FA1", "rdim2": "FA2"}
 
+    if PARAMS["phate_run"]:
+
+        phate_table = os.path.join(Path(outdir).parents[0],
+                                   "phate.dir",
+                                   "phate.tsv.gz")
+
+        runs["phate"] = {"method": "phate",
+                         "table": phate_table,
+                         "rdim1": "PHATE1", "rdim2": "PHATE2"}
+
+
     statements = []
 
     for run, details in runs.items():
 
         r_method, r_tab, r_1, r_2 = details["method"], details["table"], \
                                     details["rdim1"], details["rdim2"]
+
+        this_log_file = log_file.replace(".log",
+                                         "." + r_method + ".log")
 
         s = '''python %(tenx_dir)s/python/run_scvelo.py
                    --dropest_dir=%(layers_dir)s
@@ -1153,7 +1172,7 @@ def scvelo(infile, outfile):
                    --rdims=%(r_tab)s
                    --rdim1=%(r_1)s
                    --rdim2=%(r_2)s
-                &> %(log_file)s
+                &> %(this_log_file)s
                 ''' % locals()
 
         statements.append(s)
@@ -2713,10 +2732,11 @@ def summaryReport(infile, outfile):
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/numbersSection.tex
         '''
 
-    # add the tSNE paramaeter analysis section
-    statement += '''
-         \\input %(tenx_dir)s/pipelines/pipeline_seurat/tsneSection.tex
-        '''
+    if(PARAMS["tsne_run"]):
+        # add the tSNE paramaeter analysis section
+        statement += '''
+                      \\input %(tenx_dir)s/pipelines/pipeline_seurat/tsneSection.tex
+                      '''
 
     # add the section to visualise clusters and factors in reduced dimensions
     # (plots made by tsne or umap)
@@ -2733,7 +2753,7 @@ def summaryReport(infile, outfile):
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/diffusionSection.tex
         '''
 
-    if(PARAMS["phate_active"]):
+    if(PARAMS["phate_run"]):
         statement += '''
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/phateSection.tex
         '''
@@ -2746,6 +2766,16 @@ def summaryReport(infile, outfile):
     if(PARAMS["velocity_run"]):
         statement += '''
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloSection.tex
+        '''
+
+    if(PARAMS["velocity_run"] and PARAMS["paga_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloForceDirectedGraphSection.tex
+        '''
+
+    if(PARAMS["velocity_run"] and PARAMS["phate_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloPhateSection.tex
         '''
 
     if(PARAMS["knownmarkers_run"]):

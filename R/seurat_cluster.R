@@ -138,7 +138,7 @@ message(sprintf("saveRDS"))
 saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 
 cluster_assignments <- data.frame(barcodes=as.character(names(cluster_ids)),
-                                  cluster_id=as.character(cluster_ids), as.is=T)
+                                  cluster_id=as.character(cluster_ids))
 
 write.table(cluster_assignments,
             gzfile(file.path(opt$outdir, "cluster_assignments.txt.gz")),

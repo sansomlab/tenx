@@ -33,6 +33,8 @@ L = logging.getLogger("run_paga")
 parser = argparse.ArgumentParser()
 parser.add_argument("--data", default="data.tsv.gz", type=str,
                     help="File with the data, e.g. scale.data from Seurat")
+parser.add_argument("--barcode_file", default="barcodes.tsv.gz", type=str,
+                    help="File with the cell barcodes")
 parser.add_argument("--outdir",default=1, type=str,
                     help="path to output directory")
 parser.add_argument("--cluster_assignments", default=1, type=str,
@@ -83,6 +85,15 @@ scprep.plot.scatter2d(x2, c=clusters["cluster_id"],
                       filename=os.path.join(args.outdir,"phate.2D.png"),
                       dpi=300)
 
+# save the 2D coordinates
+rdims_phate = pd.DataFrame(x2,
+                           columns=["PHATE1","PHATE2"])
+
+rdims_phate["barcode"] = pd.read_csv(args.barcode_file, header=None)[0].values
+
+rdims_phate.to_csv(os.path.join(args.outdir,"phate.tsv.gz"),
+                   sep="\t")
+
 # save a 3D plot
 phate_operator.set_params(n_components=3)
 x3 = phate_operator.transform()
@@ -99,5 +110,6 @@ if args.gif.lower() == "yes":
                                  ticks=False, label_prefix="PHATE",
                                  filename=os.path.join(args.outdir,"phate.3D.gif"),
                                  dpi=300)
+
 
 L.info("Phate accompli")
