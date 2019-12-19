@@ -1146,7 +1146,7 @@ def scvelo(infile, outfile):
 
         phate_table = os.path.join(Path(outdir).parents[0],
                                    "phate.dir",
-                                   "phate.txt.gz")
+                                   "phate.tsv.gz")
 
         runs["phate"] = {"method": "phate",
                          "table": phate_table,
@@ -1160,6 +1160,9 @@ def scvelo(infile, outfile):
         r_method, r_tab, r_1, r_2 = details["method"], details["table"], \
                                     details["rdim1"], details["rdim2"]
 
+        this_log_file = log_file.replace(".log",
+                                         "." + r_method + ".log")
+
         s = '''python %(tenx_dir)s/python/run_scvelo.py
                    --dropest_dir=%(layers_dir)s
                    --outdir=%(outdir)s
@@ -1169,7 +1172,7 @@ def scvelo(infile, outfile):
                    --rdims=%(r_tab)s
                    --rdim1=%(r_1)s
                    --rdim2=%(r_2)s
-                &> %(log_file)s
+                &> %(this_log_file)s
                 ''' % locals()
 
         statements.append(s)
@@ -2763,6 +2766,16 @@ def summaryReport(infile, outfile):
     if(PARAMS["velocity_run"]):
         statement += '''
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloSection.tex
+        '''
+
+    if(PARAMS["velocity_run"] and PARAMS["paga_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloForceDirectedGraphSection.tex
+        '''
+
+    if(PARAMS["velocity_run"] and PARAMS["phate_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/scveloPhateSection.tex
         '''
 
     if(PARAMS["knownmarkers_run"]):
