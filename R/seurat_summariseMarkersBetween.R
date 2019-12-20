@@ -104,8 +104,8 @@ for(cluster in clusters)
            de <- read.table(gzfile(res_fn), header=T, sep="\t", as.is=T)
            de <- de[order(de$p_va),]
 
-           ameans <- rowMeans(GetAssayData(object = s, slot="data")[de$gene,as, drop=FALSE])
-           bmeans <- rowMeans(GetAssayData(object = s, slot="data")[de$gene,bs, drop=FALSE])
+           ameans <- apply(expm1(GetAssayData(object = s, slot="data")[de$gene, as, drop=FALSE]), 1, mean)
+           bmeans <- apply(expm1(GetAssayData(object = s, slot="data")[de$gene, bs, drop=FALSE]), 1, mean)
 
            de[[aName]] <- ameans
            de[[bName]] <- bmeans
