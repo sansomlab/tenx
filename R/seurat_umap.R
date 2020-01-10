@@ -71,7 +71,7 @@ if(opt$usesigcomponents)
 ## run UMAP
 message("RunUMAP")
 s <- RunUMAP(s,
-             method = opt$method,
+             umap.method = opt$method,
              reduction = opt$reductiontype,
              dims = comps,
              n.components = 2L,
