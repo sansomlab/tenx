@@ -83,21 +83,15 @@ close(out)
 cat("Finished writing expression matrix ... \n")
 
 ## set the cell colors according to cluster
-cat("Prepare colors to match colors in other visualisations ... \n")
-nclust <- length(unique(data_selected$cluster))
-# make color vector
-if (min(nclust) == 0) {
-  # this is for Louvain (=1)
-  cmap <- tenxutils::gg_color_hue(nclust+1)
-  names(cmap) <- c(0:(nclust))
-  out_color = data.frame(name = c(0:(nclust)),color = cmap, stringsAsFactors = FALSE)
-} else {
-  # this is for Leiden (=4)
-  cmap <- tenxutils::gg_color_hue(nclust)
-  names(cmap) <- c(1:(nclust))
-  out_color = data.frame(name = c(1:(nclust)),color = cmap, stringsAsFactors = FALSE)
-}
-out_color$color = substr(out_color$color, 2, nchar(out_color$color)[1])
+cat("Read in the colors to match colors in other visualisations ... \n")
+
+cols = read.csv(file.path(opt$seurat_path, opt$runspecs, "cluster.dir", "cluster_colors.txt"),
+                  header = FALSE, stringsAsFactors = FALSE)
+out_color = data.frame(name = data_selected$cluster,
+                       color = cols,
+                       stringsAsFactors = FALSE)
+out_color$color = substr(out_color$V1, 2, nchar(out_color$V1)[1])
+out_color$V1 = NULL
 write.table(out_color, file.path(opt$outdir,"colors.tsv"), quote = FALSE,
             sep = "\t", row.names = FALSE)
 
