@@ -135,3 +135,52 @@ getSigPC <- function(seurat_object=NULL,
     x$PC[1:ntake]
 
 }
+
+#' A function to check if features are present in a Seurat object
+#' @param seurat_object A seurat object
+#' @param features A vector of the feature names to be checked
+checkFeatures <- function(seurat_object, features) {
+  
+  if(!all(features %in% rownames(seurat_object)))
+  {
+    print("these features were not found in the seurat object:")
+    print(features[!features %in% rownames(seurat_object)])
+    stop()
+  }
+  
+}
+
+#' A function to check if cells are present in a Seurat object
+#' @param seurat_object A seurat object
+#' @param features A vector of the feature names to be checked
+checkCells <- function(seurat_object, cells) {
+  
+  if(!all(cells %in% Cells(seurat_object)))
+  {
+    missing = cells[!cells %in% Cells(seurat_object)]
+    print(paste("Some of the cells were not found in the seurat object, n=",
+                length(missing),
+                sep=""))
+    print("Examples of the missing cells:")
+    print(head(missing))
+    stop()
+  }
+  
+}
+
+#' Rescale an expression matrix as a percentage of the given quantile 
+#' @param x the data
+#' @param q the quantile to use as the maximum value
+scale_to_quantile <- function(x,q=0.9)
+{
+  # cap at an upper quantile
+  qv <- quantile(x[x!=0],q)
+  x[x >= qv] <- qv
+  
+  # transform to %scale 
+  x <- x/qv
+  x
+}
+
+
+

@@ -653,3 +653,133 @@ markerComplexHeatmap <- function(seurat_object,
           show_heatmap_legend = FALSE
   )
 }
+
+
+
+
+library(reshape2)
+
+
+#' Draw a set of expression dotplots (2D version)
+#' @param seurat_object
+#' @param features A vector of feature names
+#' @param rdims A data frame or matrix containing the reduced dimensions
+#' @param x The name of the rdims column to use for the x coordinates
+#' @param y The name of the rdims column to use for the y coordinates
+#' @param ncol The number of columns to use when facet wrapping
+#' @param point_size The size of the points
+#' @param max_quantile The expression quantile to cap the data at.
+#' @importFrom reshape2 melt
+#' @export
+expressionPlots <- function(seurat_object, 
+                            features, 
+                            rdims, 
+                            x="UMAP_1", 
+                            y="UMAP_2",
+                            ncol = 6,
+                            point_size = 2.5,
+                            max_quantile = 0.9) {
+  
+  require(ggplot2)
+  cells <- rdims$barcode
+  
+  checkFeatures(seurat_object, features)
+  checkCells(seurat_object, cells)
+  
+  ncol <- min(ncol, length(features))
+  
+  data <- GetAssayData(seurat_object, slot =  "data", 
+                       assay="RNA")[features, cells]  
+  
+
+  # transform to % of 90th quantile so that a common 
+  # colour scale can be used.
+  scaled_data <- apply(data, 1, FUN = scale_to_quantile, q = max_quantile)
+  
+  fill_frame <-cbind(rdims[,c(x, y)],
+                     scaled_data)
+  
+  fill_df <- melt(fill_frame, id.vars=c(x, y))
+  
+  
+  gp <- ggplot(fill_df, aes_string(x, y, color="value"))
+  gp <- gp + geom_point(size=point_size, alpha=1, stroke = 0, shape = 16) 
+  gp <- gp + scale_color_gradientn(colours=c("grey","yellow","red"))
+  gp <- gp + facet_wrap(~variable, ncol= ncol)
+  gp <- gp + theme_minimal()
+  gp
+  
+}
+
+
+#' Draw a set of expression dotplots (3D version)
+#' @param seurat_object
+#' @param features A vector of feature names
+#' @param rdims A data frame or matrix containing the reduced dimensions
+#' @param x The name of the rdims column to use for the x coordinates
+#' @param y The name of the rdims column to use for the y coordinates
+#' @param z The name of the rdims column to use for the z coordinates
+#' @param ncol The number of columns to use when facet wrapping
+#' @param point_size The size of the points
+#' @param max_quantile The expression quantile to cap the data at.
+#' @importFrom reshape2 melt
+#' @export
+expressionPlots3D <- function(seurat_object, features, 
+                              rdims, 
+                              x="UMAP_1", 
+                              y="UMAP_2", 
+                              z="UMAP_3",
+                              ncol = 6,
+                              point_size=2.5, 
+                              theta=0,
+                              phi=130,
+                              draw_axes=FALSE,
+                              max_quantile=0.9) {
+  require(ggplot2)
+  require(gg3D)
+  
+  cells <- rdims$barcode
+  
+  checkFeatures(seurat_object, features)
+  checkCells(seurat_object, cells)
+  
+  ncol <- min(ncol, length(features))
+  
+  data <- GetAssayData(seurat_object, slot =  "data", 
+                       assay="RNA")[features, cells]  
+  
+  # transform to % of 90th quantile so that a common 
+  # colour scale can be used.
+  
+  scaled_data <- apply(data, 1, FUN = scale_to_quantile, q = max_quantile)
+  
+
+  fill_frame <-cbind(rdims[,c(x, y, z)],
+                     scaled_data)
+  
+  
+  fill_df <- melt(fill_frame, id.vars=c(x, y, z))
+  
+  
+  print("drawing the plot")
+  
+  gp <- ggplot(fill_df, aes_string(x=x, y=y, z=z, color="value"))
+  gp <- gp + theme_void() 
+  
+  if(draw_axes) {
+  gp <- gp + axes_3D(theta=theta, phi=phi) 
+  }
+  
+  gp <- gp + stat_3D(theta=theta, phi=phi, geom="point", alpha=1,
+                     size=point_size,
+                     stroke=0, shape=16)
+  
+  gp <- gp + scale_color_gradientn(colours=c("grey","yellow","red"))
+  gp <- gp + facet_wrap(~variable, ncol= ncol)
+  
+  gp
+}
+
+
+
+
