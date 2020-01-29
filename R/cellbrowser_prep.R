@@ -87,7 +87,8 @@ cat("Read in the colors to match colors in other visualisations ... \n")
 
 cols = read.csv(file.path(opt$seurat_path, opt$runspecs, "cluster.dir", "cluster_colors.txt"),
                   header = FALSE, stringsAsFactors = FALSE)
-out_color = data.frame(name = data_selected$cluster,
+clusters = sort(unique(as.numeric(data_selected$cluster)))
+out_color = data.frame(name = clusters,
                        color = cols,
                        stringsAsFactors = FALSE)
 out_color$color = substr(out_color$V1, 2, nchar(out_color$V1)[1])
