@@ -65,7 +65,8 @@ if(opt$usesigcomponents)
 }
 
 if(toupper(opt$reductiontype)=="PCA")
-{
+{ if(nrow(s@reductions$pca@jackstraw@overall.p.values) > 0)
+  {
     ## Make a table of the retained principle components
     x <- as.data.frame(s@reductions$pca@jackstraw@overall.p.values)
     x$p.adj <- p.adjust(x$Score, method="BH")
@@ -81,6 +82,7 @@ if(toupper(opt$reductiontype)=="PCA")
                                                 sep="")),
         file=file.path(opt$outdir, "selected.principal.components.tex")
     )
+  }
 }
 
 
