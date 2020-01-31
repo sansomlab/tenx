@@ -64,7 +64,7 @@ if(opt$usesigcomponents)
     comps <- 1:as.numeric(opt$components)
 }
 
-if(toupper(opt$reductiontype)=="PCA")
+if(toupper(opt$reductiontype)=="PCA" & nrow(s@reductions$pca@jackstraw@overall.p.values) > 0)
 {
     ## Make a table of the retained principle components
     x <- as.data.frame(s@reductions$pca@jackstraw@overall.p.values)
