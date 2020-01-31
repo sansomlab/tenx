@@ -103,6 +103,15 @@ scprep.plot.scatter3d(x3, c=clusters["cluster_id"],
                       filename=os.path.join(args.outdir,"phate.3D.png"),
                       dpi=300)
 
+# save the 3D coordinates
+rdims_phate = pd.DataFrame(x3,
+                           columns=["PHATE1","PHATE2", "PHATE3"])
+
+rdims_phate["barcode"] = pd.read_csv(args.barcode_file, header=None)[0].values
+
+rdims_phate.to_csv(os.path.join(args.outdir,"phate_3D.tsv.gz"),
+                   sep="\t")
+
 # save a GIF!
 if args.gif.lower() == "yes":
     scprep.plot.rotate_scatter3d(x3, c=clusters["cluster_id"],
