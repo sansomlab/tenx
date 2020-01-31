@@ -34,6 +34,6 @@ The pipelines are in active development, this is an "alpha" release - use at you
 
 pipeline_seurat.py was run on the interferon beta stimulated PBMC example dataset from the [Seurat website](https://satijalab.org/seurat/).
 
-The summary report can be download here: [Summary Report](https://dl.dropbox.com/s/67z5xydxvhqdw3p/summaryReport.pdf)
+The summary report can be download here: [Summary Report](https://dl.dropbox.com/s/r9bfej4irryzety/summaryReport.pdf)
 
 The steps followed, and full output are available here: [aligned example](docs/AlignedExample.md).
