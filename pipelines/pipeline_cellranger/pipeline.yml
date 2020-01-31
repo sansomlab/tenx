@@ -151,6 +151,22 @@ downsampling:
     apply: after_subsetting
 
 
+qc:
+    # Create QC scatterplots for Total UMIs, Number Genes and Fraction of mitochondrial UMIs per sample
+    # These plots are useful for selecting filtering thresholds in pipeline_seurat  
+    
+    # Specify one directory to read input matrix for QC_scatterplots
+    # Choices: 'all'|'sampleN:q
+    inputqc: all
+    
+    # Parameters for filtering in pipeline_seurat (Number Genes and Fraction of  mitochondrial UMIs) 
+    initial_mingenes: 200
+    mingenes: 500
+    minpercentmito: 0
+    maxpercentmito: 0.05
+    
+    memory: 40000M
+    
 dropest:
     # by default dropest is not included, can be included by setting
     # run to True.

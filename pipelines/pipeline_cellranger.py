@@ -127,6 +127,7 @@ import sys
 import os
 import glob
 import sqlite3
+import yaml
 import cgatcore.experiment as E
 from cgatcore import pipeline as P
 import cgatcore.iotools as IOTools
@@ -483,7 +484,6 @@ def plotUmiMitochondrialPerSample(infile, outfile):
                 '''
 
     P.run(statement)
-
 
 # ########################################################################### #
 # ############## calculate duplication metrics (picard) ##################### #
@@ -964,6 +964,92 @@ def exportDropEstLayers(infile, outfile):
 
     IOTools.touch_file(outfile)
 
+# ########################################################################### #
+# ####################### qc scatter plots (cellranger) ##################### #
+# ########################################################################### #
+
+#@active_if(PARAMS["input"] == "mkfastq")
+@follows(subsetAndDownsample)
+@transform(loadRawQcMetricsPerBarcode,
+       regex(r"(.*).load"),
+       r"qc.dir/qc_scatterplots.sentinel")
+def qcScatterPlots(infile, outfile):
+    '''
+    plot scatter plots for UMIs, number genes and fraction mito per sample
+    '''
+
+    outdir = os.path.dirname(outfile)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    # replace sentinel to log
+    log_name = os.path.basename(outfile).replace(".sentinel", ".log")
+    print(PARAMS)
+
+    # populate an options dictionary with relevant parameters
+    param_keys = ("qc")
+
+    options = {k: v for k, v in PARAMS.items()
+               if k.split("_")[0] in param_keys}
+    del options["qc"]
+    print(options)
+
+    input_qc = PARAMS["qc_inputqc"]
+
+    # add task specific options
+    options["tenx_dir"] = os.fspath(PARAMS["tenx_dir"])
+    options["outdir"] = outdir
+    options["matrixpath"] = os.path.join("all-datasets.dir/", input_qc)
+    options["transcriptome"] = os.fspath(PARAMS["cellranger_transcriptome"])
+
+    # save the parameters
+    task_yaml_file = os.path.abspath(os.path.join(outdir, "qc_scatterplots.yml"))
+    with open(task_yaml_file, 'w') as yaml_file:
+        yaml.dump(options, yaml_file)
+
+    output_dir = os.path.abspath(outdir)
+    knit_root_dir = os.getcwd()
+
+    job_memory = PARAMS["qc_memory"]
+
+    sample_info = pd.read_table("sample.information.txt")
+    samples = sample_info[sample_info.columns[6]].tolist()
+    print(samples)
+
+    statements = []
+
+    for sample in samples:
+
+        print(sample)
+
+        tenx_dir = PARAMS["tenx_dir"]
+
+        # make output directories per sample
+        out_sample = os.path.join(output_dir, sample + "_plot.dir")
+        if not os.path.exists(out_sample):
+            os.makedirs(out_sample)
+
+        fig_path =  os.path.join(out_sample, "fig.dir/")
+        log_file = os.path.join(out_sample, log_name)
+
+
+        statement = '''Rscript -e "rmarkdown::render('%(tenx_dir)s/Rmd/qc_scatterplots.R',
+                       output_dir = '%(out_sample)s',
+                       intermediates_dir = '%(out_sample)s',
+                       knit_root_dir = '%(knit_root_dir)s',
+                       params = list('task_yml' = '%(task_yaml_file)s',
+                                     'fig_path' = '%(fig_path)s',
+                                     'log_filename' = '%(log_file)s',
+                                     'sample' = '%(sample)s' ) )"
+                    ''' % locals()
+
+        print(statement)
+
+        statements.append(statement)
+
+
+    P.run(statements)
+    IOTools.touch_file(outfile)
 
 
 
@@ -971,7 +1057,7 @@ def exportDropEstLayers(infile, outfile):
 # Generic pipeline tasks
 
 @follows(subsetAndDownsample, metrics, plotMetrics, dropEstAggrAndSubset,
-         exportDropEstLayers)
+         exportDropEstLayers, qcScatterPlots)
 def full():
     '''
     Run the full pipeline.
