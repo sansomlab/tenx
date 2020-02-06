@@ -227,7 +227,7 @@ p3 <- ggMarginal(p3, type="density")
 
 save_ggplots(file.path(opt$outdir, "10genes_vs_Mito"), p3)
 
-#' Number Genes vs Fraction of mitochondial UMIs colored by UMIs
+#' Number Genes vs Fraction of mitochondrial UMIs colored by UMIs
 #+ plot_genes_Mito, include=TRUE, fig.height=5
 print(p3)
 #+ include=FALSE
@@ -261,7 +261,7 @@ p4 <- ggMarginal(p4, type="density")
 
 save_ggplots(file.path(opt$outdir, "log10genes_vs_sqrtMito"), p4)
 
-#' log10(Number Genes) vs sqrt(Fraction of mitochondial UMIs) colored by UMIs
+#' log10(Number Genes) vs sqrt(Fraction of mitochondrial UMIs) colored by UMIs
 #+ plot_log10genes_sqrtMito, include=TRUE, fig.height=5
 print(p4)
 #+ include=FALSE
@@ -277,8 +277,8 @@ p5 <- ggplot(tmp, aes(x=umis, y=umis_mt_percent, color=genes)) +
   geom_point(size = 0.5) +
   scale_color_viridis() +
   theme_bw() +
-  xlab("log10(Total UMIs)") +
-  ylab("sqrt(Fraction of mitochondrial UMIs)") +
+  xlab("Total UMIs") +
+  ylab("Fraction of mitochondrial UMIs") +
   # add thresholds
   geom_hline(yintercept=c(0.2,0.5), linetype="dashed", color = "red", size=0.2) +
   geom_vline(xintercept=c(200,500,1000,5000), linetype="dashed", color = "red", size=0.2) +
@@ -291,7 +291,7 @@ p5 <- ggMarginal(p5, type="density")
 
 save_ggplots(file.path(opt$outdir, "log10umis_vs_sqrtMito"), p5)
 
-#' Total UMIs vs Fraction of mitochondial UMIs colored by Number Genes
+#' Total UMIs vs Fraction of mitochondrial UMIs colored by Number Genes
 #+ plot_umis_Mito, include=TRUE, fig.height=5
 print(p5)
 #+ include=FALSE
@@ -324,7 +324,7 @@ p6 <- ggMarginal(p6, type="density")
 
 save_ggplots(file.path(opt$outdir, "log10umis_vs_sqrtMito"), p6)
 
-#' log10(UMIs) vs sqrt(Fraction of mitochondial UMIs) colored by Number Genes
+#' log10(UMIs) vs sqrt(Fraction of mitochondrial UMIs) colored by Number Genes
 #+ plot_log10umis_sqrtMito, include=TRUE, fig.height=5
 print(p6)
 #+ include=FALSE
