@@ -154,6 +154,21 @@ qc:
     seed: none
 
 
+# SingleR
+# -------
+singler: 
+  # Reference datasets used to predict cell's identity
+  # see https://bioconductor.org/packages/3.11/bioc/vignettes/SingleR/inst/doc/SingleR.html#5_available_references
+  # Human: HumanPrimaryCellAtlasData, BlueprintEncodeData, DatabaseImmuneCellExpressionData, NovershternHematopoieticData, MonacoImmuneData
+  # Mouse: ImmGenData; MouseRNAseqData
+  # If more than one reference is used, use a comma to separate the reference names. Example: ImmGenData,MouseRNAseqData
+  reference: ImmGenData,MouseRNAseqData
+  
+  # Columns in metadata for visualizing in plots; by default nCount_RNA, nFeature_RNA, and percent.mito will be shown
+  # Comma separated. Example: condition,genotype,timepoint
+  show_annotation_in_plots: none
+  
+
 # Normalization
 # -------------
 

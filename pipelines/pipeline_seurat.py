@@ -387,6 +387,70 @@ def genClusterJobs():
                             yield [infile, outfile]
 
 
+# #################################################################### #
+# ############### Predict cell-types using singleR ################### #
+# #################################################################### #
+
+@follows(beginSeurat)
+@transform("*.seurat.dir/begin.rds",
+           regex(r"(.*)/begin.rds"),
+           r"\1/singler/singler.sentinel")
+def singler(infile, outfile):
+    '''Perform cell identity prediction on a saved seurat object. 
+    The reference dataset is chosen by the user.
+    
+    The output consists on a series of plots showing the cell's identities 
+    and scores to help assessing the prediction. 
+    
+    A data frame 'singler_predictions.txt.gz' contains the top and second-top labels, their scores, 
+    whether the cell label was pruned, and other information. 
+    '''
+
+    outdir = os.path.dirname(outfile)
+
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    outname = os.path.basename(outfile)
+
+    sample = outdir.split(".seurat.dir/")[0]
+
+    if PARAMS["singler_show_annotation_in_plots"] != "none":
+        show_annotation_in_plots = '''--show_annotation_in_plots=%(singler_show_annotation_in_plots)s''' % PARAMS
+    else:
+        show_annotation_in_plots = ""
+        
+    job_memory = PARAMS["resources_memory_standard"]
+    
+    references = PARAMS["singler_reference"].split(",")
+    
+    statements = []
+    
+    tenx_dir = PARAMS["tenx_dir"]
+    
+    for ref in references:
+        
+        ref_outdir = outdir + "/" + ref + "/"
+        if not os.path.exists(ref_outdir):
+            os.makedirs(ref_outdir)
+        logfile = ref_outdir + ref + ".log"
+        
+        statements.append('''Rscript %(tenx_dir)s/R/singler_run.R
+                       --seuratobject=%(infile)s
+                       --reference=%(ref)s
+                       --outdir=%(ref_outdir)s
+                       %(show_annotation_in_plots)s
+                       &> %(logfile)s
+                       ''' % locals())
+
+    P.run(statements)
+
+    IOTools.touch_file(outfile)
+    
+    
+
+
+
 @follows(beginSeurat)
 @files(genClusterJobs)
 def cluster(infile, outfile):
@@ -2438,7 +2502,8 @@ def genesets():
 # ##################### Target to collect plots ############################# #
 # ########################################################################### #
 
-@follows(clustree,
+@follows(singler,
+         clustree,
          paga,
          plotTSNEPerplexities,
          plotRdimsFactors,
