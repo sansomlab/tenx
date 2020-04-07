@@ -14,6 +14,23 @@ stopifnot(
   require(reshape2)
 )
 
+# Function to calc mean over big matrix in chunks
+expmeanDCG<-function(mat,iter) {
+	df<-NULL
+	for(n in seq(0,nrow(mat),iter)){ 
+		init <- n+1
+		f<-n+iter 
+		if(f>nrow(mat)){ f<- nrow(mat)}
+		message(paste0("range [", init, ":",f,"]") )
+		df[init:f] <- apply(mat[init:f, ],1,FUN=ExpMean )
+		}
+	names(df) <- rownames(mat)
+	return(df)
+}
+
+
+
+
 # Options ----
 
 option_list <- list(
@@ -183,8 +200,11 @@ for (conserved.level in levels(ident.conserved)){
 
         ## compute percentages and difference
         genes <- rownames(x = s)
-        cluster_pct <- apply(GetAssayData(object = s)[genes,cluster_cells, drop=F], 1, function(x) round(sum(x>0)/length(x), digits=3))
-        other_pct <- apply(GetAssayData(object = s)[,other_cells, drop=F], 1, function(x) round(sum(x>0)/length(x),digits=3))
+        #cluster_pct <- apply(GetAssayData(object = s)[genes,cluster_cells, drop=F], 1, function(x) round(sum(x>0)/length(x), digits=3))
+        #other_pct <- apply(GetAssayData(object = s)[,other_cells, drop=F], 1, function(x) round(sum(x>0)/length(x),digits=3))
+	cluster_pct <- round(rowSums(GetAssayData(object = s, slot="data")[genes,cluster_cells, drop=F]>0)/length(cluster_cells),digits=3)
+	other_pct <- round(rowSums(GetAssayData(object = s, slot="data")[genes,other_cells, drop=F]>0)/length(other_cells),digits=3)
+
 
         pcts <- cbind(cluster_pct,other_pct)
         max_pct <- apply(pcts,1,max)
@@ -192,9 +212,16 @@ for (conserved.level in levels(ident.conserved)){
         diff_pct <- max_pct - min_pct
 
         ## compute mean expression levels and difference
-        cluster_mean <- apply(GetAssayData(object = s)[,cluster_cells, drop=F], 1, FUN = ExpMean)
-        other_mean <- apply(GetAssayData(object = s)[,other_cells, drop=F], 1, FUN = ExpMean)
-        diff_mean <- abs(cluster_mean - other_mean)
+        #cluster_mean <- apply(GetAssayData(object = s)[,cluster_cells, drop=F], 1, FUN = ExpMean)
+        #other_mean <- apply(GetAssayData(object = s)[,other_cells, drop=F], 1, FUN = ExpMean)
+        #diff_mean <- abs(cluster_mean - other_mean)
+	
+	message("calc mean expression in cluster...")
+	cluster_mean <- expmeanDCG(GetAssayData(object = s, slot="data")[genes,cluster_cells],2000)
+	message("calc mean expression in other cells...")
+	other_mean <- expmeanDCG(GetAssayData(object = s, slot="data")[genes,other_cells],2000)		
+	diff_mean <- abs(cluster_mean - other_mean)
+	message("saving stats")
 
         ## store these stats so that they can added to the results table
         ## e.g. for later investigation of threshold effects...
