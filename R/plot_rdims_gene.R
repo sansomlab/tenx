@@ -153,7 +153,11 @@ rownames(exprs) <-genes$plot_name[match(rownames(exprs),genes[[id_col]])]
 
 ## get the 95th quantile of log10 n+1 counts > 0
 ## upper_limit = quantile(log10(data[data>0]+1),0.95)
-upper_limit = quantile(data[data>0],0.95)
+# upper_limit = quantile(data[data>0],0.95)
+# logical crashes transforming sparse matrix into dense. Use indexes.
+
+xx<-which(data>0)
+upper_limit = quantile(data[xx],0.95)
 
 ## log transform
 ## exprs <- log10(exprs+1)
