@@ -35,7 +35,9 @@ print(opt)
 
 message(sprintf("readRDS: %s", opt$seuratobject))
 s <- readRDS(opt$seuratobject)
-sce <- as.SingleCellExperiment(s) # Seems to be using SCT assay (so does it take the defualt?)
+a <- ifelse("SCT" %in% names(s), yes = "SCT", no = "RNA")
+#s@misc <- data.frame()
+sce <- as.SingleCellExperiment(s, assay = a) # Seems to be using SCT assay (so does it take the defualt?)
 
 cat("Retrieving SummarizedExperiment object for reference datset:", opt$reference, "\n\n")
 ref.se <- match.fun(opt$reference)
