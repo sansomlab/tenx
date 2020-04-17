@@ -169,11 +169,14 @@ for(group_var in group_vars)
       for ( subgroup in opt$subgroupfactor){
         message("doing cell counts and fractions plots for group ",group_var, " and subgroup ", subgroup)
 
-
         plot_data <- data %>%
-          group_by_at(.vars=c(subgroup, group_var)) %>% summarise(count=n()) %>%
-          group_by_at(.vars=group_var) %>%
-          mutate(proportion= count/sum(count))
+              group_by_at(.vars=c(subgroup, group_var)) %>%
+              summarise(count=n()) %>%
+              mutate(proportion= count/sum(count))
+
+        # plot_data <- data %>% group_by_at(.vars=c(subgroup, group_var)) %>% summarise(count=n()) %>%
+        #   group_by_at(.vars=group_var) %>%
+        #   mutate(proportion= count/sum(count)) (this would do the percentage for each class within its x variable group)
 
         filler<-gtools::mixedsort(unique(as.character(pull(plot_data,subgroup))))
 
