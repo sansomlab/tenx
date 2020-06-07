@@ -32,7 +32,11 @@ option_list <- list(
       c("--table"),
       default="none",
       help="A table containing the reduced coordinates and phenotype information"
-      ),
+    ),
+    make_option(
+        c("--metadata"),
+        default="none",
+        help="A table containing phenotype information"),
     make_option(
       c("--method"),
       default="tSNE",
@@ -91,9 +95,26 @@ message("Reading in rdims table")
 plot_data <- read.table(opt$table, sep="\t", header=TRUE)
 rownames(plot_data) <- plot_data$barcode
 
+if(opt$metadata!="none")
+{
+    meta_data <- read.table(opt$metadata, sep="\t", header=TRUE)
+    rownames(meta_data) <- meta_data$barcode
+    meta_data$barcode <- NULL
+
+    if(length(intersect(rownames(plot_data), rownames(meta_data))) < length(rownames(meta_data)))
+    {
+        stop("Not all cell barcodes are present in the given metadata table")
+    } else {
+
+        meta_data <- meta_data[rownames(plot_data),]
+        plot_data <- cbind(plot_data, meta_data)
+    }
+}
+
 if ("cluster" %in% colnames(plot_data)){
   plot_data$cluster <- factor(plot_data$cluster, levels=sort(as.numeric(unique(plot_data$cluster))))
 }
+
 
 color_vars <- strsplit(opt$colorfactors,",")[[1]]
 tex = ""
