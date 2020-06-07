@@ -137,7 +137,7 @@ for(group_var in group_vars)
     ## http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
     ## The palette with grey:
 
-    cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+    cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#D4B48C")
 
     gp1 <- gp1 + scale_fill_manual(values=cbPalette) #c("seagreen4","bisque2",")
     gp1 <- gp1 + xlab(group_var)

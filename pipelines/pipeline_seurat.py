@@ -105,7 +105,7 @@ aggregated.seurat.dir/begin.rds
 The supplied object must contain an RNA assay with populated "data" and "scale.data" slots for all genes (i.e. you need to run NormlizeData and ScaleData on the RNA assay).
 
 The seurat "JackStraw" and "ScoreJackStraw" functions must have run on the reduced dimensions (e.g. pca) of the default assay of the saved object.
-
+[<0;19;19M
 The default assay of the saved object will be used for cell-level analyses such as cluster discovery, computation of tSNE/umap coordinates and pseudotime. Hence, if, for example, integration has been performed, "integrated" should be set as the default assay. For gene level analyses the pipeline will always use the RNA assay regardless of the default assay.
 
 (Optional - velocity) Starting from aggregated dropEst output matrix.
@@ -149,6 +149,7 @@ Intermediate results files are also retained in the per-sample directories.
 """
 
 from ruffus import *
+from ruffus.combinatorics import *
 from pathlib import Path
 import sys
 import os
@@ -162,6 +163,13 @@ from scipy.stats.mstats import gmean
 import cgatcore.experiment as E
 from cgatcore import pipeline as P
 import cgatcore.iotools as IOTools
+
+import importlib
+import textwrap
+
+# import local pipeline utility functions
+from pipeline_utils import templates
+
 
 # -------------------------- < parse parameters > --------------------------- #
 
@@ -319,6 +327,140 @@ def beginSeurat(infile, outfile):
                 '''
 
     P.run(statement)
+
+# ################################################################### #
+# ############### Predict cell-types using singleR ################### #
+# #################################################################### #
+
+def genSingleRjobs():
+    '''generate the singleR jobs'''
+
+    seurat_objects = glob.glob("*.seurat.dir/begin.rds")
+
+    references = PARAMS["singleR_reference"].split(",")
+
+    for seurat_object in seurat_objects:
+
+        seurat_dir = os.path.dirname(seurat_object)
+
+        for reference in references:
+
+            yield [seurat_object,
+                   os.path.join(seurat_dir,
+                                "singleR.dir",
+                                reference + ".ref.dir",
+                                "singleR.sentinel")]
+
+
+@active_if(PARAMS["singleR_run"])
+@follows(beginSeurat)
+@files(genSingleRjobs)
+def singleR(infile, outfile):
+    '''Perform cell identity prediction on a saved seurat object.
+    The reference dataset is chosen by the user.
+
+    The output consists of an rds object containing the prediction
+    result ("predictions.rds") and a tsv file containing the predicted
+    labels ("labels.tsv.gz")
+    '''
+
+    tenx_dir = PARAMS["tenx_dir"]
+
+    ref_outdir = os.path.dirname(outfile)
+
+    if not os.path.exists(ref_outdir):
+        os.makedirs(ref_outdir)
+
+    logfile = outfile.replace(".sentinel", ".log")
+
+    reference = os.path.basename(
+        Path(outfile).parents[0]).replace(".ref.dir","")
+
+    job_memory = PARAMS["resources_memory_standard"]
+    job_threads = PARAMS["singleR_workers"]
+
+    statement = '''Rscript %(tenx_dir)s/R/singleR_run.R
+                       --seuratobject=%(infile)s
+                       --reference=%(reference)s
+                       --workers=%(job_threads)s
+                       --outdir=%(ref_outdir)s
+
+                       &> %(logfile)s
+                       ''' % locals()
+
+    P.run(statement)
+
+    IOTools.touch_file(outfile)
+
+
+@transform(singleR,
+           formatter("(.sentinel)$"),
+           "{path[0]}/"
+           "{basename[0]}.plot.sentinel")
+def plotSingleR(infile, outfile):
+    '''Make the singleR heatmap'''
+
+    predictions = os.path.join(os.path.dirname(infile),
+                               "predictions.rds")
+
+    seurat_object = os.path.join(Path(infile).parents[2],
+                                 "begin.rds")
+
+    outdir = os.path.dirname(outfile)
+
+    tenx_dir = PARAMS["tenx_dir"]
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    job_memory = PARAMS["resources_memory_standard"]
+
+    statement = '''Rscript %(tenx_dir)s/R/singleR_plots.R
+                       --seuratobject=%(seurat_object)s
+                       --predictions=%(predictions)s
+                       --outdir=%(outdir)s
+
+                       &> %(log_file)s
+                       ''' % locals()
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+
+@active_if(PARAMS["singleR_plot_extra"])
+@transform(singleR,
+           formatter("(.sentinel)$"),
+           "{path[0]}/"
+           "{basename[0]}.plot.sentinel")
+def plotExtraSingleR(infile, outfile):
+    '''Make extra plots to explore the singleR annotations
+       (slower, plots not currently included in the report)
+    '''
+
+    predictions = os.path.join(os.path.dirname(infile),
+                               "predictions.rds")
+
+    seurat_object = os.path.join(Path(infile).parents[2],
+                                 "begin.rds")
+
+    outdir = os.path.dirname(outfile)
+
+    tenx_dir = PARAMS["tenx_dir"]
+
+    log_file = outfile.replace(".sentinel", ".log")
+
+    job_memory = PARAMS["resources_memory_standard"]
+
+    statement = '''Rscript %(tenx_dir)s/R/singleR_extra_plots.R
+                       --seuratobject=%(seurat_object)s
+                       --predictions=%(predictions)s
+                       --outdir=%(outdir)s
+
+                       &> %(log_file)s
+                       ''' % locals()
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
 
 # ########################################################################### #
 # ############ Begin per-parameter combination analysis runs ################ #
@@ -486,8 +628,6 @@ def clustree(infile, outfile):
 
     res_str = ",".join(resolutions)
     id_files_str = ",".join(id_files)
-
-    print(id_files)
 
     log_file = outfile.replace("sentinel","log")
 
@@ -682,131 +822,6 @@ def phate(infile, outfile):
 
 
 # ########################################################################### #
-# ############### tSNE analysis and related plots ########################### #
-# ########################################################################### #
-
-@active_if(PARAMS["tsne_run"])
-@transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/tsne.dir/tsne.sentinel")
-def tSNE(infile, outfile):
-    '''
-    Run the tSNE analysis on a saved seurat object.
-
-    A range of different perplexity choices can be specified.
-    '''
-
-    outdir = os.path.dirname(outfile)
-
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    cluster_ids = os.path.join(Path(outdir).parents[0],
-                               "cluster.dir",
-                               "cluster_ids.rds")
-
-    seurat_dir = Path(outdir).parents[1]
-    seurat_object = os.path.join(seurat_dir, "begin.rds")
-
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
-
-    reductiontype = PARAMS["dimreduction_method"]
-
-    job_memory = PARAMS["resources_memory_standard"]
-
-    perplexity_values = set(
-        PARAMS["tsne_perplexities"].strip().replace(" ", "").split(",") +
-        [PARAMS["tsne_perplexity"]])
-
-    statements = []
-
-    tenx_dir = PARAMS["tenx_dir"]
-    tsne_fast = PARAMS["tsne_fast"]
-    max_iter = PARAMS["tsne_maxiter"]
-
-    if(components=="sig"):
-        comp="--usesigcomponents=TRUE"
-    else:
-        comp="--components=%(components)s" % locals()
-
-    for p in perplexity_values:
-
-        outname = outfile.replace(".sentinel", "." + str(p) + ".txt")
-        logfile = outname.replace(".txt", ".log")
-
-        statements.append('''Rscript %(tenx_dir)s/R/seurat_tsne.R
-                             --seuratobject=%(seurat_object)s
-                             --clusterids=%(cluster_ids)s
-                             %(comp)s
-                             --reductiontype=%(reductiontype)s
-                             --perplexity=%(p)s
-                             --maxiter=%(max_iter)s
-                             --fast=%(tsne_fast)s
-                             --outfile=%(outname)s
-                             &> %(logfile)s
-                          ''' % locals())
-    P.run(statements)
-    IOTools.touch_file(outfile)
-
-@active_if(PARAMS["tsne_run"])
-@transform(tSNE,
-           regex(r"(.*)/tsne.sentinel"),
-           r"\1/plot.tsne.perplexities.sentinel")
-def plotTSNEPerplexities(infile, outfile):
-    '''
-    Visualise effect of the perplexity hyperparameter on tSNE layout.
-
-    A page containing side-by-side plots of the different perplexity
-    choices is produced.
-    '''
-
-    # concatenate all the tSNE results into a single table
-    outdir = os.path.dirname(outfile)
-    perplexities = PARAMS["tsne_perplexities"]
-    perplexity_values = perplexities.strip().replace(" ", "").split(",")
-
-    frames = []
-
-    for p in perplexity_values:
-
-        tsne_table = infile.replace("sentinel", str(p) + ".txt")
-
-        # Perplexity values that are too high are silently skipped
-        # in the previous task.
-        if os.path.exists(tsne_table):
-
-            data = pd.read_csv(tsne_table, sep="\t")
-            data["perplexity"] = p
-            frames.append(data)
-
-    long = pd.concat(frames)
-
-    long_table = infile.replace(".sentinel", ".perplexity.txt")
-    long.to_csv(long_table, sep="\t", header=True, index=False)
-
-    log_file = outfile.replace(".sentinel", ".log")
-
-    job_memory = PARAMS["resources_memory_low"]
-
-    statement = '''Rscript %(tenx_dir)s/R/plot_tsne_hyperparameters.R
-                   --table=%(long_table)s
-                   --shapefactor=%(plot_shape)s
-                   --colorfactor=cluster
-                   --hyperparameter=perplexity
-                   --pointsize=%(plot_pointsize)s
-                   --pointalpha=%(plot_pointalpha)s
-                   --plotdirvar=tsneDir
-                   --outdir=%(outdir)s
-                   &> %(log_file)s
-                '''
-
-    P.run(statement)
-
-    IOTools.touch_file(outfile)
-
-
-# ########################################################################### #
 # ############### UMAP analysis and related plots ########################### #
 # ########################################################################### #
 
@@ -869,6 +884,8 @@ def UMAP(infile, outfile):
 
     P.run(statement)
     IOTools.touch_file(outfile)
+
+
 
 
 # ########################################################################### #
@@ -989,91 +1006,25 @@ def knownMarkerViolins(infile, outfile):
 # Used to show clusters, factors of interest and gene expression levels
 # in various downstream functions
 
-if PARAMS["dimreduction_visualisation"].lower() == "tsne":
-    RDIMS_VIS_TASK = tSNE
-    RDIMS_VIS_METHOD = "tsne"
-    RDIMS_VIS_COMP_1 = "tSNE_1"
-    RDIMS_VIS_COMP_2 = "tSNE_2"
+# if PARAMS["dimreduction_visualisation"].lower() == "tsne":
+#     RDIMS_VIS_TASK = tSNE
+#     RDIMS_VIS_METHOD = "tsne"
+#     RDIMS_VIS_COMP_1 = "tSNE_1"
+#     RDIMS_VIS_COMP_2 = "tSNE_2"
 
-elif PARAMS["dimreduction_visualisation"].lower() == "umap":
-    RDIMS_VIS_TASK = UMAP
-    RDIMS_VIS_METHOD = "umap"
-    RDIMS_VIS_COMP_1 = "UMAP_1"
-    RDIMS_VIS_COMP_2 = "UMAP_2"
+# elif PARAMS["dimreduction_visualisation"].lower() == "umap":
+RDIMS_VIS_TASK = UMAP
+RDIMS_VIS_METHOD = "umap"
+RDIMS_VIS_COMP_1 = "UMAP_1"
+RDIMS_VIS_COMP_2 = "UMAP_2"
 
-else:
-    raise ValueError('dimreduction_visualisation must be either "tsne" or "umap"')
+# else:
+#     raise ValueError('dimreduction_visualisation must be either "tsne" or "umap"')
+
 
 # ########################################################################### #
 # ########################### RNA Velocity ################################## #
 # ########################################################################### #
-
-# @active_if(PARAMS["velocity_run"])
-# @transform(RDIMS_VIS_TASK,
-#            regex(r"(.*)/(.*).dir/(.*).sentinel"),
-#            r"\1/velocity.dir/plot.velocity.sentinel")
-# def velocity(infile, outfile):
-#     '''
-#        Plot the RNA velocity.
-#        This analysis is highly parameterised and different configurations can
-#        suggest different interpretations of the data: it is strong recommended
-#        to determine the best settings manually!
-#     '''
-
-#     outdir = os.path.dirname(outfile)
-#     if not os.path.exists(outdir):
-#         os.makedirs(outdir)
-
-#     if RDIMS_VIS_METHOD == "tsne":
-#         rdims_table = infile.replace(
-#             "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-#     elif RDIMS_VIS_METHOD == "umap":
-#         rdims_table = infile.replace(
-#             ".sentinel", ".txt")
-
-#     sample = infile.split(".seurat.dir")[0]
-
-#     matrixdir = os.path.join("data.velocity.dir",
-#                              sample + ".dir")
-
-#     log_file = outfile.replace(".sentinel", ".log")
-
-#     job_threads = PARAMS["velocity_ncores"]
-#     job_memory = PARAMS["resources_memory_low"]
-
-#     rdims_vis_method = RDIMS_VIS_METHOD
-#     rdim1 = RDIMS_VIS_COMP_1
-#     rdim2 = RDIMS_VIS_COMP_2
-
-#     statement = '''Rscript %(tenx_dir)s/R/plot_velocity.R
-#                 --ncores=%(velocity_ncores)s
-#                 --rdimstable=%(rdims_table)s
-#                 --rdim1=%(rdim1)s
-#                 --rdim2=%(rdim2)s
-#                 --matrixdir=%(matrixdir)s
-#                 --minmaxclustavemat=%(velocity_minmaxclustavemat)s
-#                 --minmaxclustavnmat=%(velocity_minmaxclustavnmat)s
-#                 --deltat=%(velocity_deltat)s
-#                 --kcells=%(velocity_kcells)s
-#                 --fitquantile=%(velocity_fitquantile)s
-#                 --neighbourhoodsize=%(velocity_neighbourhoodsize)s
-#                 --velocityscale=%(velocity_velocityscale)s
-#                 --arrowscale=%(velocity_arrowscale)s
-#                 --arrowlwd=%(velocity_arrowlwd)s
-#                 --gridflow=%(velocity_gridflow)s
-#                 --mingridcellmass=%(velocity_mingridcellmass)s
-#                 --gridn=%(velocity_gridn)s
-#                 --cellalpha=%(velocity_cellalpha)s
-#                 --cellborderalpha=%(velocity_cellborderalpha)s
-#                 --showaxes=%(velocity_showaxes)s
-#                 --plotdirvar=velocityDir
-#                 --plotcex=%(velocity_plotcex)s
-#                 --outdir=%(outdir)s
-#                 &> %(log_file)s
-#                 '''
-
-#     P.run(statement)
-#     IOTools.touch_file(outfile)
 
 @active_if(PARAMS["velocity_run"])
 @follows(paga)
@@ -1252,6 +1203,117 @@ def plotRdimsFactors(infile, outfile):
 
     P.run(statement)
     IOTools.touch_file(outfile)
+
+
+@product(singleR,
+         formatter("(.sentinel)$"),
+         UMAP,
+         formatter("(.sentinel)$"),
+         "{subpath[1][0][1]}/"
+         "singleR.dir/"
+         "{subdir[0][0][0]}/"
+         "singleR.umap.sentinel")
+def plotUmapSingleR(infiles, outfile):
+    '''Plot the SingleR primary identity assignments on a UMAP'''
+
+    singleR_sentinel, umap_sentinel = infiles
+
+    singleR_dir = os.path.dirname(singleR_sentinel)
+
+    metadata = os.path.join(singleR_dir, "labels.tsv.gz")
+
+    rdims_table = umap_sentinel.replace(".sentinel", ".txt")
+
+    # bring vars into local scope..
+    rdims_vis_method = RDIMS_VIS_METHOD
+    rdim1 = RDIMS_VIS_COMP_1
+    rdim2 = RDIMS_VIS_COMP_2
+
+    outdir = os.path.dirname(outfile)
+    log_file = outfile.replace(".sentinel", ".log")
+
+    statement  = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
+                        --method=%(rdims_vis_method)s
+                        --table=%(rdims_table)s
+                        --metadata=%(metadata)s
+                        --rdim1=%(rdim1)s
+                        --rdim2=%(rdim2)s
+                        --colorfactors=pruned.labels
+                        --pointsize=%(plot_pointsize)s
+                        --pointalpha=%(plot_pointalpha)s
+                        --outdir=%(outdir)s
+                        --plotdirvar=rdimsVisDir
+                        &> %(log_file)s
+                '''
+
+#                         %(shape_factors)s
+#                        %(color_factors)s
+
+
+    P.run(statement)
+
+    IOTools.touch_file(outfile)
+
+
+@follows(plotUmapSingleR, plotSingleR)
+@transform(cluster,
+           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           r"\1/singleR.dir/singleR.summary.tex")
+def summariseSingleR(infile, outfile):
+    '''Collect the single R plots into a section for the report'''
+
+
+    references = PARAMS["singleR_reference"].split(",")
+
+    singleR_path = os.path.join(Path(infile).parents[2],
+                                "singleR.dir")
+
+    singleR_umap_path = os.path.join(Path(infile).parents[1],
+                                     "singleR.dir")
+
+
+    latex_path = outfile  # .replace(".sentinel", ".tex")
+
+    with open(latex_path, "w") as tex:
+
+
+        for reference in references:
+
+            # heatmap
+            tex.write(templates.subsection % {"title": reference})
+            tex.write("\n")
+
+            heatmap_path = os.path.join(singleR_path,
+                                        reference + ".ref.dir",
+                                        "singleR_score_heatmap")
+
+
+            if(os.path.exists(heatmap_path + ".png")):
+                heatmap_fig = {"width": "1", "height": "0.9",
+                               "path": heatmap_path,
+                               "caption": "singleR predictions (" +\
+                               reference + ")"}
+
+                tex.write(textwrap.dedent(
+                    templates.figure % heatmap_fig))
+                tex.write("\n")
+
+            umap_path = os.path.join(singleR_umap_path,
+                                        reference + ".ref.dir",
+                                        "umap.pruned.labels")
+
+            # umap
+            if(os.path.exists(umap_path + ".png")):
+
+                umap_fig = {"width": "1", "height": "0.9",
+                            "path": umap_path,
+                            "caption": "pruned singleR predictions (" +\
+                            reference + ")"}
+
+                tex.write(textwrap.dedent(
+                    templates.figure % umap_fig))
+
+                tex.write("\n")
 
 
 @transform(RDIMS_VIS_TASK,
@@ -2438,9 +2500,10 @@ def genesets():
 # ##################### Target to collect plots ############################# #
 # ########################################################################### #
 
-@follows(clustree,
+@follows(summariseSingleR,
+         clustree,
          paga,
-         plotTSNEPerplexities,
+#         plotTSNEPerplexities,
          plotRdimsFactors,
          plotRdimsGenes,
          plotRdimsMarkers,
@@ -2490,6 +2553,10 @@ def latexVars(infile, outfile):
     clusterDir = os.path.join(runDir,
                               "cluster.dir")
 
+    singleRDir = os.path.join(runDir,
+                              "singleR.dir")
+
+
     clusterGenesetsDir = os.path.join(runDir,
                               "cluster.genesets.dir")
 
@@ -2509,8 +2576,8 @@ def latexVars(infile, outfile):
     conditionMarkerDEPlotsDir = os.path.join(runDir,
                               "condition.marker.de.plots.dir")
 
-    conditionMarkerTSNEPlotsDir = os.path.join(runDir,
-                                             "condition.marker.tsne.plots.dir")
+#    conditionMarkerTSNEPlotsDir = os.path.join(runDir,
+#                                             "condition.marker.tsne.plots.dir")
 
     conditionMarkersDir = os.path.join(runDir,
                                      "condition.markers.dir")
@@ -2527,8 +2594,8 @@ def latexVars(infile, outfile):
     groupNumbersDir = os.path.join(runDir,
                                    "group.numbers.dir")
 
-    tsneDir = os.path.join(runDir,
-                           "tsne.dir")
+#    tsneDir = os.path.join(runDir,
+#                           "tsne.dir")
 
     umapDir = os.path.join(runDir,
                            "umap.dir")
@@ -2595,7 +2662,8 @@ def latexVars(infile, outfile):
             "runDir": "%(runDir)s" % locals(),
             "sampleDir": "%(sampleDir)s" % locals(),
             "clusterDir": "%(clusterDir)s" % locals(),
-            "tsneDir": "%(tsneDir)s" % locals(),
+            "singleRDir": "%(singleRDir)s" % locals(),
+#            "tsneDir": "%(tsneDir)s" % locals(),
             "clusterGenesetsDir": "%(clusterGenesetsDir)s" % locals(),
             "clusterMarkerDEPlotsDir": "%(clusterMarkerDEPlotsDir)s" % locals(),
             "clusterMarkerRdimsPlotsDir": "%(clusterMarkerRdimsPlotsDir)s" % locals(),
@@ -2619,9 +2687,9 @@ def latexVars(infile, outfile):
             "nPCs": "%(nPCs)s" % locals(),
             "normalizationMethod": "%(normalization_method)s" % PARAMS,
             "reductionType": "%(reductionType)s" % locals(),
-            "tSNEPerplexity": "%(tsne_perplexity)s" % PARAMS,
-            "tSNEMaxIter": "%(tsne_maxiter)s" % PARAMS,
-            "tSNEFast": "%(tsne_fast)s" % PARAMS,
+#            "tSNEPerplexity": "%(tsne_perplexity)s" % PARAMS,
+#            "tSNEMaxIter": "%(tsne_maxiter)s" % PARAMS,
+#            "tSNEFast": "%(tsne_fast)s" % PARAMS,
             "nPositiveMarkers": "%(exprsreport_n_positive)s" % PARAMS,
             "nNegativeMarkers": "%(exprsreport_n_negative)s" % PARAMS,
             "resolution": "%(resolution)s" % locals(),
@@ -2732,11 +2800,11 @@ def summaryReport(infile, outfile):
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/numbersSection.tex
         '''
 
-    if(PARAMS["tsne_run"]):
-        # add the tSNE paramaeter analysis section
-        statement += '''
-                      \\input %(tenx_dir)s/pipelines/pipeline_seurat/tsneSection.tex
-                      '''
+    # if(PARAMS["tsne_run"]):
+    #     # add the tSNE paramaeter analysis section
+    #     statement += '''
+    #                   \\input %(tenx_dir)s/pipelines/pipeline_seurat/tsneSection.tex
+    #                   '''
 
     # add the section to visualise clusters and factors in reduced dimensions
     # (plots made by tsne or umap)
@@ -2747,6 +2815,11 @@ def summaryReport(infile, outfile):
     statement += '''
       \\input %(tenx_dir)s/pipelines/pipeline_seurat/clusteringSection.tex
       '''
+
+    if(PARAMS["singleR_run"]):
+        statement += '''
+         \\input %(tenx_dir)s/pipelines/pipeline_seurat/singleRSection.tex
+        '''
 
     if(PARAMS["diffusionmap_run"]):
         statement += '''

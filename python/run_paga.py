@@ -33,6 +33,8 @@ sc.logging.print_versions()
 # ######################## Parse the arguments ############################## #
 # ########################################################################### #
 
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--reduced_dims_matrix_file", default="reduced_dims.tsv.gz", type=str,
                     help="File with reduced dimensions")
@@ -52,6 +54,12 @@ parser.add_argument("--k", default=20, type=int,
                     help="number of neighbors")
 
 args = parser.parse_args()
+
+
+
+
+
+
 
 # ########################################################################### #
 # ############## Create outdir and set results file ######################### #
@@ -79,9 +87,9 @@ sc.settings.set_figure_params(dpi=300, dpi_save=300)
 
 # Read matrix of reduced dimensions, create anndata and add dimensions
 reduced_dims_mat = pd.read_csv(args.reduced_dims_matrix_file, sep="\t")
-reduced_dims_mat.index = pd.read_csv(args.barcode_file, header=None)[0]
+reduced_dims_mat.index = [x for x in pd.read_csv(args.barcode_file, header=None)[0]]
 
-adata = sc.AnnData(obs=reduced_dims_mat.index)
+adata = sc.AnnData(obs=[x for x in reduced_dims_mat.index])
 adata.obs.index = reduced_dims_mat.index
 adata.obs.rename(columns={0:'barcode'}, inplace=True)
 
