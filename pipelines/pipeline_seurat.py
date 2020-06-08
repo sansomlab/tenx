@@ -793,7 +793,19 @@ def phate(infile, outfile):
     barcode_file = os.path.join(seurat_dir,
                                   "barcodes.txt.gz")
 
-    assay_data = os.path.join(seurat_dir, "assay.scale.data.tsv.gz")
+    if PARAMS["phate_assay"] == "reduced.dimensions":
+
+        embeddings = ".".join(["embedding",
+                               PARAMS["dimreduction_method"],
+                               "tsv.gz"])
+
+        assay_data = os.path.join(seurat_dir, embeddings)
+
+    elif PARAMS["phate_assay"] == "scaled.data":
+        assay_data = os.path.join(seurat_dir, "assay.scale.data.tsv.gz")
+
+    else:
+        raise ValueError("PHATE assay not recognised")
 
     components, resolution, algorithm, test = outdir.split(
         "/")[-2].split("_")
@@ -808,6 +820,7 @@ def phate(infile, outfile):
 
     statement = '''python %(tenx_dir)s/python/run_phate.py
                    --data=%(assay_data)s
+                   --assay=%(phate_assay)s
                    --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
                    --cluster_assignments=%(cluster_assignments)s
@@ -1050,12 +1063,11 @@ def scvelo(infile, outfile):
                                   "cluster.dir",
                                   "cluster_colors.txt")
 
-    if RDIMS_VIS_METHOD == "tsne":
-        rdims_table = infile.replace(
-            "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-    elif RDIMS_VIS_METHOD == "umap":
-        rdims_table = infile.replace(
-            ".sentinel", ".txt")
+    # if RDIMS_VIS_METHOD == "tsne":
+    #     rdims_table = infile.replace(
+    #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+    # elif RDIMS_VIS_METHOD == "umap":
+    rdims_table = infile.replace(".sentinel", ".txt")
 
     rdims_vis_method = RDIMS_VIS_METHOD
     rdim1 = RDIMS_VIS_COMP_1
@@ -1148,12 +1160,11 @@ def plotRdimsFactors(infile, outfile):
     outdir = os.path.dirname(outfile)
     job_memory = PARAMS["resources_memory_standard"]
 
-    if RDIMS_VIS_METHOD == "tsne":
-        rdims_table = infile.replace(
-            "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-    elif RDIMS_VIS_METHOD == "umap":
-        rdims_table = infile.replace(
-            ".sentinel", ".txt")
+    # if RDIMS_VIS_METHOD == "tsne":
+    #     rdims_table = infile.replace(
+    #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+    # elif RDIMS_VIS_METHOD == "umap":
+    rdims_table = infile.replace(".sentinel", ".txt")
 
     color_factors = ["cluster"]
 
@@ -1345,12 +1356,11 @@ def plotRdimsGenes(infile, outfile):
 
         job_memory = PARAMS["resources_memory_standard"]
 
-        if RDIMS_VIS_METHOD == "tsne":
-            rdims_table = infile.replace(
-                "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-        elif RDIMS_VIS_METHOD == "umap":
-            rdims_table = infile.replace(
-                ".sentinel", ".txt")
+        # if RDIMS_VIS_METHOD == "tsne":
+        #     rdims_table = infile.replace(
+        #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+        # elif RDIMS_VIS_METHOD == "umap":
+        rdims_table = infile.replace( ".sentinel", ".txt")
 
         for genelist in genelists:
 
@@ -1429,12 +1439,11 @@ def plotGroupNumbers(infile, outfile):
 
     job_memory = PARAMS["resources_memory_standard"]
 
-    if RDIMS_VIS_METHOD == "tsne":
-        rdims_table = infile.replace(
-            "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-    elif RDIMS_VIS_METHOD == "umap":
-        rdims_table = infile.replace(
-            ".sentinel", ".txt")
+    # if RDIMS_VIS_METHOD == "tsne":
+    #     rdims_table = infile.replace(
+    #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+    # elif RDIMS_VIS_METHOD == "umap":
+    rdims_table = infile.replace(".sentinel", ".txt")
 
     if PARAMS["plot_subgroup"] is not None:
         subgroupfactor = "--subgroupfactor=%(plot_subgroup)s" % PARAMS
@@ -1833,12 +1842,11 @@ def plotRdimsMarkers(infile, outfile):
         rdim1 = RDIMS_VIS_COMP_1
         rdim2 = RDIMS_VIS_COMP_2
 
-        if rdims_vis_method == "tsne":
-            rdims_table = infile.replace(
-                "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-        elif rdims_vis_method == "umap":
-            rdims_table = infile.replace(
-                ".sentinel", ".txt")
+        # if rdims_vis_method == "tsne":
+        #     rdims_table = infile.replace(
+        #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
+        # elif rdims_vis_method == "umap":
+        rdims_table = infile.replace(".sentinel", ".txt")
 
         if(d.shape[0] > 0):
 
@@ -2795,16 +2803,16 @@ def summaryReport(infile, outfile):
           \\input %(tenx_dir)s/pipelines/pipeline_seurat/beginReport.tex
           '''
 
+        if PARAMS["normalization_method"] != "sctransform":
+            statement += '''
+            \\input %(tenx_dir)s/pipelines/pipeline_seurat/jackstrawSection.tex
+            '''
+
+
     # add the section with plots of cell and gene numbers etc.
     statement += '''
          \\input %(tenx_dir)s/pipelines/pipeline_seurat/numbersSection.tex
         '''
-
-    # if(PARAMS["tsne_run"]):
-    #     # add the tSNE paramaeter analysis section
-    #     statement += '''
-    #                   \\input %(tenx_dir)s/pipelines/pipeline_seurat/tsneSection.tex
-    #                   '''
 
     # add the section to visualise clusters and factors in reduced dimensions
     # (plots made by tsne or umap)

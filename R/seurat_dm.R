@@ -92,16 +92,10 @@ message("saving the dm coordinates")
 ## extract the DM coordinates from the seurat object
 dm_coord <- as.data.frame(diff_map@eigenvectors)
 
-print(head(dm_coord))
-print(dim(dm_coord))
-print(head(Idents(s)))
-
-rownames(dm_coord) <- Cells(s)
-dm_coord$cluster <- Idents(s)
-
-dm_coord <- merge(dm_coord, s[[]], by=0)
-
+dm_coord$cluster <- cluster_ids[rownames(dm_coord)]
 dm_coord$barcode <- row.names(dm_coord)
+
+
 
 ## save the annotated coordinates
 write.table(dm_coord, gzfile(opt$outfile),

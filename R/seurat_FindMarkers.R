@@ -11,24 +11,9 @@ stopifnot(
   require(future),
   require(dplyr),
   require(Matrix),
+  require(tenxutils),
   require(reshape2)
 )
-
-# Function to calc mean over big matrix in chunks
-expmeanDCG<-function(mat,iter) {
-	df<-NULL
-	for(n in seq(0,nrow(mat),iter)){ 
-		init <- n+1
-		f<-n+iter 
-		if(f>nrow(mat)){ f<- nrow(mat)}
-		message(paste0("range [", init, ":",f,"]") )
-		df[init:f] <- apply(mat[init:f, ],1,FUN=ExpMean )
-		}
-	names(df) <- rownames(mat)
-	return(df)
-}
-
-
 
 
 # Options ----
@@ -215,11 +200,11 @@ for (conserved.level in levels(ident.conserved)){
         #cluster_mean <- apply(GetAssayData(object = s)[,cluster_cells, drop=F], 1, FUN = ExpMean)
         #other_mean <- apply(GetAssayData(object = s)[,other_cells, drop=F], 1, FUN = ExpMean)
         #diff_mean <- abs(cluster_mean - other_mean)
-	
+
 	message("calc mean expression in cluster...")
-	cluster_mean <- expmeanDCG(GetAssayData(object = s, slot="data")[genes,cluster_cells],2000)
+	cluster_mean <- FastExpMeanChunked(GetAssayData(object = s, slot="data")[genes,cluster_cells],2000)
 	message("calc mean expression in other cells...")
-	other_mean <- expmeanDCG(GetAssayData(object = s, slot="data")[genes,other_cells],2000)		
+	other_mean <- FastExpMeanChunked(GetAssayData(object = s, slot="data")[genes,other_cells],2000)
 	diff_mean <- abs(cluster_mean - other_mean)
 	message("saving stats")
 

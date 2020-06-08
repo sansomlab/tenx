@@ -156,11 +156,10 @@ rownames(exprs) <-genes$plot_name[match(rownames(exprs),genes[[id_col]])]
 ## upper_limit = quantile(log10(data[data>0]+1),0.95)
 
 # upper_limit = quantile(data[data>0],0.95)
-# logical crashes transforming sparse matrix into dense. Use indexes, load Matrix. 
-
+# logical crashes transforming sparse matrix into dense. Use indexes, load Matrix.
 
 xx<-which(data>0)
-upper_limit = quantile(data[xx],0.95)
+upper_limit = quantile(data[xx], 0.95)
 
 ## log transform
 ## exprs <- log10(exprs+1)
@@ -215,7 +214,7 @@ for(page in seqWrapper(1,npages))
     {
         gp <- ggplot(melted_plot_data, aes_string(opt$rdim1, opt$rdim2,
                                                   color="value"))
-    }else{
+    } else {
         gp <- ggplot(melted_plot_data, aes_string(opt$rdim1, opt$rdim2,
                                                   color="value",
                                                   shape=opt$shapefactor))

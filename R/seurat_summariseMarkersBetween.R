@@ -14,6 +14,7 @@ stopifnot(
   require(ggplot2),
   require(openxlsx),
   require(optparse),
+  require(colormap),
   require(tenxutils)
 )
 
@@ -193,10 +194,16 @@ print(xtable(xtab, digits=0,
 
 pf <- melt(stats[,1:3],id.vars="cluster")
 
+nsubgroup <- length(unique(pf$variable))
+cm_palette <- colormap(colormap = colormaps$portland,
+                       nshade = nsubgroup, alpha=0.6)
+
 gp <- ggplot(pf,aes(cluster,value,fill=variable))
 gp <- gp + geom_bar(stat="identity",position="dodge")
 gp <- gp + ylab("number of cells")
-gp <- gp + scale_fill_manual(values=c("seagreen4","bisque2"))
+gp <- gp + scale_fill_manual(values=cm_palette)
+
+gp <- gp + theme_light()
 
 save_ggplots(gsub(".tex",".cellnumbers",tex_fn),
              gp,
@@ -206,6 +213,8 @@ save_ggplots(gsub(".tex",".cellnumbers",tex_fn),
 gp <- ggplot(stats,aes(cluster,n_de_genes))
 gp <- gp + geom_bar(stat="identity")
 gp <- gp + ylab("number of de genes")
+
+gp <- gp + theme_light()
 
 save_ggplots(gsub(".tex",".nde",tex_fn),
              gp,

@@ -277,7 +277,7 @@ dimreduction:
     # Choices: 'pca'|'ica'
     method: pca
     # Projection method used for visualisation (umap is recommended)
-    # Choices: 'umap'|'tsne'
+    # Choices: 'umap' (tSNE is no longer supported)
     visualisation: umap
 
 
@@ -372,9 +372,13 @@ diffusionmap:
 # ----------------
 
 phate:
-  run: True
+
   # Run the phate DR algorithm
   run: True
+
+  # assay: "scaled.data" or "reduced.dimensions"
+  # if using integrated data, reduced.dimesions may be more appropriate
+  assay: scaled.data
 
   # k
   k: 5
@@ -389,23 +393,23 @@ phate:
 velocity:
   run: False
 
-  ncores: 8
-  minmaxclustavemat: 0.2
-  minmaxclustavnmat: 0.05
-  deltat: 1
-  kcells: 15
-  fitquantile: 0.02
-  neighbourhoodsize: 100
-  velocityscale: log
-  arrowscale: 3
-  arrowlwd: 1.3
-  gridflow: TRUE
-  mingridcellmass: 0.5
-  gridn: 40
-  cellalpha: 1
-  cellborderalpha: 0.5
-  showaxes: TRUE
-  plotcex: 1
+  # ncores: 8
+  # minmaxclustavemat: 0.2
+  # minmaxclustavnmat: 0.05
+  # deltat: 1
+  # kcells: 15
+  # fitquantile: 0.02
+  # neighbourhoodsize: 100
+  # velocityscale: log
+  # arrowscale: 3
+  # arrowlwd: 1.3
+  # gridflow: TRUE
+  # mingridcellmass: 0.5
+  # gridn: 40
+  # cellalpha: 1
+  # cellborderalpha: 0.5
+  # showaxes: TRUE
+  # plotcex: 1
 
 # PAGA parameters
 # ---------------
