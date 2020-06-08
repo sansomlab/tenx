@@ -32,7 +32,7 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list=option_list))
 
 outPrefix <- file.path(opt$outdir,"markers.summary")
-
+if(!is.null(opt$subgroup)) { opt$subgroup <- strsplit(opt$subgroup,",")[[1]]}
 cat("Running with options:\n")
 print(opt)
 
@@ -80,7 +80,7 @@ for (i in 1:length(idents.all)) {
             print(paste("No marker file found for cluster",i,sep=" "))
         }
 
-    }
+}
 
 markers <- gde.all
 
@@ -100,7 +100,7 @@ print(dim(markers))
 
 print("Filtering by adjusted p-value")
 filtered_markers <- data.table(markers[markers$p.adj < 0.1,])
-
+message("Filtered markers are:")
 print(dim(filtered_markers))
 
 ## Annotate the filtered_markers with:
@@ -116,9 +116,12 @@ for(x in cluster_levels)
     clust_cells <- names(cluster_ids[cluster_ids==x])
     other_cells <- names(cluster_ids[cluster_ids!=x])
 
-    xmean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]),1,mean)
-    omean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]),1,mean)
-    xfreq <- apply(GetAssayData(object = s, slot="data")[fgenes,clust_cells],1,function(x) length(x[x>0])/length(x))
+    # xmean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]),1,mean)
+    # omean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]),1,mean)
+    # xfreq <- apply(GetAssayData(object = s, slot="data")[fgenes,clust_cells],1,function(x) length(x[x>0])/length(x))
+    xmean <- Matrix::rowMeans(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]))
+    omean <- Matrix::rowMeans(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]))
+    xfreq <- Matrix::rowSums(GetAssayData(object = s, slot="data")[fgenes,clust_cells]>0)/length(clust_cells)
 
     filtered_markers[[paste0(x,"_exprs")]] <- xmean
     filtered_markers[[paste0(x,"_freq")]] <- xfreq
@@ -210,13 +213,6 @@ message("Making a heatmap of the top marker genes from each cluster")
 ## make a heatmap of the top DE genes.
 filtered_markers %>% group_by(cluster) %>% top_n(20, avg_logFC) -> top20
 
-## gp <- DoHeatmap(s, genes.use = top20$gene,
-##                 slim.col.label = TRUE,
-##                 remove.key = TRUE,
-##                 cex.row=4,
-##                 ## order.by.ident = TRUE, # depreciated
-##                 title="Top 20 marker genes for each cluster")
-
 if(!is.null(opt$subgroup))
 {
     if(!opt$subgroup %in% colnames(s@meta.data))
@@ -226,11 +222,11 @@ if(!is.null(opt$subgroup))
 }
 
 mch <- markerComplexHeatmap(s,
-                         marker_table=filtered_markers,
-                         n_markers=20,
-                         cells_use=NULL,
-                         row_names_gp=11,
-                         sub_group=opt$subgroup)
+                            marker_table=filtered_markers,
+                            n_markers=20,
+                            cells_use=NULL,
+                            row_names_gp=11,
+                            sub_group=opt$subgroup)
 
 drawHeatmap <- function()
 {

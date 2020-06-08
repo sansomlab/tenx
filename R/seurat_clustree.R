@@ -53,10 +53,15 @@ colnames(clust_index) <- paste0("R",colnames(clust_index))
 
 gp <- clustree(clust_index,"R")
 
+if( max(apply(clust_index,2,function(x) max(as.numeric(x)))) > 20) {
+  fig.width=12
+}else{
+  fig.width=6
+}
 save_ggplots(
     file.path(opt$outdir, "clustree"),
     gp=gp,
-    width=6, height=8
+    width=fig.width, height=8
     )
 
 message("Completed")

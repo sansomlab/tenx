@@ -33,6 +33,8 @@ L = logging.getLogger("run_paga")
 parser = argparse.ArgumentParser()
 parser.add_argument("--data", default="data.tsv.gz", type=str,
                     help="File with the data, e.g. scale.data from Seurat")
+parser.add_argument("--assay", default="reduced.dimensions", type=str,
+                    help="type of assay: scaled.data or dimension.reduction")
 parser.add_argument("--barcode_file", default="barcodes.tsv.gz", type=str,
                     help="File with the cell barcodes")
 parser.add_argument("--outdir",default=1, type=str,
@@ -65,12 +67,16 @@ ggplot_cmap = ListedColormap(sns.color_palette(ggplot_palette).as_hex())
 # ############################## Run PHATE ################################## #
 # ########################################################################### #
 
+if args.assay == "reduced.dimensions":
+    # Read matrix of reduced dimensions, create anndata and add dimensions
+    data = pd.read_csv(args.data, sep="\t", header=0)
 
-# Read matrix of reduced dimensions, create anndata and add dimensions
-data = pd.read_csv(args.data, sep="\t")
+if args.assay == "scaled.data":
+    # Read matrix of reduced dimensions, create anndata and add dimensions
+    data = pd.read_csv(args.data, sep="\t", header=None)
 
-# we need to transpose the data for PHATE
-data = data.transpose()
+    # we need to transpose the data for PHATE
+    data = data.transpose()
 
 # Read and add cluster ids
 clusters = pd.read_csv(args.cluster_assignments,sep="\t")

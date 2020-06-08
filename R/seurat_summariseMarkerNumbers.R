@@ -13,6 +13,7 @@ stopifnot(
   require(ggrepel),
   require(gridExtra),
   require(dplyr),
+  require(colormap),
   require(tenxutils)
 )
 
@@ -91,11 +92,17 @@ melted_data$cluster <- factor(melted_data$cluster, levels=clevels[order(clevels)
 
 message("drawing summary barplot")
 
+nsubgroup <- length(unique(melted_data$variable))
+cm_palette <- colormap(colormap = colormaps$portland,
+                       nshade = nsubgroup, alpha=0.6)
+
 gp <- ggplot(melted_data, aes(cluster, value, fill=variable))
 gp <- gp + geom_bar(stat="identity",position="dodge")
-gp <- gp + scale_fill_manual(values=c("bisque2","seagreen4"))
+gp <- gp + scale_fill_manual(values=cm_palette)
 gp <- gp + ylab(paste0("no. genes (p.adj < ", opt$minpadj,
                        ", fold change > ",  opt$minfc, ")"))
+
+gp <- gp + theme_light()
 
 nsfn <- paste(c("deNumbers",file_suffix),collapse=".")
 nsfp <- file.path(opt$outdir, nsfn)

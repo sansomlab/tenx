@@ -32,7 +32,8 @@ stopifnot(
   require(dplyr),
   require(Seurat),
   require(gridExtra),
-  require(tenxutils)
+  require(tenxutils),
+  require(colormap)
 )
 
 # Options ----
@@ -83,6 +84,7 @@ data <- read.table(opt$table,sep="\t",header=T)
 rownames(data) <- data$barcode
 
 group_vars_all <- strsplit(opt$groupfactors,",")[[1]]
+opt$subgroupfactor <- strsplit(opt$subgroupfactor, ",")[[1]]
 tex = ""
 
 ## Drop grouping variables
@@ -90,11 +92,8 @@ tex = ""
 group_vars <- c()
 for(group_var in group_vars_all)
 {
-    print(group_var)
 
     data[[group_var]] <- as.factor(data[[group_var]])
-
-    print(levels(data[[group_var]]))
 
     if(length(levels(data[[group_var]]))>1)
     {
@@ -110,8 +109,12 @@ for(group_var in group_vars)
 
     if(opt$subgroupfactor=="none" | !(opt$subgroupfactor %in% colnames(data)))
     {
+      message("no subgroup found")
 
         plot_data <- data %>% group_by_(group_var) %>% summarise(count=n()) %>% mutate(proportion= count/sum(count))
+
+        cm_palette <- colormap(colormap = colormaps$portland,
+                             nshade = 2, alpha=0.6)
 
         gp1 <- ggplot(plot_data, aes_string(group_var, "count"))
         gp1 <- gp1 + geom_bar(stat="identity")
@@ -120,64 +123,139 @@ for(group_var in group_vars)
         gp2 <- gp2 + geom_bar(stat="identity")
 
 
+        gp1 <- gp1 + scale_fill_manual(values=cm_palette) #c("seagreen4","bisque2",")
+        gp1 <- gp1 + xlab(group_var)
+        gp1 <- gp1 + ylab("number of cells")
+
+
+        gp2 <- gp2 + scale_fill_manual(values=cm_palette) #c("seagreen4","bisque2",")
+        gp2 <- gp2 + xlab(group_var)
+        gp2 <- gp2 + scale_y_continuous(labels=scales::percent)
+        gp2 <- gp2 + ylab("percentage of cells")
+
+      gp1 <- gp1 + theme_light()
+      gp2 <- gp2 + theme_light()
+
+        gps <- list(gp1, gp2)
+
+        g <- grid.arrange(grobs=gps, ncols=1)
+
+        plot_title <- paste("numbers","group_stats",group_var,sep=".")
+
+        plotfilename <- paste(plot_title, sep=".")
+
+        save_ggplots(file.path(opt$outdir, plotfilename),
+                     g,
+                     width=6,
+                     height=4)
+
+        # save the plot data.
+        write.table(plot_data,
+                    file.path(opt$outdir,paste0(plotfilename,".plotdata.txt")),
+                    col.names=TRUE,
+                    row.names=FALSE,
+                    quote=FALSE,
+                    sep="\t")
+
+        tex <- c(tex,
+                 getSubsectionTex(paste("Cell numbers by",group_var)))
+
+        tex <- c(tex,
+                 getFigureTex(plotfilename,
+                              plot_title,
+                              plot_dir_var=opt$plotdirvar),
+                 sep="\n")
+
+
+
     } else {
+      for ( subgroup in opt$subgroupfactor){
+        message("doing cell counts and fractions plots for group ",group_var, " and subgroup ", subgroup)
 
-        plot_data <- data %>% group_by_(opt$subgroupfactor, group_var) %>% summarise(count=n()) %>% mutate(proportion= count/sum(count))
+        plot_data <- data %>%
+              group_by_at(.vars=c(subgroup, group_var)) %>%
+              summarise(count=n()) %>%
+              mutate(proportion= count/sum(count))
+
+        # plot_data <- data %>% group_by_at(.vars=c(subgroup, group_var)) %>% summarise(count=n()) %>%
+        #   group_by_at(.vars=group_var) %>%
+        #   mutate(proportion= count/sum(count)) (this would do the percentage for each class within its x variable group)
+
+        # filler<-gtools::mixedsort(unique(as.character(pull(plot_data,subgroup))))
+        nsubgroup <- length(unique(plot_data[[subgroup]]))
+        cm_palette <- colormap(colormap = colormaps$portland,
+                               nshade = nsubgroup, alpha=0.6)
 
 
-        gp1 <- ggplot(plot_data, aes_string(group_var, "count", group="count", fill=opt$subgroupfactor))
+        gp1 <- ggplot(plot_data, aes_string(group_var, "count", group="count", fill=subgroup))
         gp1 <- gp1 + geom_bar(stat="identity", position="dodge")
 
-        gp2 <- ggplot(plot_data, aes_string(group_var, "proportion", group="count", fill=opt$subgroupfactor))
+        gp2 <- ggplot(plot_data, aes_string(group_var, "proportion", group="count", fill=subgroup))
         gp2 <- gp2 + geom_bar(stat="identity", position="dodge")
+
+
+        gp1 <- gp1 + scale_fill_manual(values=cm_palette)
+
+        gp1 <- gp1 + xlab(group_var)
+        gp1 <- gp1 + ylab("number of cells")
+
+
+        gp2 <- gp2 + scale_fill_manual(values=cm_palette) #scale_fill_viridis_d(breaks=filler, limits=filler)
+        gp2 <- gp2 + xlab(group_var)
+        gp2 <- gp2 + scale_y_continuous(labels=scales::percent)
+        gp2 <- gp2 + ylab("percentage of cells")
+
+        if(nsubgroup > 6 ) {
+          gp2 <-gp2 + theme(legend.position = "bottom",
+                            legend.key.height = unit(0.1,"in"),
+                            legend.text = element_text(size=7))
+          gp1 <-gp1 + theme(legend.position = "bottom",
+                            legend.key.height = unit(0.1,"in"),
+                            legend.text = element_text(size=7))
+        }
+
+        gp1 <- gp1 + theme_light()
+        gp2 <- gp2 + theme_light()
+
+        gps <- list(gp1, gp2)
+
+        g <- grid.arrange(grobs=gps, ncols=1)
+
+        plot_title <- paste("numbers","group_stats",group_var,"split_by",subgroup,sep=".")
+
+        plotfilename <- paste(plot_title, sep=".") #not necessary
+
+        save_ggplots(file.path(opt$outdir, plotfilename),
+                     g,
+                     width=7,
+                     height=5)
+
+        # save the plot data.
+        write.table(plot_data,
+                    file.path(opt$outdir,paste0(plotfilename,".plotdata.txt")),
+                    col.names=TRUE,
+                    row.names=FALSE,
+                    quote=FALSE,
+                    sep="\t")
+
+        tex <- c(tex,
+                 getSubsectionTex(paste("Cell numbers by",group_var)))
+
+        tex <- c(tex,
+                 getFigureTex(plotfilename,
+                              plot_title,
+                              plot_dir_var=opt$plotdirvar),
+                 sep="\n")
+
+
+
+        }
 
     }
 
 
     ## http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
     ## The palette with grey:
-
-    cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#D4B48C")
-
-    gp1 <- gp1 + scale_fill_manual(values=cbPalette) #c("seagreen4","bisque2",")
-    gp1 <- gp1 + xlab(group_var)
-    gp1 <- gp1 + ylab("number of cells")
-
-
-    gp2 <- gp2 + scale_fill_manual(values=cbPalette) #c("seagreen4","bisque2",")
-    gp2 <- gp2 + xlab(group_var)
-    gp2 <- gp2 + scale_y_continuous(labels=scales::percent)
-    gp2 <- gp2 + ylab("percentage of cells")
-
-    gps <- list(gp1, gp2)
-
-    g <- grid.arrange(grobs=gps, ncols=1)
-
-    plot_title <- paste("numbers","group_stats",group_var,sep=".")
-
-    plotfilename <- paste(plot_title, sep=".")
-
-    save_ggplots(file.path(opt$outdir, plotfilename),
-                 g,
-                 width=6,
-                 height=4)
-
-    # save the plot data.
-    write.table(plot_data,
-                file.path(opt$outdir,paste0(plotfilename,".plotdata.txt")),
-                col.names=TRUE,
-                row.names=FALSE,
-                quote=FALSE,
-                sep="\t")
-
-    tex <- c(tex,
-             getSubsectionTex(paste("Cell numbers by",group_var)))
-
-    tex <- c(tex,
-                 getFigureTex(plotfilename,
-                              plot_title,
-                              plot_dir_var=opt$plotdirvar),
-                 sep="\n")
 
 }
 
@@ -194,8 +272,12 @@ message("plot_group_numbers.R running with default assay: ", DefaultAssay(s))
 
 cdata <- GetAssayData(object = s, slot = "counts")
 
-ngenes <- apply(cdata,2,function(x) sum(x>0))
-ncounts <- apply(cdata,2,sum)
+# ngenes <- apply(cdata,2,function(x) sum(x>0))
+# ncounts <- apply(cdata,2,sum)
+ngenes <- Matrix::colSums(cdata>0)
+ncounts <- Matrix::colSums(cdata)
+
+
 cinfo <- data.frame(ngenes=ngenes,ncounts=ncounts)
 
 data <- merge(data,cinfo,by=0)
@@ -207,45 +289,103 @@ for(group_var in group_vars)
 
     if(opt$subgroupfactor=="none" | !(opt$subgroupfactor %in% colnames(data)))
     {
+      message("no subgroup found")
 
-        gp1 <- ggplot(data, aes_string(group_var,"ngenes"))  + geom_boxplot()
-        gp1 <-gp1 + xlab(group_var) + ylab("number of genes per cell")
+      cm_palette <- colormap(colormap = colormaps$portland,
+                               nshade = 2, alpha=0.6)
 
-        gp2 <- ggplot(data, aes_string(group_var,"ncounts"))  + geom_boxplot()
-        gp2 <- gp2 + xlab(group_var) + ylab("raw counts per cell")
+      gp1 <- ggplot(data, aes_string(group_var,"ngenes"))  + geom_boxplot()
+      gp1 <-gp1 + xlab(group_var) + ylab("number of genes per cell")
+
+      gp2 <- ggplot(data, aes_string(group_var,"ncounts"))  + geom_boxplot()
+      gp2 <- gp2 + xlab(group_var) + ylab("raw counts per cell")
+
+      gp1 <- gp1 + scale_fill_manual(values=cm_palette) ## c("seagreen4","bisque2"))
+      gp2 <- gp2 + scale_fill_manual(values=cm_palette) ## c("seagreen4","bisque2"))
+
+      gp1 <- gp1 + theme_light()
+      gp2 <- gp2 + theme_light()
+
+
+      gps <- list(gp1, gp2)
+
+      g <- grid.arrange(grobs=gps, ncols=1)
+
+      plot_title <- paste("numbers", "cell_stats", group_var, sep=".")
+
+      plotfilename <- plot_title
+
+      save_ggplots(file.path(opt$outdir, plotfilename),
+                   g,
+                   width=6,
+                   height=8)
+
+      tex <- c(tex,
+               getSubsectionTex(paste("Gene and UMIs by",group_var)))
+
+      tex <- c(tex,
+               getFigureTex(plotfilename, plot_title,
+                            plot_dir_var=opt$plotdirvar),
+               sep="\n")
+
 
     } else {
-        gp1 <- ggplot(data, aes_string(group_var,"ngenes" ,fill=opt$subgroupfactor))  + geom_boxplot()
+      for ( subgroup in opt$subgroupfactor){
+        message("doing cell counts and fractions plots for group ",group_var, " and subgroup ", subgroup)
+
+                                        # filler <- gtools::mixedsort(unique(as.character(data[,subgroup])))
+
+        nsubgroup <- length(unique(plot_data[[subgroup]]))
+        cm_palette <- colormap(colormap = colormaps$portland,
+                               nshade = nsubgroup, alpha=0.6)
+
+        gp1 <- ggplot(data, aes_string(group_var,"ngenes" ,fill=subgroup))  + geom_boxplot()
         gp1 <-gp1 + xlab(group_var) + ylab("number of genes per cell")
 
-        gp2 <- ggplot(data, aes_string(group_var,"ncounts" ,fill=opt$subgroupfactor))  + geom_boxplot()
+        gp2 <- ggplot(data, aes_string(group_var,"ncounts" ,fill=subgroup))  + geom_boxplot()
         gp2 <- gp2 + xlab(group_var) + ylab("raw counts per cell")
+        gp1 <- gp1 + scale_fill_manual(values=cm_palette)
+        gp2 <- gp2 + scale_fill_manual(values=cm_palette)
+        gp1 <- gp1 + theme_light()
+        gp2 <- gp2 + theme_light()
 
-    }
+        if(nsubgroup > 6 ) {
+          gp2 <-gp2 + theme(legend.position = "bottom",
+                            legend.key.height = unit(0.1,"in"),
+                            legend.text = element_text(size=7))
+          gp1 <-gp1 + theme(legend.position = "bottom",
+                            legend.key.height = unit(0.1,"in"),
+                            legend.text = element_text(size=7))
+        }
 
-    gp1 <- gp1 + scale_fill_manual(values=cbPalette) ## c("seagreen4","bisque2"))
-    gp2 <- gp2 + scale_fill_manual(values=cbPalette) ## c("seagreen4","bisque2"))
+        gp1 <- gp1 + theme_light()
+        gp2 <- gp2 + theme_light()
 
-    gps <- list(gp1, gp2)
+        gps <- list(gp1, gp2)
 
-    g <- grid.arrange(grobs=gps, ncols=1)
+        g <- grid.arrange(grobs=gps, ncols=1)
 
-    plot_title <- paste("numbers", "cell_stats", group_var, sep=".")
+        plot_title <- paste("numbers", "cell_stats", group_var, "split_by", subgroup, sep=".")
 
-    plotfilename <- plot_title
+        plotfilename <- plot_title
 
-    save_ggplots(file.path(opt$outdir, plotfilename),
-                 g,
-                 width=6,
-                 height=8)
+        save_ggplots(file.path(opt$outdir, plotfilename),
+                     g,
+                     width=6,
+                     height=8)
 
-    tex <- c(tex,
-             getSubsectionTex(paste("Gene and UMIs by",group_var)))
+        tex <- c(tex,
+                 getSubsectionTex(paste("Gene and UMIs by",group_var)))
 
-    tex <- c(tex,
+        tex <- c(tex,
                  getFigureTex(plotfilename, plot_title,
                               plot_dir_var=opt$plotdirvar),
                  sep="\n")
+
+      }
+
+    }
+
 
 }
 

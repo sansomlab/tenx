@@ -559,12 +559,29 @@ markerComplexHeatmap <- function(seurat_object,
                "it is avaliable via devtools here: https://github.com/jokergoo/ComplexHeatmap"))
   }
 
-  top_markers <- marker_table %>% group_by(cluster) %>% top_n(n=n_markers,wt=avg_logFC)
+  top_markers <- marker_table %>%
+    group_by(cluster) %>%
+    top_n(n=n_markers,wt=avg_logFC)
 
-  if(is.null(cells_use)) {cell_use <- colnames(GetAssayData(s, slot="scale.data")) }
+  if(is.null(cells_use)) {cell_use <- colnames(
+    GetAssayData(s, slot="scale.data")) }
 
-    genes_use <- top_markers$gene[top_markers$gene %in% rownames(GetAssayData(seurat_object,
-                                                                              slot="scale.data"))]
+  genes_use <- top_markers$gene[top_markers$gene %in%
+                                  rownames(GetAssayData(seurat_object,
+                                                        slot="scale.data"))]
+
+  print(length(genes_use))
+
+  if(length(genes_use) == 0) {
+    stop("None of the marker genes are present in the scaled data...")
+  } else if(length(genes_use) <  length(top_markers$gene)) {
+     message("Warning: not all identified marker genes are present in the ",
+             "scale.data slot. Only markers present in the scale.data slot ",
+             "will be plotted. You should consider re-scaling your object ",
+             "to include all genes in the scale.data slot")
+
+    top_markers <- top_markers %>% filter(gene %in% genes_use)
+  }
 
   cells_use <- cell_use %in% colnames(GetAssayData(seurat_object, slot="scale.data"))
 
@@ -590,8 +607,6 @@ markerComplexHeatmap <- function(seurat_object,
                                     width=unit(2,"mm"))
 
 
-
-
   if(!is.null(sub_group))
   {
 
@@ -604,12 +619,22 @@ markerComplexHeatmap <- function(seurat_object,
     cell_sub_groups <- s[[]][cells_use, sub_group]
     sub_groups <- unique(cell_sub_groups)
 
-      sub_group_cols <- brewer.pal(length(sub_groups),"Greys")
-      # because the Grey palette returns a minimum of 3 colors..
-      sub_group_cols <- sub_group_cols[1:length(sub_groups)]
-      names(sub_group_cols) <- sub_groups
+    #if(length(sub_groups)>6){
+    #  sub_group_cols <- colormap(colormap = colormaps$portland,
+    #                             nshades = length(sub_groups))
+    #} else {
+    #  sub_group_cols <- brewer.pal(length(sub_groups),"Greys")
+    #}
 
-      print(sub_group_cols)
+    sub_group_cols <- colormap(colormap = colormaps$portland,
+                               nshade = length(sub_groups),
+                               alpha = 0.6)
+
+    # because the Grey palette returns a minimum of 3 colors..
+    sub_group_cols <- sub_group_cols[1:length(sub_groups)]
+    names(sub_group_cols) <- sub_groups
+
+    print(sub_group_cols)
     # get an ordering vecotor
     cell_order <- order(cell_clusters, cell_sub_groups)
 
@@ -671,44 +696,44 @@ library(reshape2)
 #' @param max_quantile The expression quantile to cap the data at.
 #' @importFrom reshape2 melt
 #' @export
-expressionPlots <- function(seurat_object, 
-                            features, 
-                            rdims, 
-                            x="UMAP_1", 
+expressionPlots <- function(seurat_object,
+                            features,
+                            rdims,
+                            x="UMAP_1",
                             y="UMAP_2",
                             ncol = 6,
                             point_size = 2.5,
                             max_quantile = 0.9) {
-  
+
   require(ggplot2)
   cells <- rdims$barcode
-  
+
   checkFeatures(seurat_object, features)
   checkCells(seurat_object, cells)
-  
-  ncol <- min(ncol, length(features))
-  
-  data <- GetAssayData(seurat_object, slot =  "data", 
-                       assay="RNA")[features, cells]  
-  
 
-  # transform to % of 90th quantile so that a common 
+  ncol <- min(ncol, length(features))
+
+  data <- GetAssayData(seurat_object, slot =  "data",
+                       assay="RNA")[features, cells]
+
+
+  # transform to % of 90th quantile so that a common
   # colour scale can be used.
   scaled_data <- apply(data, 1, FUN = scale_to_quantile, q = max_quantile)
-  
+
   fill_frame <-cbind(rdims[,c(x, y)],
                      scaled_data)
-  
+
   fill_df <- melt(fill_frame, id.vars=c(x, y))
-  
-  
+
+
   gp <- ggplot(fill_df, aes_string(x, y, color="value"))
-  gp <- gp + geom_point(size=point_size, alpha=1, stroke = 0, shape = 16) 
+  gp <- gp + geom_point(size=point_size, alpha=1, stroke = 0, shape = 16)
   gp <- gp + scale_color_gradientn(colours=c("grey","yellow","red"))
   gp <- gp + facet_wrap(~variable, ncol= ncol)
   gp <- gp + theme_minimal()
   gp
-  
+
 }
 
 
@@ -724,62 +749,58 @@ expressionPlots <- function(seurat_object,
 #' @param max_quantile The expression quantile to cap the data at.
 #' @importFrom reshape2 melt
 #' @export
-expressionPlots3D <- function(seurat_object, features, 
-                              rdims, 
-                              x="UMAP_1", 
-                              y="UMAP_2", 
+expressionPlots3D <- function(seurat_object, features,
+                              rdims,
+                              x="UMAP_1",
+                              y="UMAP_2",
                               z="UMAP_3",
                               ncol = 6,
-                              point_size=2.5, 
+                              point_size=2.5,
                               theta=0,
                               phi=130,
                               draw_axes=FALSE,
                               max_quantile=0.9) {
   require(ggplot2)
   require(gg3D)
-  
+
   cells <- rdims$barcode
-  
+
   checkFeatures(seurat_object, features)
   checkCells(seurat_object, cells)
-  
+
   ncol <- min(ncol, length(features))
-  
-  data <- GetAssayData(seurat_object, slot =  "data", 
-                       assay="RNA")[features, cells]  
-  
-  # transform to % of 90th quantile so that a common 
+
+  data <- GetAssayData(seurat_object, slot =  "data",
+                       assay="RNA")[features, cells]
+
+  # transform to % of 90th quantile so that a common
   # colour scale can be used.
-  
+
   scaled_data <- apply(data, 1, FUN = scale_to_quantile, q = max_quantile)
-  
+
 
   fill_frame <-cbind(rdims[,c(x, y, z)],
                      scaled_data)
-  
-  
+
+
   fill_df <- melt(fill_frame, id.vars=c(x, y, z))
-  
-  
+
+
   print("drawing the plot")
-  
+
   gp <- ggplot(fill_df, aes_string(x=x, y=y, z=z, color="value"))
-  gp <- gp + theme_void() 
-  
+  gp <- gp + theme_void()
+
   if(draw_axes) {
-  gp <- gp + axes_3D(theta=theta, phi=phi) 
+  gp <- gp + axes_3D(theta=theta, phi=phi)
   }
-  
+
   gp <- gp + stat_3D(theta=theta, phi=phi, geom="point", alpha=1,
                      size=point_size,
                      stroke=0, shape=16)
-  
+
   gp <- gp + scale_color_gradientn(colours=c("grey","yellow","red"))
   gp <- gp + facet_wrap(~variable, ncol= ncol)
-  
+
   gp
 }
-
-
-
-

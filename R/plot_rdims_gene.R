@@ -23,7 +23,8 @@ stopifnot(
   require(ggplot2),
   require(reshape2),
   require(Seurat),
-  require(tenxutils)
+  require(tenxutils),
+  require(Matrix)
 )
 
 # Options ----
@@ -153,7 +154,12 @@ rownames(exprs) <-genes$plot_name[match(rownames(exprs),genes[[id_col]])]
 
 ## get the 95th quantile of log10 n+1 counts > 0
 ## upper_limit = quantile(log10(data[data>0]+1),0.95)
-upper_limit = quantile(data[data>0],0.95)
+
+# upper_limit = quantile(data[data>0],0.95)
+# logical crashes transforming sparse matrix into dense. Use indexes, load Matrix.
+
+xx<-which(data>0)
+upper_limit = quantile(data[xx], 0.95)
 
 ## log transform
 ## exprs <- log10(exprs+1)
@@ -185,8 +191,7 @@ for(page in seqWrapper(1,npages))
     genes_of_interest <- plot_genes[start:end]
 
     # subset the table with the reduced coordinates
-    if(tolower(opt$shapefactor)!="none")
-    {
+    if(tolower(opt$shapefactor)!="none"){
         plot_data <- plot_data[,c(opt$rdim1,opt$rdim2,opt$shapefactor)]
     } else {
         plot_data <- plot_data[, c(opt$rdim1,opt$rdim2)]
@@ -198,8 +203,7 @@ for(page in seqWrapper(1,npages))
     plot_data$Row.names <- NULL
 
     # melt the data for plotting by gene
-    if(tolower(opt$shapefactor)!="none")
-    {
+    if(tolower(opt$shapefactor)!="none"){
         melted_plot_data <- melt(plot_data, id.vars=c(opt$rdim1,opt$rdim2,opt$shapefactor))
     } else {
         melted_plot_data <- melt(plot_data, id.vars=c(opt$rdim1,opt$rdim2))

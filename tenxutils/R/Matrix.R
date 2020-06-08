@@ -210,3 +210,28 @@ getHVG <- function(seurat_object,
 
     hvg.out
 }
+
+
+#' Run FastExpMean by chunk to conserve memory
+#' @param x a matrix
+#' @param nrows number of rows per chunk
+
+FastExpMeanChunked <- function(x, 
+                               rows_per_chunk=2000
+                               ) 
+{
+  
+  result <- c()
+  
+  nrows_x <- nrow(x)
+  
+  for(i in seq(1, nrows_x, rows_per_chunk)){
+    
+    j <- min(i + rows_per_chunk - 1, nrows_x)
+    
+    result <- c(result, 
+                Seurat:::FastExpMean(x[i:j,], display_progress = FALSE))
+  }
+  result
+}
+

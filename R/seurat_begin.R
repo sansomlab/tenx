@@ -981,24 +981,26 @@ dev.off()
 ## constructing a 'null distribution' of gene scores, and repeat this procedure. We identify
 ## 'significant' PCs as those who have a strong enrichment of low p-value genes.
 
-s <- JackStraw(s,
-               reduction="pca",
-               num.replicate=opt$jackstrawnumreplicates,
-               dims = nPCs)
+if(opt$normalizationmethod!="sctransform")
+{
+    s <- JackStraw(s,
+                   reduction="pca",
+                   num.replicate=opt$jackstrawnumreplicates,
+                   dims = nPCs)
 
-s <- ScoreJackStraw(s, dims = 1:nPCs)
+    s <- ScoreJackStraw(s, dims = 1:nPCs)
 
-#               do.par=TRUE,
-#               num.cores=opt$numcores)
+    ##               do.par=TRUE,
+    ##               num.cores=opt$numcores)
 
- gp <- JackStrawPlot(s, dims= 1:nPCs,
+    gp <- JackStrawPlot(s, dims= 1:nPCs,
                      reduction="pca")
 
- save_ggplots(paste0(opt$outdir,"/pcaJackStraw"),
-            gp,
-            width=8,
-            height=12)
-
+    save_ggplots(paste0(opt$outdir,"/pcaJackStraw"),
+                 gp,
+                 width=8,
+                 height=12)
+}
 message("seurat_begin.R object final default assay: ", DefaultAssay(s))
 
 # Save the R object
