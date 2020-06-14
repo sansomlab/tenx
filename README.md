@@ -1,9 +1,22 @@
 # tenx
 
-A collection of python3 pipelines and Rscripts for analysing data generated with the 10x Genomics platform. The pipelines are based on 10x's [Cell Ranger pipeline](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/installation) for mapping and quantitation and the [R Seurat package](https://satijalab.org/seurat/) for downstream analysis.
+A collection of Python3 pipelines and R and Python3 scripts for analysing data generated with the 10x Genomics platform. The pipelines are based on 10x's [Cell Ranger pipeline](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/installation) and [DropEst](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1449-6) for mapping and quantitation. 
 
-The pipelines are in active development, this is an "alpha" release - use at your own risk!
+Downstream analysis currently relies on the [R Seurat package](https://satijalab.org/seurat/) and makes use of many excellent tools from the community including [Scran](https://www.rdocumentation.org/packages/scran/versions/1.0.3), [DropletUtils](https://bioconductor.org/packages/release/bioc/html/DropletUtils.html), [SingleR](https://bioconductor.org/packages/release/bioc/html/SingleR.html), [Clustree](https://cran.r-project.org/web/packages/clustree/vignettes/clustree.html), [Destiny](https://bioconductor.org/packages/release/bioc/html/destiny.html) (for diffusion maps), [PHATE](https://www.krishnaswamylab.org/projects/phate) and Scanpy (for [PAGA](https://github.com/theislab/paga) and [Scvelo](https://scvelo.readthedocs.io/)) for downstream analysis. Automatic export of [UCSC cell browser](https://cells.ucsc.edu/) is instances also supported.
 
+For geneset overenrichment analysis the pipelines use a bespoke R package called [gsfisher](https://github.com/sansomlab/gsfisher), which can also be used [interactively to analyse single-cell data](https://github.com/sansomlab/gsfisher/blob/master/vignettes/single_cell_over_representation_analysis.pdf).
+
+The pipelines are in active development, and should be considered "beta" software - please use at your own risk!
+
+# Examples
+
+###  Interferon beta stimulated PBMCs
+
+This example shows how the [Seurat stimulated and control vignette](https://satijalab.org/seurat/v3.1/immune_alignment.html) can be reproduced by the pipeline.
+
+* [Summary Report](https://https://dl.dropbox.com/s/v8pe24jy7gw2txp/summaryReport.pdf)
+
+* [Aligned example vignette](docs/AlignedExample.md).
 
 # installation and dependencies
 
@@ -21,19 +34,18 @@ The pipelines are in active development, this is an "alpha" release - use at you
    * Random down-sampling of the UMI-count matrix is supported.
    * Arbitrary subsets of the aggregated dataset can be generated.
 
-2. Perform analysis using Seurat: **`pipelines/pipeline_seurat.py`**
-   * Can be run either from count matrices (e.g. `pipeline_cellranger.py` output) or from saved Seurat object(s).
+2. Perform downstream analysis using a Seurat based workflow: **`pipelines/pipeline_seurat.py`**
+   * This can be run either from count matrices (e.g. `pipeline_cellranger.py` output) or from saved Seurat object(s).
    * Analysis of multiple samples with different parameter combinations can be executed in parallel.
-   * Supports testing for differences between conditions.
+   * Supports testing for genes differently expressed between conditions.
    * Supports finding conserved markers (both between cluster and condition).
-   * Support for basic geneset over-enrichment analysis (including of arbitrary "gmt" genesets e.g. from [MSigDB](https://software.broadinstitute.org/gsea/msigdb/)).
-   * Support for visualising expression of arbitrary lists of genes on tSNE plots.
+   * Support for basic geneset over-enrichment analysis (including of arbitrary "gmt" genesets e.g. from [MSigDB](https://software.broadinstitute.org/gsea/msigdb/)) using [gsfisher](https://github.com/sansomlab/gsfisher).
+   * Support for visualising expression of arbitrary lists of genes on violin and UMAP plots.
+   * The pipeline includes Clustree, PAGA, ScVelo, Diffusion maps and SingleR.
+   * The pipeline can automatically generate UCSC cell browser instances.
+   
 
 
-# pipeline_seurat.py example
 
-pipeline_seurat.py was run on the interferon beta stimulated PBMC example dataset from the [Seurat website](https://satijalab.org/seurat/).
 
-The summary report can be download here: [Summary Report](https://dl.dropbox.com/s/r9bfej4irryzety/summaryReport.pdf)
 
-The steps followed, and full output are available here: [aligned example](docs/AlignedExample.md).
