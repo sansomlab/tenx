@@ -2,7 +2,7 @@
 
 A collection of Python3 pipelines and R and Python3 scripts for analysing data generated with the 10x Genomics platform. The pipelines are based on 10x's [Cell Ranger pipeline](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/installation) and [DropEst](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1449-6) for mapping and quantitation. 
 
-Downstream analysis currently relies on the [R Seurat package](https://satijalab.org/seurat/) and makes use of many excellent tools from the community including [Scran](https://www.rdocumentation.org/packages/scran/versions/1.0.3), [DropletUtils](https://bioconductor.org/packages/release/bioc/html/DropletUtils.html), [SingleR](https://bioconductor.org/packages/release/bioc/html/SingleR.html), [Clustree](https://cran.r-project.org/web/packages/clustree/vignettes/clustree.html), [Destiny](https://bioconductor.org/packages/release/bioc/html/destiny.html) (for diffusion maps), [PHATE](https://www.krishnaswamylab.org/projects/phate) and Scanpy (for [PAGA](https://github.com/theislab/paga) and [Scvelo](https://scvelo.readthedocs.io/)) for downstream analysis. Automatic export of [UCSC cell browser](https://cells.ucsc.edu/) is instances also supported.
+Downstream analysis currently relies on the [R Seurat package](https://satijalab.org/seurat/) and makes use of many excellent tools from the community including [Scran](https://www.rdocumentation.org/packages/scran/versions/1.0.3), [DropletUtils](https://bioconductor.org/packages/release/bioc/html/DropletUtils.html), [SingleR](https://bioconductor.org/packages/release/bioc/html/SingleR.html), [Clustree](https://cran.r-project.org/web/packages/clustree/vignettes/clustree.html), [Destiny](https://bioconductor.org/packages/release/bioc/html/destiny.html) (for diffusion maps), [PHATE](https://www.krishnaswamylab.org/projects/phate) and Scanpy ([PAGA](https://github.com/theislab/paga) and [Scvelo](https://scvelo.readthedocs.io/)) for downstream analysis. Automatic export of [UCSC cell browser](https://cells.ucsc.edu/) is instances also supported.
 
 For geneset overenrichment analysis the pipelines use a bespoke R package called [gsfisher](https://github.com/sansomlab/gsfisher), which can also be used [interactively to analyse single-cell data](https://github.com/sansomlab/gsfisher/blob/master/vignettes/single_cell_over_representation_analysis.pdf).
 
@@ -14,7 +14,7 @@ The pipelines are in active development, and should be considered "beta" softwar
 
 This example shows how the [Seurat stimulated and control vignette](https://satijalab.org/seurat/v3.1/immune_alignment.html) can be reproduced by the pipeline.
 
-* [Summary Report](https://https://dl.dropbox.com/s/v8pe24jy7gw2txp/summaryReport.pdf)
+* [Summary Report](https://dl.dropbox.com/s/v8pe24jy7gw2txp/summaryReport.pdf)
 
 * [Aligned example vignette](docs/AlignedExample.md).
 
