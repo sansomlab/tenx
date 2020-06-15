@@ -18,6 +18,12 @@ This example shows how the [Seurat stimulated and control vignette](https://sati
 
 * [Aligned example vignette](docs/AlignedExample.md).
 
+### Pancreatic embryogenesis dataset (from Scanp)
+
+* [Summary Report](https://dl.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf)
+* More details to follow.
+
+
 # installation and dependencies
 
 1. [Installation](docs/INSTALL.md)
