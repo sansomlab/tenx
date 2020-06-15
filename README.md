@@ -14,7 +14,7 @@ The pipelines are in active development, and should be considered "beta" softwar
 
 This example shows how the [Seurat stimulated and control vignette](https://satijalab.org/seurat/v3.1/immune_alignment.html) can be reproduced by the pipeline.
 
-* [Summary Report](https://dl.dropbox.com/s/v8pe24jy7gw2txp/summaryReport.pdf)
+* [Stimulated and control summary report](https://dl.dropbox.com/s/v8pe24jy7gw2txp/summaryReport.pdf)
 
 * [Aligned example vignette](docs/AlignedExample.md).
 
@@ -22,14 +22,14 @@ This example shows how the [Seurat stimulated and control vignette](https://sati
 
 This is the [scvelo Bastidas-Ponce et al. dataset](https://scvelo.readthedocs.io/scvelo.datasets.pancreas.html)
 
-* [Summary Report](https://dl.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf)
+* [Pancreatic embryogenesis summary report](https://dl.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf)
 * Full details to follow.
 
 ### Microwell-seq Mouse Atlas (240k cells)
 
 Here the pipeline was run use the seurat object provided by the Seurat authors in their [Guided Clustering of the Microwell-seq Mouse Cell Atlas vignette](https://satijalab.org/seurat/v3.1/mca.html). 
 
-* [Summary Report](https://dl.dropbox.com/s/0nyfg5xlsx6u3v1/summaryReport.pdf)
+* [Microwell-seq mouse atlas summary report](https://dl.dropbox.com/s/0nyfg5xlsx6u3v1/summaryReport.pdf)
 * Full details to follow.
 
 
