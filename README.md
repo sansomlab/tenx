@@ -4,7 +4,7 @@ A collection of Python3 pipelines and R and Python3 scripts for analysing data g
 
 Downstream analysis currently relies on the [R Seurat package](https://satijalab.org/seurat/) and makes use of many excellent tools from the community including [Scran](https://www.rdocumentation.org/packages/scran/versions/1.0.3), [DropletUtils](https://bioconductor.org/packages/release/bioc/html/DropletUtils.html), [SingleR](https://bioconductor.org/packages/release/bioc/html/SingleR.html), [Clustree](https://cran.r-project.org/web/packages/clustree/vignettes/clustree.html), [Destiny](https://bioconductor.org/packages/release/bioc/html/destiny.html) (for diffusion maps), [PHATE](https://www.krishnaswamylab.org/projects/phate) and Scanpy ([PAGA](https://github.com/theislab/paga) and [Scvelo](https://scvelo.readthedocs.io/)) for downstream analysis. Automatic export of [UCSC cell browser](https://cells.ucsc.edu/)  instances is also supported.
 
-For geneset overenrichment analysis the pipelines use a bespoke R package called [gsfisher](https://github.com/sansomlab/gsfisher), which can also be used [interactively to analyse single-cell data](https://github.com/sansomlab/gsfisher/blob/master/vignettes/single_cell_over_representation_analysis.pdf).
+For geneset over representation analysis the pipelines use a bespoke R package called [gsfisher](https://github.com/sansomlab/gsfisher), which can also be used [interactively to analyse single-cell data](https://github.com/sansomlab/gsfisher/blob/master/vignettes/single_cell_over_representation_analysis.pdf).
 
 The pipelines are in active development, and should be considered "beta" software - please use at your own risk!
 
