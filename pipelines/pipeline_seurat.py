@@ -196,6 +196,24 @@ if len(sys.argv) > 1:
                     sys.exit(P.main(sys.argv))
 
 
+
+@files(None, "task.summary.table.tex")
+def taskSummary(infile, outfile):
+    '''Make a summary of optional tasks that will be run'''
+
+    tasks, run = [], []
+
+    for k,v in PARAMS.items():
+        if k.startswith("run_"):
+            tasks.append(k[4:])
+            run.append(str(v))
+
+    tab = pd.DataFrame(list(zip(tasks,run)),columns=["task","run"])
+    print(tab)
+
+    tab.to_latex(buf=outfile, index=False)
+
+
 # ########################################################################### #
 # ############ construct one seurat object per input matrix ################# #
 # ########################################################################### #
@@ -1587,7 +1605,7 @@ def summariseSingleR(infile, outfile):
 
                 tex.write("\n")
 
-
+@active_if(PARAMS["run_exprsreport"])
 @transform(RDIMS_VIS_TASK,
            regex(r"(.*)/(.*).dir/(.*).sentinel"),
            r"\1/genelists.dir/plot.rdims.genes.sentinel")
@@ -2110,7 +2128,7 @@ def plotMarkerNumbers(infile, outfile):
     P.run(statement)
     IOTools.touch_file(outfile)
 
-
+@active_if(PARAMS["run_exprsreport"])
 @follows(summariseMarkers)
 @transform(RDIMS_VIS_TASK,
            regex(r"(.*)/(.*).dir/(.*).sentinel"),
@@ -2896,7 +2914,8 @@ def plots():
 # The reports incorporate raster (png) graphics. PDF versions of each graphic
 # are also avaliable in the individual run folders.
 
-@follows(markers,
+@follows(taskSummary,
+         markers,
          genesets,
          plots,
          summariseGenesetAnalysis)
@@ -3081,6 +3100,7 @@ def latexVars(infile, outfile):
             ofh.write("\\newcommand{\\" + command + "}{" + value + "}\n")
 
 
+@active_if(PARAMS["run_exprsreport"])
 @transform(latexVars,
            regex("(.*)/report.vars.sty"),
            r"\1/geneExpressionReport.pdf")
@@ -3189,7 +3209,7 @@ def summaryReport(infile, outfile):
        \\input %(tenx_dir)s/pipelines/pipeline_seurat/clusteringSection.tex
        '''
 
-    nresolutions = len(PARAMS["runspecs_cluster_resolutions"].split(","))
+    nresolutions = len(str(PARAMS["runspecs_cluster_resolutions"]).split(","))
 
     if(nresolutions > 1):
        statement += '''

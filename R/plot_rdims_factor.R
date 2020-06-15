@@ -135,8 +135,8 @@ for(color_var in color_vars)
     numeric = FALSE
     if(is.numeric(plot_data[[color_var]]))
     {
-        if(all(plot_data[[color_var]] == round(plot_data[[color_var]]))
-           & length(unique(plot_data[[color_var]])) < 50)
+        if((all(plot_data[[color_var]] == round(plot_data[[color_var]]))
+           & length(unique(plot_data[[color_var]])) < 50) || color_var == "cluster")
         {
             plot_data[[color_var]] <- as.character(plot_data[[color_var]])
         }
@@ -162,21 +162,63 @@ for(color_var in color_vars)
 
     gp <- gp + geom_point(size=opt$pointsize)
 
+    # increase the size of the points in the legend.
+    gp <- gp + guides(color = guide_legend(override.aes = list(size=5)))
+    gp <- gp + guides(shape = guide_legend(override.aes = list(size=5)))
+
+    ## write out a separate legend if we have more than 20 levels.
+
+
+
     plotfilename = paste(opt$method, color_var, sep=".")
-
-    save_ggplots(file.path(opt$outdir, plotfilename),
-                 gp,
-                 width=6,
-                 height=4,
-                 to_pdf=opt$pdf)
-
     texCaption <- paste(opt$method,"plot colored by",color_var)
 
-    tex <- paste(tex,
-                 getSubsectionTex(texCaption),
-                 getFigureTex(plotfilename,texCaption,
-                              plot_dir_var=opt$plotdirvar),
-                 sep="\n")
+    nlevels <- length(unique(plot_data[[color_var]]))
+
+    if(nlevels > 20 && numeric==FALSE)
+    {
+        legend <- g_legend(gp)
+        gp <- gp + theme(legend.position="none")
+
+        save_ggplots(file.path(opt$outdir, plotfilename),
+                     gp,
+                     width=7,
+                     height=7,
+                     to_pdf=opt$pdf)
+
+
+        legendfilename = paste(opt$method, color_var, "legend", sep=".")
+        save_ggplots(file.path(opt$outdir, legendfilename),
+                     legend,
+                     width=7,
+                     height=7,
+                     to_pdf=opt$pdf)
+
+        legendCaption <- paste(texCaption, "plot legend")
+
+        tex <- paste(tex,
+                     getSubsectionTex(texCaption),
+                     getFigureTex(plotfilename,texCaption,
+                                  plot_dir_var=opt$plotdirvar),
+                     getFigureTex(legendfilename,legendCaption,
+                                  plot_dir_var=opt$plotdirvar),
+                     sep="\n")
+
+    } else {
+        save_ggplots(file.path(opt$outdir, plotfilename),
+                     gp,
+                     width=7,
+                     height=5,
+                     to_pdf=opt$pdf)
+
+        tex <- paste(tex,
+                     getSubsectionTex(texCaption),
+                     getFigureTex(plotfilename,texCaption,
+                                  plot_dir_var=opt$plotdirvar),
+                     sep="\n")
+    }
+
+
 
 }
 
