@@ -21,10 +21,14 @@ option_list <- list(
                 help="A seurat object after PCA"),
     make_option(c("--seuratassay"), default="RNA",
                 help="The seurat assay to use"),
+    make_option(c("--statstable"), default="none",
+                help="The table of per-cluster statistics"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
     make_option(c("--subgroup"), default=NULL,
                 help="Optional. Name of a column in metadata to add annotation for in the heatmap"),
+    make_option(c("--pdf"), default = FALSE,
+                help="Create a pdf version of the top marker heatmap"),
     make_option(c("--outdir"), default="seurat.out.dir",
                 help="outdir")
     )
@@ -107,21 +111,36 @@ print(dim(filtered_markers))
 ## (i) per-cluster expression levels
 ## (ii) per-cluster expression frequencies
 ## With lots of markers this is slow and memory intensive.
+stats <- read.table(gzfile(opt$statstable), sep="\t", header=T,
+                    as.is=T)
+rownames(stats) <- stats$gene
+
+print(head(stats))
+
 clusters <- as.numeric(unique(as.vector(cluster_ids)))
 cluster_levels <- clusters[order(clusters)]
 for(x in cluster_levels)
 {
     print(paste("Adding expression information to the marker table for cluster:", x))
     fgenes <- filtered_markers$gene
+    if(!all(fgenes %in% rownames(stats)))
+    {
+        stop("cluster stats table does not contain all of the genes")
+    }
+
     clust_cells <- names(cluster_ids[cluster_ids==x])
     other_cells <- names(cluster_ids[cluster_ids!=x])
 
     # xmean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]),1,mean)
     # omean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]),1,mean)
     # xfreq <- apply(GetAssayData(object = s, slot="data")[fgenes,clust_cells],1,function(x) length(x[x>0])/length(x))
-    xmean <- Matrix::rowMeans(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]))
-    omean <- Matrix::rowMeans(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]))
-    xfreq <- Matrix::rowSums(GetAssayData(object = s, slot="data")[fgenes,clust_cells]>0)/length(clust_cells)
+    ## xmean <- Matrix::rowMeans(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]))
+    ## omean <- Matrix::rowMeans(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]))
+    ## xfreq <- Matrix::rowSums(GetAssayData(object = s, slot="data")[fgenes,clust_cells]>0)/length(clust_cells)
+
+    xmean <- expm1(stats[fgenes, paste0("x",x,"_cluster_mean")])
+    omean <- expm1(stats[fgenes, paste0("x",x,"_other_mean")])
+    xfreq <- stats[fgenes,paste0("x",x,"_cluster_freq")]
 
     filtered_markers[[paste0(x,"_exprs")]] <- xmean
     filtered_markers[[paste0(x,"_freq")]] <- xfreq
@@ -185,7 +204,6 @@ message("Saving marker.summary.table.txt")
 marker_file <- paste(outPrefix,"table","txt","gz",
                      sep=".")
 
-
 write.table(markers,
             gzfile(marker_file),
             quote=F,sep="\t",row.names=F)
@@ -236,6 +254,7 @@ drawHeatmap <- function()
 save_plots(paste(outPrefix,"heatmap", sep="."),
            plot_fn=drawHeatmap,
            width = 7,
+           to_pdf = opt$pdf,
            height = 9)
 
 ## summarise the number of marker genes identified for each cluster

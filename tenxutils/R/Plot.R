@@ -276,6 +276,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
                               outdir=opt$outdir,
                               analysis_title="violin plots", fc_type="fold change",
                               plot_dir_var="plotsDir",
+                              to_pdf=TRUE,
                               use.minfc=FALSE)
 {
 
@@ -308,6 +309,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
 
         save_ggplots(violin_path,
                      violin_plots$gpa,
+                     to_pdf=to_pdf,
                      width=10,
                      height=h)
 
@@ -327,6 +329,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
 
             save_ggplots(violin_path,
                          violin_plots$gpb,
+                         to_pdf=to_pdf,
                          width=10,
                          height=h)
 
@@ -447,14 +450,14 @@ save_ggplots <- function(filepath=NULL,
 }
 
 #' Plot
-#'
+
 #' @param matrixUMI
 #' @param metadata
 #' @param basename
-#'
+
 #' @return
 #' @export
-#'
+
 #' @examples
 plotDownsampling <- function(matrixUMI, metadata, basename) {
 

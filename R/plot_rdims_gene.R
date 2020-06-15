@@ -83,7 +83,12 @@ option_list <- list(
       c("--pointalpha"),
       default=0.8,
       help="The alpha setting for the points on the tSNE plots"
-      ),
+    ),
+    make_option(
+      c("--pdf"),
+      default=FALSE,
+      help="produce pdf plots"
+    ),
     make_option(
       c("--outdir"),
       default="seurat.out.dir",
@@ -245,7 +250,8 @@ for(page in seqWrapper(1,npages))
                  gp,
                  width=10,
                  height=h,
-                 dpi=300)
+                 dpi=300,
+                 to_pdf=opt$pdf)
 
     texCaption <- paste(geneset," genes (",page," of ",npages,")",sep="")
     tex <- c(tex, getFigureTex(plotfilename, texCaption,

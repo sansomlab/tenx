@@ -12,10 +12,20 @@ projectname: 10x single cell analysis
 # Author
 author: Sansom group
 
-# output plot format
-# png|pdf|both
-# (not yet implemented)
-plot: png
+matrix:
+  # currently supported are
+  # -----------------------
+  #
+  # "10X", for which the pipeline expects
+  # - matrix.mtx.gz, barcodes.tsv.gz and features.tsv.gz
+  #   from cellranger 3+.
+  #
+  # "rds", which contains a sparse matrix
+  # labelled with barcodes and unique gene symbols
+  # - the file should be named "matrix.rds"
+  #
+  type: 10X
+
 
 # compute resource options
 # ------------------------
@@ -35,7 +45,29 @@ resources:
   # Memory_high is used for tasks: findMarkers, summariseMarkers,
   # diffusionMap
   memory_high: 50G
+  # Memory_extreme is used for the scaleing and PCA tasks
+  # this can require > 100G for large datasets.
+  # diffusionMap
+  memory_extreme: 80G
 
+
+# Chose whether to run the optional tasks
+# ---------------------------------------
+# True | False
+run:
+  explore_hvg_and_cell_cycle: True
+  singleR: False
+  jackstraw: False
+  compare_clusters: True
+  characterise_markers: True
+  diffusionmap: False
+  phate: True
+  paga: True
+  velocity: False
+  knownmarkers: False
+  exprsreport: False
+  genesets: False
+  cellbrowser: False
 
 # Gene annotations
 # ----------------
@@ -161,7 +193,6 @@ qc:
 # SingleR
 # -------
 singleR:
-  run: True
 
   # number of cores for multiprocessing
   workers: 10
@@ -188,15 +219,53 @@ normalization:
   method: sctransform
 
 
+# Variable gene identification parameters
+# ---------------------------------------
+
+vargenes:
+    # Either "vst", "mean.var.plot" or "dispersion" or "trendvar"
+    # - use of vst or trendvar is recommended
+    # - use of trendvar requires the bioconductor packages "scran" and "scater"
+    method: vst
+    #
+    # options for the Seurat methods:
+    # --------------------------------
+    # Bottom cutoff on y-axis for identifying variable genes (see y.cutoff=...)
+    sdcutoff: 1
+    # Bottom cutoff on x-axis for identifying variable genes (see x.low.cutoff=...)
+    xlowcutoff: 0.1
+    # Top cutoff on x-axis for identifying variable genes (see x.high.cutoff=...)
+    xhighcutoff: 8
+    #
+    # The number of top genes
+    topgenes: 1000
+    #
+    # options for trendvar method
+    # ---------------------------
+    # Implementation experimental, use at own risk!
+    # threshold for identification of genes with significant biological variation
+    padjust: 0.05
+    # Minimum average expression for inclusion as a variable gene
+    # It is has been recommeded to leave this at 0 to allow identification of weak signals
+    # from rare cell types. Equivalent to "xlowcutoff" for seurat.
+    minmean: 0.01
+
 
 # Regression parameters
 # ---------------------
 
 cellcycle:
 
-  # If lists of cell cycle genes are supplied
-  # cycle-cycle effects will be visualised by the pipeline.
-  # The lists will also be used for regression if specified below.
+  # The lists of cell cycle genes to use are specified here as
+  # (1) filenames containing single columns of gene symbols (no header)
+  # or
+  # (2) "cc.genes: cc.genes from Seurat will be used (and automatically
+  #   translated with biomart from human to mouse if required)
+  #
+  # - the two options are not interchangeable.
+  #
+  sgenes: "cc.genes"
+  g2mgenes: "cc.genes"
   #
   # > mouse cell cycle genes >
   #
@@ -207,9 +276,6 @@ cellcycle:
   #
   # sgenes: /gfs/archive/sansom/datasets/cell_cycle/human/wang.g1-s.txt
   # g2mgenes: /gfs/archive/sansom/datasets/cell_cycle/human/wang.g2-m.txt
-
-  sgenes: none
-  g2mgenes: none
 
 
 regress:
@@ -231,47 +297,18 @@ regress:
     # (i.e. the Alternate Workflow in the link above)
     cellcycle: none
 
+    # Genes to use when running ScaleData
+    # either "all" or "HVG"
+    # - for large dataset (e.g. > 50k cells) use of HVG is recommended.
+    # - if not set to all, some genes may be missing from some plots downstrem
+    #   such as e.g. top marker heatmap which is made from the scale.data
+    genes: all
 
-# Variable gene identification parameters
-# ---------------------------------------
-
-vargenes:
-    # Either "mean.var.plot" or "dispersion" or "trendvar"
-    # use of trendvar is recommended and requires the
-    # bioconductor packages "scran" and "scater"
-    method: trendvar
-    #
-    # options for mean.var.plot method
-    # --------------------------------
-    # Bottom cutoff on y-axis for identifying variable genes (see y.cutoff=...)
-    sdcutoff: 1
-    # Bottom cutoff on x-axis for identifying variable genes (see x.low.cutoff=...)
-    xlowcutoff: 0.1
-    # Top cutoff on x-axis for identifying variable genes (see x.high.cutoff=...)
-    xhighcutoff: 8
-    #
-    # options for dispersion method
-    # -----------------------------
-    # The number of top genes
-    topgenes: 1000
-    #
-    # options for trendvar method
-    # ---------------------------
-    # Implementation experimental, use at own risk!
-    # threshold for identification of genes with significant biological variation
-    padjust: 0.05
-    # Minimum average expression for inclusion as a variable gene
-    # It is has been recommeded to leave this at 0 to allow identification of weak signals
-    # from rare cell types. Equivalent to "xlowcutoff" for seurat.
-    minmean: 0.01
 
 # Dimension reduction parameters
 # ------------------------------
 
 dimreduction:
-    ## Determine statistical significance of PCA scores (see seurat_jackstraw.R)
-    # Number of replicate samplings to perform (see Seurat::JackStraw)
-    jackstraw_n_replicate: 100
     # Type of dimensionality reduction to use for clustering and t-SNE
     # (see Seurat::FindClusters, Seurat::RunTSNE)
     # Choices: 'pca'|'ica'
@@ -279,6 +316,12 @@ dimreduction:
     # Projection method used for visualisation (umap is recommended)
     # Choices: 'umap' (tSNE is no longer supported)
     visualisation: umap
+
+jackstraw:
+  ## Determine statistical significance of PCA scores (see seurat_jackstraw.R)
+  # Number of replicate samplings to perform (see Seurat::JackStraw)
+  n_replicate: 100
+
 
 
 # Clustering parameters
@@ -295,21 +338,30 @@ cluster:
 # -------------------
 
 plot:
-    # Groups to be visualised in tSNE/bar plots
-    # e.g. 'genotype,cluster'
-    # 'cluster' is automatically added if not specified.
-    groups: cluster
-    # Subgroup used to break down the bar plots and cell counts.
-    # Note that it also visualised in t-SNE plots and marker heatmaps
-    subgroup:
-    # QC variable to be visualised on the tSNE plot
-    qcvars: nCount_RNA,percent.mito
-    # Column in metadata.tsv represented by the shape of data points
-    shape:
-    # Opacity of data points
-    pointalpha: 0.8
-    # Size of data points
-    pointsize: 0.5
+
+  # make pdf versions of the plots
+  # use of this parameter is currently only implemented
+  # for the singleR heatmaps, the top marker heatmap, the plots for
+  # characterisation of DE genes, rdims_plot_genes and
+  # rdims_plot_factor.
+  #
+  pdf: False
+
+  # Groups to be visualised in tSNE/bar plots
+  # e.g. 'genotype,cluster'
+  # 'cluster' is automatically added if not specified.
+  groups: cluster
+  # Subgroup used to break down the bar plots and cell counts.
+  # Note that it also visualised in t-SNE plots and marker heatmaps
+  subgroup:
+  # QC variable to be visualised on the tSNE plot
+  qcvars: nCount_RNA,percent.mito
+  # Column in metadata.tsv represented by the shape of data points
+  shape:
+  # Opacity of data points
+  pointalpha: 0.8
+  # Size of data points
+  pointsize: 0.5
 
 
 # tSNE parameters
@@ -360,7 +412,6 @@ umap:
 # ------------------------
 
 diffusionmap:
-  run: False
   # if usegenes is set to True, the significantly variable genes are used
   # instead of the reduced dimensions - slower but may give better
   # results.
@@ -372,9 +423,6 @@ diffusionmap:
 # ----------------
 
 phate:
-
-  # Run the phate DR algorithm
-  run: True
 
   # assay: "scaled.data" or "reduced.dimensions"
   # if using integrated data, reduced.dimesions may be more appropriate
@@ -391,7 +439,6 @@ phate:
 # ------------
 
 velocity:
-  run: False
 
   # ncores: 8
   # minmaxclustavemat: 0.2
@@ -415,7 +462,7 @@ velocity:
 # ---------------
 
 paga:
-  run: True
+
   # K is the number of neighbors used to compute the nearest neighbors in scanpy
   k: 20
 
@@ -423,7 +470,7 @@ paga:
 # ------------------
 
 knownmarkers:
-  run: False
+
   # Sets of genes that are specified here will be included in the
   # main report as violin plots.
   #
@@ -512,9 +559,6 @@ exprsreport:
 # (GO categories and KEGG pathways are analysed by default)
 
 genesets:
-  # Should geneset analysis be run?
-  # Choices True|False
-  active: False
 
   # Marker adjusted p-value threshold for it to be included in the geneset analysis (genesetAnalysis.R)
   # This value will also be used in the geneset analysis for within cluster DE
@@ -586,9 +630,5 @@ gmt_celltype_files:
 # (Only one cellbrowser instance is generated according to the specified
 # runspecs for each sample)
 cellbrowser:
-  # Whether or not to make cellbrowser
-  # Choice: False|True
-  run: False
-
   # Specify the folder name for each sample that should be used for cellbrowser
   # sample1: 25_0.4_1_wilcox

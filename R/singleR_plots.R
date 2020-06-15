@@ -28,8 +28,8 @@ option_list <- list(
               help="Column names from the metadata slot to show in the annotation of the output plots"),
   make_option(c("--outdir"), default="seurat.out.dir",
               help="outdir"),
-  make_option(c("--plotformat"), default="png",
-              help="pdf, png, or both")
+  make_option(c("--pdf"), default=FALSE,
+              help="Should pdf plots be made?")
 
 )
 
@@ -67,14 +67,29 @@ keep_annotation <- keep_annotation[keep_annotation %in% colnames(annotation_fram
 
 annotation_frame <- annotation_frame[,keep_annotation]
 
+print(head(pred))
+#break
+
+if(nrow(pred) > 10000)
+{
+    cells.use = sample(rownames(pred), 10000)
+
+    print(head(cells.use))
+} else {
+    cells.use = rownames(pred)
+}
+
+
 do_plot <- function() {
-plotScoreHeatmap(pred, show.labels = TRUE,
-                 annotation_col=annotation_frame)
+    plotScoreHeatmap(pred, show.labels = TRUE,
+                     cells.use=cells.use,
+                     annotation_col=annotation_frame)
 }
 
 save_plots(paste0(opt$outdir, "/singleR_score_heatmap"),
            plot_fn=do_plot,
            width = 12,
+           to_pdf=opt$pdf,
            height = 8)
 
 
