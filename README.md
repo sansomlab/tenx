@@ -18,7 +18,9 @@ This example shows how the [Seurat stimulated and control vignette](https://sati
 
 * [Aligned example vignette](docs/AlignedExample.md).
 
-### Pancreatic embryogenesis dataset (from Scanp)
+### Pancreatic embryogenesis 
+
+This is the [scvelo Bastidas-Ponce et al. dataset] (https://scvelo.readthedocs.io/scvelo.datasets.pancreas.html))
 
 * [Summary Report](https://dl.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf)
 * More details to follow.
