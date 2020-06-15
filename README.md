@@ -20,7 +20,7 @@ This example shows how the [Seurat stimulated and control vignette](https://sati
 
 ### Pancreatic embryogenesis 
 
-This is the [scvelo Bastidas-Ponce et al. dataset] (https://scvelo.readthedocs.io/scvelo.datasets.pancreas.html)
+This is the [scvelo Bastidas-Ponce et al. dataset](https://scvelo.readthedocs.io/scvelo.datasets.pancreas.html)
 
 * [Summary Report](https://dl.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf)
 * More details to follow.
