@@ -146,63 +146,6 @@ write.table(cluster_assignments,
             gzfile(file.path(opt$outdir, "cluster_assignments.txt.gz")),
             sep="\t", col.names=T, row.names=F, quote=F)
 
-# cluster_ids_df$barcodes <- as.character(cluster_ids_df$barcodes)
-# cluster_ids_df$cluster_id <- as.character(cluster_ids_df$cluster_id)
-# saveRDS(cluster_ids_df, file=file.path(opt$outdir,"cluster_ids_df.rds"))
-
-## Visualise the relationship between the clusters.
-
-## 1. Using the Seurat default function
-## which computes distance between clusters averages
-## using the expression levels of the variable genes
-
-if(DefaultAssay(s) != "SCT" && length(VariableFeatures(s)) > 0)
-{
-    ## see: https://github.com/satijalab/seurat/issues/1677
-
-    draw_tree <- function() { plot(Tool(BuildClusterTree(s),slot='BuildClusterTree')) }
-
-} else {
-    ## draw an empty plot with an error message
-
-    draw_tree <- function()
-    {
-    plot.new()
-    text(0.5,0.5,"BuildClusterTree is not compatible with sctransform")
-    }
-}
-
-save_plots(
-    file.path(opt$outdir, "cluster.dendrogram"),
-    plot_fn=draw_tree,
-    width=8, height=5)
-
-
-## 2. By the median pair-wise pearson correlation
-## of cells in the clusters.
-cluster_cor <- clusterCor(s,
-                          dr_type=opt$reductiontype,
-                          comps,
-                          cor_method="pearson",
-                          cluster_average=FALSE)
-
-den <- as.dendrogram(hclust(as.dist(1 - cluster_cor)))
-
-draw_cor_tree <- function() { plot(den) }
-
-save_plots(
-    file.path(opt$outdir, "cluster.correlation.dendrogram"),
-    plot_fn=draw_cor_tree,
-    width=8, height=5
-    )
-
-## The diagonal of the correlation matrix is interesting
-## because it is a measure of with-cluster heterogenity
-## so we write the table out
-print(
-    xtable(sprintfResults(as.data.frame(cluster_cor)), caption="Pairwise correlations between clusters"),
-    file=file.path(opt$outdir, "cluster.pairwise.correlations.tex")
-    )
 
 message("seurat_cluster.R final default assay: ", DefaultAssay(s))
 

@@ -76,6 +76,11 @@ option_list <- list(
       c("--pointalpha"),
       default=0.8,
       help="The alpha setting for the points on the tSNE plots"
+    ),
+    make_option(
+      c("--pdf"),
+      default=FALSE,
+      help="Produce pdf versions of the plots"
       ),
     make_option(
       c("--outdir"),
@@ -162,7 +167,8 @@ for(color_var in color_vars)
     save_ggplots(file.path(opt$outdir, plotfilename),
                  gp,
                  width=6,
-                 height=4)
+                 height=4,
+                 to_pdf=opt$pdf)
 
     texCaption <- paste(opt$method,"plot colored by",color_var)
 

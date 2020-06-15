@@ -48,6 +48,8 @@ option_list <- list(
     make_option(c("--plotdirvar"), default="clusterGenesetsDir",
                 help="latex var containing name of the directory with the plots"),
     make_option(c("--outprefix"), default="none",
+                help="prefix for outfiles"),
+    make_option(c("--pdf"), default=FALSE,
                 help="prefix for outfiles")
     )
 
@@ -284,7 +286,8 @@ for(geneset in genesets)
         save_ggplots(plotfn,
                      gp,
                      width=8,
-                     height=8)
+                     height=8,
+                     to_pdf=opt$pdf)
 
 
         message("saved sample enrichement dotplot")
@@ -319,7 +322,8 @@ for(geneset in genesets)
 
                         save_ggplots(detailed_plotfn,
                                      gp,
-                                     width=10, height=10)
+                                     width=10, height=10,
+                                     to_pdf=opt$pdf)
 
                         caption <- paste("Cluster", cluster, geneset,
                                          "genesets clustered by similarity between over-represented genes.", sep=" ")

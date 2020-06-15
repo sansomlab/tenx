@@ -49,6 +49,8 @@ option_list <- list(
                 help="latex var containing location of the plots"),
     make_option(c("--useminfc"), default=FALSE,
                 help="Use minimum fold change for second page of violin plots"),
+    make_option(c("--pdf"), default=FALSE,
+                help="Produce pdf plots"),
     make_option(c("--outdir"), default="seurat.out.dir",
                 help="outdir")
     )
@@ -62,7 +64,6 @@ print(opt)
 
 # set the run specs
 run_specs <- paste(opt$numpcs,opt$resolution,opt$algorithm,opt$testuse,sep="_")
-
 
 ## set up the ggplot theme
 theme_set(theme_classic(base_size = 10))
@@ -152,6 +153,7 @@ defpath <- file.path(opt$outdir, defn)
 
 save_ggplots(defpath,
              ga,
+             to_pdf=opt$pdf,
              width=8,
              height=10)
 
@@ -205,7 +207,8 @@ pos_tex <- violinPlotSection(violin_data, s, cluster_ids, type="positive",
                              outdir = opt$outdir,
                              analysis_title = analysis_title, fc_type = fc_type,
                              use.minfc = opt$useminfc,
-                             plot_dir_var=opt$plotdirvar)
+                             plot_dir_var=opt$plotdirvar,
+                             to_pdf=opt$pdf)
 
 ## make the -ve plots
 message("making violin plots for -ve genes")
@@ -215,7 +218,8 @@ neg_tex <- violinPlotSection(violin_data, s, cluster_ids, type="negative",
                              outdir = opt$outdir,
                              analysis_title = analysis_title, fc_type = fc_type,
                              use.minfc = opt$useminfc,
-                             plot_dir_var=opt$plotdirvar)
+                             plot_dir_var=opt$plotdirvar,
+                             to_pdf=opt$pdf)
 
 tex <- c(tex, pos_tex, neg_tex)
 
