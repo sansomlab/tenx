@@ -25,6 +25,12 @@ This is the [scvelo Bastidas-Ponce et al. dataset](https://scvelo.readthedocs.io
 * [Summary Report](https://dl.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf)
 * More details to follow.
 
+### Microwell-seq Mouse Atlas (240k cells)
+
+Here the pipeline was run use the seurat object provided by the Seurat authors in their [Guided Clustering of the Microwell-seq Mouse Cell Atlas vignette](https://satijalab.org/seurat/v3.1/mca.html). 
+
+* [Summary Report](https://dl.dropbox.com/s/0nyfg5xlsx6u3v1/summaryReport.pdf)
+
 
 # installation and dependencies
 
