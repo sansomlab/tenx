@@ -49,6 +49,12 @@ option_list <- list(
                 help="latex var containing location of the plots"),
     make_option(c("--useminfc"), default=FALSE,
                 help="Use minimum fold change for second page of violin plots"),
+    make_option(c("--ncol"), type="integer", default=4,
+                help="Number of columns for the plots"),
+        make_option(c("--nrow"), type="integer", default=4,
+                help="Number of rows for the plots"),
+    make_option(c("--pointsize"), type="integer", default=FALSE,
+                help="pointsize for the violin plots"),
     make_option(c("--pdf"), default=FALSE,
                 help="Produce pdf plots"),
     make_option(c("--outdir"), default="seurat.out.dir",
@@ -188,7 +194,7 @@ if(opt$useminfc)
     fc_type="fold change"
 }
 
-ncol = 4
+ncol = opt$ncol
 
 if(is.null(opt$testfactor))
 {
@@ -203,7 +209,8 @@ if(is.null(opt$testfactor))
 message("making violin plots for +ve genes")
 pos_tex <- violinPlotSection(violin_data, s, cluster_ids, type="positive",
                              group.by = opt$testfactor,
-                             ident.include = ident.include, ncol=ncol,
+                             ident.include = ident.include, vncol=opt$ncol, vnrow=opt$nrow,
+                             pt_size=opt$pointsize,
                              outdir = opt$outdir,
                              analysis_title = analysis_title, fc_type = fc_type,
                              use.minfc = opt$useminfc,
@@ -214,7 +221,8 @@ pos_tex <- violinPlotSection(violin_data, s, cluster_ids, type="positive",
 message("making violin plots for -ve genes")
 neg_tex <- violinPlotSection(violin_data, s, cluster_ids, type="negative",
                              group.by = opt$testfactor,
-                             ident.include = ident.include, ncol=ncol,
+                             ident.include = ident.include, vncol=opt$ncol, vnrow=opt$nrow,
+                             pt_size=opt$pointsize,
                              outdir = opt$outdir,
                              analysis_title = analysis_title, fc_type = fc_type,
                              use.minfc = opt$useminfc,

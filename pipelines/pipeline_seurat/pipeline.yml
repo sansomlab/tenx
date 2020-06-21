@@ -195,7 +195,7 @@ qc:
 singleR:
 
   # number of cores for multiprocessing
-  workers: 10
+  workers: 4
 
   plot_extra: False
 
@@ -334,6 +334,70 @@ cluster:
   # By default Seurat will use the RANN package to build the nearest-neighbor
   # graph before clustering. This package uses the euclidean (L2) metric.
 
+
+# Data summary plots
+# ---------------------
+
+# Summary plots of data statistics
+# --------------------------------
+#
+# Each plot is individually defined.
+#
+# title: the name of the plot for the report (the key is used as the file basename)
+#
+# group: major grouping factor (must be present in metadata)
+# subgroup: either a factor or None (must be present in metadata if set)
+# subgrouplevels: manually order levels for plots (comma separated list)
+#
+# replicate: if set the pct stat will be normalised to total counts per-replicate.
+#            if not set the pct stat will be computed within the grouped data.
+#
+# stat: the statistic to plot. Either:
+#
+#       (1)  "count" or "pct" which will be computed from the grouped date (dplyr)
+#       (2) a column from the metadata
+#       (3) "ngenes" or "total_UMI" which will be computed on the seurat object
+#           (if not present in the metadata)
+#
+# trans: transformation to apply to the y axis (only "sqrt" supported)
+#
+# geom: the plot geom to use: supported are 'bar' and 'boxplot'
+#
+# facet: should the plot be facted by the major grouping factor?
+# freey: whould the y scales be free (when facetting)
+#
+# width: width of the plot in inches
+# height: height of the plot in inches
+# ncol: number of columns for facets
+#
+# for a full list of the options supported please see the
+# R/plot_group_numbers.R script
+#
+
+# Note: (i) in titles and labels % symbols must be escaped as %%
+#       (ii) use of underscores in titles is not supported.
+#
+
+summaries:
+
+  cells_by_cluster:
+    title: Cells by cluster
+    group: cluster
+    subgroup: None
+    replicate: None
+    stat: pct
+    geom: bar
+    facet: False
+    freey: False
+    xlab: cluster
+    ylab: cells (%%)
+    width: 8
+    height: 4
+
+
+
+
+
 # Plotting parameters
 # -------------------
 
@@ -363,6 +427,14 @@ plot:
   # Size of data points
   pointsize: 0.5
 
+  # maximum number of cells to draw (for gene expression plots)
+  maxcells: 200000
+
+  # violin point size
+  vpointsize: 0.1
+
+  # violin number of columns
+  vncol: 4
 
 # tSNE parameters
 # ---------------
@@ -489,6 +561,8 @@ findmarkers:
     # Only test genes that are detected in a minimum fraction of min.pct cells
     # (see min.pct=...)
     minpct: 0.1
+
+    maxcellsperident: 50000
     #
     # Within-cluster differential expression (optional)
     # ------------------------------------------------
@@ -539,6 +613,8 @@ findmarkers:
 # ------------------------------
 
 exprsreport:
+
+    workers: 12
 
    # Count of up-regulated markers to represent in tSNE plots for each cluster
     n_positive: 50

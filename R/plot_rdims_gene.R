@@ -24,6 +24,7 @@ stopifnot(
   require(reshape2),
   require(Seurat),
   require(tenxutils),
+  require(BiocParallel),
   require(Matrix)
 )
 
@@ -78,7 +79,13 @@ option_list <- list(
       c("--pointsize"),
       default=0.5,
       help="The point size for the tSNE plots"
+    ),
+    make_option(
+      c("--pointpch"),
+      default="16",
+      help="The point shape if no shape factor is set for the tSNE plots"
       ),
+
     make_option(
       c("--pointalpha"),
       default=0.8,
@@ -89,6 +96,16 @@ option_list <- list(
       default=FALSE,
       help="produce pdf plots"
     ),
+    make_option(
+        c("--maxcells"),
+        default=Inf,
+        type="integer",
+        help="max cells to plot, if there are more they will be randomly downsampled"),
+    make_option(
+        c("--workers"),
+        default=10,
+        type="integer",
+        help="number of worker threads"),
     make_option(
       c("--outdir"),
       default="seurat.out.dir",
@@ -113,6 +130,7 @@ message("plot_rdims_gene.R running with default assay: ", DefaultAssay(s))
 
 data <- GetAssayData(object = s, slot = "data")
 
+
 if("gene_id" %in% colnames(s@misc))
 {
     ## relabel data with ensembl ids
@@ -123,11 +141,21 @@ if("gene_id" %in% colnames(s@misc))
     id_col = "gene"
 }
 
+# remove the Seurat object
+rm(s)
+
 ##
 plot_data <- read.table(opt$table,sep="\t",header=TRUE)
 
 print(head(plot_data))
 rownames(plot_data) <- plot_data$barcode
+
+if(nrow(plot_data) > opt$maxcells)
+{
+    ## randomly downsample the plot data.
+    message("downsampling the plot data")
+    plot_data <- plot_data[sample(rownames(plot_data), opt$maxcells, replace=FALSE),]
+}
 
 ## read in the table containing the genes to visualise
 genes <- read.table(opt$genetable, header=TRUE, sep="\t",as.is=TRUE)
@@ -150,10 +178,15 @@ tex = "" # getSubsectionTex(geneset)
 
 good_ids <- genes[[id_col]][genes[[id_col]] %in% rownames(data)]
 
+xx<-which(data>0)
+upper_limit = quantile(data[xx], 0.95)
+
+
 ## subset the gene expression matrix
 exprs <- as.matrix(data[good_ids, plot_data$barcode, drop=F])
-
 print(dim(exprs))
+
+rm(data)
 
 rownames(exprs) <-genes$plot_name[match(rownames(exprs),genes[[id_col]])]
 
@@ -163,8 +196,6 @@ rownames(exprs) <-genes$plot_name[match(rownames(exprs),genes[[id_col]])]
 # upper_limit = quantile(data[data>0],0.95)
 # logical crashes transforming sparse matrix into dense. Use indexes, load Matrix.
 
-xx<-which(data>0)
-upper_limit = quantile(data[xx], 0.95)
 
 ## log transform
 ## exprs <- log10(exprs+1)
@@ -177,6 +208,7 @@ npages = ceiling(ngenes/9)
 
 message("processing ", npages," pages (", ngenes, " genes)")
 
+options(bitmapType='cairo')
 
 seqWrapper <- function(lb, ub, by=1) {
     s <- c()
@@ -184,45 +216,65 @@ seqWrapper <- function(lb, ub, by=1) {
     return(s)
 }
 
-for(page in seqWrapper(1,npages))
+
+message("subset table")
+
+## subset the table with the reduced coordinates
+if(tolower(opt$shapefactor)!="none"){
+    plot_data <- plot_data[,c(opt$rdim1,opt$rdim2,opt$shapefactor)]
+} else {
+    plot_data <- plot_data[, c(opt$rdim1,opt$rdim2)]
+}
+
+
+draw_page <- function(page,
+                      shapefactor=opt$shapefactor,
+                      ngenes=ngenes,
+                      plot_genes=plot_genes,
+                      exprs=exprs,
+                      pointpch=opt$pointpch,
+                      pointsize=opt$pointsize,
+                      pointalpha=opt$pointalpha,
+                      rdim1 = opt$rdim1,
+                      rdim2 = opt$rdim2,
+                      outdir = opt$outdir,
+                      to_pdf = opt$pdf
+                      )
 {
-    message("working on page: ", page)
+
+    message(paste("working on page: > ", page, " < "))
     start <- ((page-1)*9) + 1
     end <- min((page*9),ngenes)
     nplots = (end - start) + 1
 
-    message("number of plots to make: ", nplots)
+    message(paste("number of plots to make: > ", nplots, " < "))
     nplotrows = ceiling(nplots/3)
     genes_of_interest <- plot_genes[start:end]
 
-    # subset the table with the reduced coordinates
-    if(tolower(opt$shapefactor)!="none"){
-        plot_data <- plot_data[,c(opt$rdim1,opt$rdim2,opt$shapefactor)]
-    } else {
-        plot_data <- plot_data[, c(opt$rdim1,opt$rdim2)]
-    }
-
+    message("add gene information")
     # add the gene expression information
     plot_data <- merge(plot_data, t(exprs[genes_of_interest,]), by=0)
     rownames(plot_data) <- plot_data$Row.names
     plot_data$Row.names <- NULL
 
+    message("melt the data")
     # melt the data for plotting by gene
-    if(tolower(opt$shapefactor)!="none"){
-        melted_plot_data <- melt(plot_data, id.vars=c(opt$rdim1,opt$rdim2,opt$shapefactor))
+    if(tolower(shapefactor)!="none"){
+        melted_plot_data <- melt(plot_data, id.vars=c(rdim1,rdim2,shapefactor))
     } else {
-        melted_plot_data <- melt(plot_data, id.vars=c(opt$rdim1,opt$rdim2))
+        melted_plot_data <- melt(plot_data, id.vars=c(rdim1,rdim2))
     }
 
+    message("draw the plot")
     theme_set(theme_gray(base_size = 8))
-    if(tolower(opt$shapefactor)=="none" | !opt$shapefactor %in% colnames(melted_plot_data))
+    if(tolower(shapefactor)=="none" | !shapefactor %in% colnames(melted_plot_data))
     {
-        gp <- ggplot(melted_plot_data, aes_string(opt$rdim1, opt$rdim2,
+        gp <- ggplot(melted_plot_data, aes_string(rdim1, rdim2,
                                                   color="value"))
     } else {
-        gp <- ggplot(melted_plot_data, aes_string(opt$rdim1, opt$rdim2,
+        gp <- ggplot(melted_plot_data, aes_string(rdim1, rdim2,
                                                   color="value",
-                                                  shape=opt$shapefactor))
+                                                  shape=shapefactor))
     }
 
     if(length(unique(melted_plot_data$variable)) > 1)
@@ -236,7 +288,15 @@ for(page in seqWrapper(1,npages))
                                      name="log\nnormalised\ncounts+1)",
                                      limits=c(0,upper_limit))
 
-    gp <- gp + geom_point(size=opt$pointsize)
+
+    if(tolower(shapefactor)=="none" | !shapefactor %in% colnames(melted_plot_data))
+    {
+        gp <- gp + geom_point(size=pointsize, pch=pointpch, alpha=pointalpha)
+    } else {
+        gp <- gp + geom_point(size=pointsize, alpha=pointalpha)
+    }
+
+    # gp <- gp + geom_point(size=pointsize, pch=pointpch, alpha=pointalpha)
     gp <- gp + theme(panel.background = element_rect(fill = 'lightgrey'))
 
     if(nplotrows==1) { h=3.5 }
@@ -246,13 +306,43 @@ for(page in seqWrapper(1,npages))
     pagename <- paste("genes",page,sep="_")
     plotfilename <- paste("plot.rdims.genes", geneset, page, sep=".")
 
-    save_ggplots(file.path(opt$outdir, plotfilename),
+    message("save the plot")
+    save_ggplots(file.path(outdir, plotfilename),
                  gp,
                  width=10,
                  height=h,
                  dpi=300,
-                 to_pdf=opt$pdf)
+                 to_pdf=to_pdf)
 
+    return(page)
+}
+
+xpages <- seqWrapper(1,npages)
+print(xpages)
+
+multicoreParam <- MulticoreParam(workers = opt$workers)
+
+message("drawing the pages")
+res <- bplapply(xpages, FUN=draw_page,
+        shapefactor=opt$shapefactor,
+        ngenes=ngenes,
+        plot_genes=plot_genes,
+        exprs=exprs,
+        pointpch=opt$pointpch,
+        pointsize=opt$pointsize,
+        pointalpha=opt$pointalpha,
+        rdim1=opt$rdim1,
+        rdim2=opt$rdim2,
+        outdir=opt$outdir,
+        to_pdf=opt$pdf,
+        BPPARAM=multicoreParam)
+
+print(res)
+
+## sort out the latex
+for(page in xpages)
+{
+    plotfilename <- paste("plot.rdims.genes", geneset, page, sep=".")
     texCaption <- paste(geneset," genes (",page," of ",npages,")",sep="")
     tex <- c(tex, getFigureTex(plotfilename, texCaption,
                                plot_dir_var=opt$plotdirvar))
@@ -264,6 +354,5 @@ tex_file <- file.path(opt$outdir, paste("plot.rdims.genes", geneset, "tex", sep=
 
 writeTex(tex_file, tex)
 
-message("plot_rdims_gene.R final default assay: ", DefaultAssay(s))
 
 message("completed")

@@ -167,6 +167,7 @@ import cgatcore.iotools as IOTools
 import math
 import importlib
 import textwrap
+import yaml
 
 # import local pipeline utility functions
 from pipeline_utils import templates
@@ -587,13 +588,13 @@ def singleR(infile, outfile):
 
     # set the job threads and memory
     locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"],
-                      cpu=PARAMS["resources_numcores"]))
+        resources.get(memory=PARAMS["resources_memory_extreme"],
+                      cpu=PARAMS["singler_workers"]))
 
     statement = '''Rscript %(tenx_dir)s/R/singleR_run.R
                        --seuratobject=%(infile)s
                        --reference=%(reference)s
-                       --workers=%(job_threads)s
+                       --workers=%(singler_workers)s
                        --outdir=%(ref_outdir)s
 
                        &> %(log_file)s
@@ -1483,6 +1484,7 @@ def plotRdimsFactors(infile, outfile):
                    %(color_factors)s
                    --pointsize=%(plot_pointsize)s
                    --pointalpha=%(plot_pointalpha)s
+                   --pointpch=%(plot_pointpch)s
                    --pdf=%(plot_pdf)s
                    --outdir=%(outdir)s
                    --plotdirvar=rdimsVisDir
@@ -1534,6 +1536,7 @@ def plotUmapSingleR(infiles, outfile):
                         --colorfactors=pruned.labels
                         --pointsize=%(plot_pointsize)s
                         --pointalpha=%(plot_pointalpha)s
+                        --pointpch=%(plot_pointpch)s
                         --pdf=%(plot_pdf)s
                         --outdir=%(outdir)s
                         --plotdirvar=rdimsVisDir
@@ -1641,7 +1644,8 @@ def plotRdimsGenes(infile, outfile):
 
         # set the job threads and memory
         locals().update(
-            resources.get(memory=PARAMS["resources_memory_standard"]))
+            resources.get(memory=PARAMS["resources_memory_standard"]),
+            cpu=PARAMS["resources_numcores"])
 
         for genelist in genelists:
 
@@ -1664,9 +1668,11 @@ def plotRdimsGenes(infile, outfile):
                            --genetable=%(genelist)s
                            --pointsize=%(plot_pointsize)s
                            --pointalpha=%(plot_pointalpha)s
+                           --maxcells=%(plot_maxcells)s
                            --outdir=%(outdir)s
                            --pdf=%(plot_pdf)s
                            --plotdirvar=genelistsDir
+                           --workers=%(exprsreport_workers)s
                            &> %(log_file)s
                        '''
             P.run(statement)
@@ -1712,56 +1718,96 @@ def plotRdimsGenes(infile, outfile):
 def plotGroupNumbers(infile, outfile):
     '''
     Plot statistics on cells by group, e.g. numbers of cells per cluster.
+
+    Plots are defined on a case-by-case basis in the yaml.
     '''
 
     outdir = os.path.dirname(outfile)
 
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
     sample_dir = str(Path(outdir).parents[1])
     seurat_object = os.path.join(sample_dir, "begin.rds")
 
-    # if RDIMS_VIS_METHOD == "tsne":
-    #     rdims_table = infile.replace(
-    #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-    # elif RDIMS_VIS_METHOD == "umap":
     rdims_table = infile.replace(".sentinel", ".txt")
 
-    if PARAMS["plot_subgroup"] is not None:
-        subgroupfactor = "--subgroupfactor=%(plot_subgroup)s" % PARAMS
-    else:
-        subgroupfactor = ""
+    # we need the yaml as a dict, so...
+    config_file = "pipeline.yml"
+    if not os.path.exists(config_file):
+        config_file = "%s/pipeline.yml" % os.path.splitext(__file__)[0]
+        if not os.path.exists(config_file):
+            raise ValueError("Config file not found in plot group numbers")
 
-    if PARAMS["plot_groups"] is not None:
-        plot_groups = [x.strip() for x in
-                       PARAMS["plot_groups"].split(",")]
+    with open(config_file) as f:
+        params = yaml.load(f, Loader=yaml.FullLoader)
 
-        if "cluster" not in plot_groups:
-            plot_groups.append("cluster")
+    params = params["summaries"]
 
-        plot_groups = ",".join(plot_groups)
+    statements = []
+    for summary_key in params.keys():
 
-    else:
-        plot_groups = "cluster"
+        summary = params[summary_key].copy()
 
-    groupfactors = "--groupfactors={}".format(plot_groups)
+        options = []
 
-    log_file = outfile.replace(".sentinel", ".log")
+        # populate the Rscript options from the yaml dictionary
+        for k, v in summary.items():
+            if v == "None" or v == None or v == False or k == "title":
+                pass
+            elif v == True:
+                options.append("--" + k)
+            elif k in ["xlab", "ylab"]:
+                options.append("--" + k + "=\"" + str(v) + "\"")
+            else:
+                options.append("--" + k + "=" + str(v))
 
-    # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+        options = "\n".join(options)
 
-    statement = '''Rscript %(tenx_dir)s/R/plot_group_numbers.R
+        log_file = os.path.join(outdir, summary_key + ".log")
+
+        statement = '''Rscript %(tenx_dir)s/R/plot_group_numbers.R
                    --table=%(rdims_table)s
                    --seuratobject=%(seurat_object)s
                    --seuratassay=RNA
-                    %(groupfactors)s
-                    %(subgroupfactor)s
+                   --title=%(summary_key)s
+                   %(options)s
                    --outdir=%(outdir)s
                    --plotdirvar=groupNumbersDir
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **locals())
 
-    P.run(statement)
+        statements.append(statement)
+
+    P.run(statements)
+
+    # write out the latex snippet...
+    with open(os.path.join(outdir, "number.plots.tex"),"w") as tex:
+
+        for fig in params.keys():
+
+            if("_" in params[fig]["title"]):
+               raise ValueError("Underscores are not allowed in the plot"
+                                " titles (due to issues with latex...")
+
+            # Add the figures, one per subsection, escaping underscores.
+            tex.write(templates.subsection %
+                      {"title": params[fig]["title"]})
+
+            tex.write("\n")
+
+            fig_path = os.path.join(outdir, fig)
+
+            if(os.path.exists(fig_path + ".png")):
+                fig_spec = {"width": "1", "height": "0.9",
+                            "path": fig_path,
+                            "caption": params[fig]["title"]
+                            }
+
+                tex.write(textwrap.dedent(
+                    templates.figure % fig_spec))
+                tex.write("\n")
+
     IOTools.touch_file(outfile)
 
 
@@ -1853,8 +1899,8 @@ def findMarkers(infile, outfile):
 
     # set the job threads and memory
     locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"],
-                      cpu=1))
+        resources.get(memory=PARAMS["resources_memory_high"],
+                      cpu=PARAMS["findmarkers_numcores"]))
 
     for i in range(min(clusters), max(clusters)+1):
 
@@ -1867,9 +1913,11 @@ def findMarkers(infile, outfile):
                    --testuse=%(test)s
                    --minpct=%(findmarkers_minpct)s
                    --mindiffpct=-Inf
+                   --maxcellsperident=%(findmarkers_maxcellsperident)s
                    --threshuse=%(findmarkers_threshuse)s
                    %(conserved_options)s
                    --annotation=annotation.dir/ensembl.to.entrez.txt.gz
+                   --numcores=%(findmarkers_numcores)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
                 ''' % dict(PARAMS, **locals()))
@@ -2076,6 +2124,9 @@ def characteriseClusterMarkers(infile, outfile):
                     --cluster=%(i)s
                     --outdir=%(outdir)s
                     --useminfc=TRUE
+                    --pointsize=%(plot_vpointsize)s
+                    --ncol=%(plot_vncol)s
+                    --nrow=%(plot_vnrow)s
                     --pdf=%(plot_pdf)s
                     --plotdirvar=clusterMarkerDEPlotsDir
                     &> %(log_file)s
@@ -2237,10 +2288,6 @@ def plotRdimsMarkers(infile, outfile):
             else:
                 shape = ""
 
-            # set the job threads and memory
-            locals().update(
-                resources.get(memory=PARAMS["resources_memory_standard"]))
-
             statement = '''Rscript %(tenx_dir)s/R/plot_rdims_gene.R
                            --method=%(rdims_vis_method)s
                            --table=%(rdims_table)s
@@ -2252,18 +2299,24 @@ def plotRdimsMarkers(infile, outfile):
                            --genetable=%(markers_file)s
                            --pointsize=%(plot_pointsize)s
                            --pointalpha=%(plot_pointalpha)s
+                           --pointpch=%(plot_pointpch)s
+                           --maxcells=%(plot_maxcells)s
                            --outdir=%(outdir)s
+                           --workers=%(exprsreport_workers)s
                            --plotdirvar=clusterMarkerRdimsPlotsDir
                            --pdf=%(plot_pdf)s
                            &> %(log_file)s
-                       '''
-            P.run(statement)
+                       ''' % dict(PARAMS, **locals())
+
+            return statement
 
         else:
             with(open(os.path.join(outdir, "plot.rdims.genes.top." + name +
                                    ".cluster.markers.tex"), "w")) as tex:
 
                 tex.write("No marker genes passed criteria for plotting\n")
+
+            return False
 
     # keep up to n entries per cluster
     # note that groupby preserves the ordering.
@@ -2273,7 +2326,11 @@ def plotRdimsMarkers(infile, outfile):
                                     PARAMS["exprsreport_n_positive"])
     positive_markers["type"] = "+ve"
     positive_markers = _addGeneName(positive_markers)
-    _report(positive_markers, "positive")
+    stat = _report(positive_markers, "positive")
+
+    if stat:
+        statements = [stat]
+
 
     negative_markers = data[data["avg_logFC"] < 0]
     negative_markers = _filterAndScore(negative_markers)
@@ -2281,7 +2338,17 @@ def plotRdimsMarkers(infile, outfile):
                                     PARAMS["exprsreport_n_negative"])
     negative_markers["type"] = "-ve"
     negative_markers = _addGeneName(negative_markers)
-    _report(negative_markers, "negative")
+    stat = _report(negative_markers, "negative")
+
+    if stat:
+        statements.append(stat)
+
+    # set the job threads and memory
+    locals().update(
+        resources.get(memory=PARAMS["resources_memory_high"]))
+
+
+    P.run(statements)
 
     IOTools.touch_file(outfile)
 
@@ -2343,7 +2410,7 @@ def findMarkersBetweenConditions(infile, outfile):
 
     locals().update(
         resources.get(memory=PARAMS["resources_memory_standard"],
-                      cpu=1))
+                      cpu=PARAMS["findmarkers_numcores"]))
 
     for i in range(min(clusters), max(clusters)+1):
 
@@ -2362,6 +2429,7 @@ def findMarkersBetweenConditions(infile, outfile):
                    --mindiffpct=-Inf
                    --annotation=annotation.dir/ensembl.to.entrez.txt.gz
                    %(conserved_options)s
+                   --numcores=%(findmarkers_numcores)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
                 ''' % dict(PARAMS, **locals()))

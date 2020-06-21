@@ -131,11 +131,12 @@ plotFvE <- function(data, p_col="p.adj", label_col="gene",
 plotViolins <- function(data, seurat_object,
                         cluster_ids, type="positive",
                         group.by=NULL, ident.include=NULL,
-                        ncol=ncol,
+                        vncol=4, vnrow=3,
                         use.minfc=FALSE,
                         minfc_col="min_logFC", maxfc_col="max_logFC",
                         avgfc_col="avg_logFC",
                         m_col="avg_logFC", p_col="p.adj",
+                        pt_size=0.1,
                         id_col="gene")
 {
 
@@ -155,24 +156,35 @@ plotViolins <- function(data, seurat_object,
         stop("type argument to plotViolins() not recognised")
     }
 
+    n_show = vncol * vnrow
+
     ## make first sub-figure (4 columns, 3 rows)
     tmp <- tmp[order(tmp[[p_col]]),]
 
-    genes_a <- tmp[[id_col]][min(1,length(tmp[[id_col]])):min(12,length(tmp[[id_col]]))]
+    genes_a <- tmp[[id_col]][min(1,length(tmp[[id_col]])):min(n_show,length(tmp[[id_col]]))]
     n_a <- length(genes_a)
 
     message("number of genes for first panel: ", n_a)
 
-    nrow_a <- ceiling(n_a / 4)
+    nrow_a <- ceiling(n_a / vncol)
+
+    FontSize(
+        x.text = 4,
+        y.text = 6,
+        x.title = 0,
+    #    y.title = NULL,
+        main = 10
+    #    ...
+        )
 
     if(n_a > 0)
     {
         message("Calling VlnPlot for top genes by p-value")
         gpa <- VlnPlot(object=seurat_object,
                        features=genes_a,
-                       pt.size = 0.1,
+                       pt.size = pt_size,
                        #size.x.use=6,size.y.use=6,size.title.use=10, point.size.use=0.1,
-                       ncol=ncol,
+                       ncol=vncol,
                        log=TRUE,
                        # do.return=TRUE,
                        group.by=group.by,
@@ -186,8 +198,8 @@ plotViolins <- function(data, seurat_object,
         nrow_a <- 0
     }
 
-    ## if n_a is less than 12, there are no more genes to show.
-    if(n_a == 12)
+    ## if n_a is less than n_show, there are no more genes to show.
+    if(n_a == n_show)
     {
 
         ## make second sub-figure
@@ -219,9 +231,9 @@ plotViolins <- function(data, seurat_object,
             }
         }
 
-        genes_b <- tmp[[id_col]][min(1,length(tmp[[id_col]])):min(12,length(tmp[[id_col]]))]
+        genes_b <- tmp[[id_col]][min(1,length(tmp[[id_col]])):min(n_show,length(tmp[[id_col]]))]
         n_b <- length(genes_b)
-        nrow_b <- ceiling(n_b/4)
+        nrow_b <- ceiling(n_b/vncol)
 
         message("number of genes for second panel: ", n_b)
 
@@ -231,9 +243,9 @@ plotViolins <- function(data, seurat_object,
             message("Calling VlnPlot for top genes by fold change")
             gpb <- VlnPlot(object=seurat_object,
                            features=genes_b,
-                           pt.size = 0.1,
+                           pt.size = pt_size,
                            #size.x.use=6,size.y.use=6,size.title.use=10, point.size.use=0.1,
-                           ncol=ncol,
+                           ncol=vncol,
                            log=TRUE, #do.return=TRUE,
                            group.by=group.by,
                            idents=ident.include)
@@ -272,7 +284,8 @@ plotViolins <- function(data, seurat_object,
 #' @param fc_type The metric by which the violin plots are ordered
 violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
                               group.by=opt$testfactor,
-                              ident.include=opt$identinclude, ncol=ncol,
+                              ident.include=opt$identinclude,
+                              vncol=4,vnrow=3, pt_size=0.1,
                               outdir=opt$outdir,
                               analysis_title="violin plots", fc_type="fold change",
                               plot_dir_var="plotsDir",
@@ -282,8 +295,8 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
 
     ## get the violin plots
     violin_plots <- plotViolins(data, seurat_object, cluster_ids, type=type,
-                                group.by=group.by,
-                                ident.include=ident.include, ncol=ncol,
+                                group.by=group.by, pt_size=pt_size,
+                                ident.include=ident.include, vncol=vncol, vnrow=vnrow,
                                 use.minfc=use.minfc)
 
 
@@ -434,6 +447,7 @@ save_ggplots <- function(filepath=NULL,
                width=width,
                height=height,
                units="in",
+               type="cairo-png",
                dpi=dpi)
     }
 

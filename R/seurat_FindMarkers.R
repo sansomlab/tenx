@@ -37,6 +37,8 @@ option_list <- list(
                 help="testing limited to genes with this (log scale) difference in mean expression level."),
     make_option(c("--mincells"), default=3,
                 help="minimum number of cells required (applies to cluster and to the other cells)"),
+    make_option(c("--maxcellsperident"), default=Inf,
+                help="max.cell.per.ident"),
     make_option(c("--testfactor"),default="none",
                 help="A column of @meta.data containing the conditions to be contrasted"),
     make_option(c("--a"), default="none",
@@ -267,7 +269,8 @@ for (conserved.level in levels(ident.conserved)){
                                 min.diff.pct = opt$mindiffpct,
                                 # print.bar = F,
                                 min.cells.feature = min.cells,
-                                min.cells.group = min.cells)
+                                min.cells.group = min.cells,
+                                max.cells.per.ident=opt$maxcellsperident)
 
         ## keep everything, adjust later
         return.thresh = 1
@@ -288,13 +291,20 @@ for (conserved.level in levels(ident.conserved)){
         print("FindMarkers complete")
         print(dim(markers))
 
+        print(head(markers))
+
+        message("correcting p-values")
         ## Add a BH corrected p-value
         ## correction is deliberately applied separately within cluster
         markers$p.adj <- p.adjust(markers$p_val, method="BH")
 
+        print(head(markers))
+
+        message("selecting columns of interest")
         markers <- markers[,c("cluster","gene","p.adj","p_val","avg_logFC","pct.1","pct.2")]
         markers <- markers[order(markers$cluster, markers$p_val),]
 
+        print(head(markers))
         print(dim(markers))
 
         ## add the ensembl gene_ids...
@@ -309,8 +319,10 @@ for (conserved.level in levels(ident.conserved)){
         }
 
 
+        message("adding the filter stats")
         ## add the filter stats for each gene
         markers <- cbind(markers, filter_stats[rownames(markers),])
+        print(head(markers))
 
         if (opt$conservedfactor != "none"){
             markers.conserved.list[[conserved.level]] <- subset(markers, p.adj < opt$conservedpadj)
