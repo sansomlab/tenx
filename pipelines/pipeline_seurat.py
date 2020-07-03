@@ -3287,8 +3287,8 @@ def summaryReport(infile, outfile):
 
 @follows(mkdir("reports.dir"), geneExpressionReport)
 @transform(summaryReport,
-           regex(r"(.*).seurat.dir/(.*)/latex.dir/summaryReport.pdf"),
-           r"reports.dir/\1.\2/export.sentinel")
+           regex(r"(.*).seurat.dir/components.(.*).dir/cluster.(.*).dir/latex.dir/summaryReport.pdf"),
+           r"reports.dir/\1.\2_\3/export.sentinel")
 def export(infile, outfile):
     '''
     Link output files to a directory in the "reports.dir" folder.
