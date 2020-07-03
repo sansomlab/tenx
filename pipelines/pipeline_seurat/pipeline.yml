@@ -138,15 +138,6 @@ runspecs:
     # (see Seurat::FindClusters)
     cluster_resolutions: 0.6,1
 
-    # Clustering algorithm(s)
-    # (see Seurat::FindClusters)
-    # 1 = louvain, 4 = leiden
-    cluster_algorithms: 4
-
-
-    # Differential expression testing method(s)
-    # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
-    de_tests: wilcox
 
     # To manually specify cluster assignments set to True
     # - Manual cluster assignmets should be provided as sample_name.cluster_ids.rds file(s)
@@ -327,6 +318,11 @@ jackstraw:
 # Clustering parameters
 # ---------------------
 cluster:
+  # Clustering algorithm(s)
+  # (see Seurat::FindClusters)
+  # 1 = louvain, 4 = leiden
+  algorithm: 4
+
   # The number of neighbors to use when constructing the nearest neighbor graph
   # - it is recommended to match the value chosen for UMAP
   nneighbors: 20
@@ -427,6 +423,9 @@ plot:
   # Size of data points
   pointsize: 0.5
 
+  # set the point shape:
+  pointpch: 16
+
   # maximum number of cells to draw (for gene expression plots)
   maxcells: 200000
 
@@ -435,6 +434,8 @@ plot:
 
   # violin number of columns
   vncol: 4
+  vnrow: 3
+
 
 # tSNE parameters
 # ---------------
@@ -554,6 +555,11 @@ knownmarkers:
 # ----------------------
 
 findmarkers:
+    numcores: 1
+    # Differential expression testing method(s)
+    # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
+    test: wilcox
+
     ## Differential expression parameters (see Seurat::FindMarkers)
     # Limit testing to genes which show, on average, at least X-fold difference
     # (see logfc.threshold=...)

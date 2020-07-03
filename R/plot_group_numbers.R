@@ -20,9 +20,13 @@ stopifnot(
 
 option_list <- list(
     make_option(
-      c("--table"),
+      c("--metadata"),
       default="none",
-      help="A table containing the grouping information"),
+      help="A table containing the metadata with grouping information"),
+    make_option(
+      c("--clusters"),
+      default="none",
+      help="A table containing the clusters"),
     make_option(
       c("--seuratobject"),
       default="none",
@@ -141,8 +145,28 @@ cat("Running with options:\n")
 print(opt)
 
 ## Read in the table with the grouping information
-data <- read.table(opt$table,sep="\t",header=T)
+data <- read.table(opt$metadata,sep="\t",header=T)
 rownames(data) <- data$barcode
+
+if(opt$cluster!="none")
+{
+
+
+    clusters <- read.table(opt$clusters, sep="\t", header=TRUE)
+    rownames(clusters) <- clusters$barcode
+    clusters$barcode <- NULL
+
+    if(!all(rownames(data) %in% rownames(clusters)))
+    {
+        stop("Not all cell barcodes are present in the given cluster table")
+    }
+
+    data$cluster <- clusters[rownames(data), "cluster_id"]
+
+
+}
+
+
 
 
 ## ########################################################################### #

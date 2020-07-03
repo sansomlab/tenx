@@ -172,7 +172,7 @@ import yaml
 # import local pipeline utility functions
 from pipeline_utils import templates
 from pipeline_utils import resources
-
+from pipeline_utils import TASK
 
 # -------------------------- < parse parameters > --------------------------- #
 
@@ -196,6 +196,8 @@ if len(sys.argv) > 1:
         if(sys.argv[1] == "config") and __name__ == "__main__":
                     sys.exit(P.main(sys.argv))
 
+
+# ----------------------- < helper functions > ------------------------ #
 
 
 @files(None, "task.summary.table.tex")
@@ -230,18 +232,13 @@ def createSeuratObject(infile, outfile):
        variable genes and PCA-based dimension reduction.
     '''
 
-    outdir = outfile.split("/")[0]
-
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    sample_name = infile.split("/")[-1].split(".")[0]
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     metadata = os.path.join(infile, "metadata.tsv.gz")
 
     if PARAMS["subsetcells_active"]:
 
-        cells_to_use = PARAMS["subsetcells_" + sample_name]
+        cells_to_use = PARAMS["subsetcells_" + spec.sample_name]
 
         if PARAMS["subsetcells_type"] == "barcode_list":
 
@@ -288,12 +285,11 @@ def createSeuratObject(infile, outfile):
     else:
         maxcount = ""
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"],
-                      cpu=PARAMS["resources_numcores"]))
+
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"],
+        cpu=PARAMS["resources_numcores"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_begin.R
                    --tenxdir=%(infile)s
@@ -316,7 +312,7 @@ def createSeuratObject(infile, outfile):
                    %(seed)s
                    %(maxcount)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -333,14 +329,7 @@ def exploreHvgAndCellCycle(infile, outfile):
        visualised in PCA space.
     '''
 
-    outdir = os.path.dirname(outfile)
-
-    seurat_object = os.path.join(outdir, "begin.rds")
-
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    sample_name = infile.split("/")[-1].split(".")[0]
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     metadata = os.path.join(infile, "metadata.tsv.gz")
 
@@ -370,12 +359,10 @@ def exploreHvgAndCellCycle(infile, outfile):
     else:
         seed = ""
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_extreme"],
-                      cpu=PARAMS["resources_numcores"]))
+    job_threads, job_memory, r_memory =  TASK.get_resources(
+        memory=PARAMS["resources_memory_extreme"],
+        cpu=PARAMS["resources_numcores"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_explore_hvg_and_cell_cycle.R
                    --seuratobject=%(seurat_object)s
@@ -400,7 +387,7 @@ def exploreHvgAndCellCycle(infile, outfile):
                    %(cell_cycle_genes)s
                    %(cell_cycle_regress)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -413,17 +400,9 @@ def normaliseAndScale(infile, outfile):
     '''This task performs only the normalisation and scaling steps.
     '''
 
-    outdir = os.path.dirname(outfile)
-
-    seurat_object = os.path.join(outdir, "begin.rds")
-
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    sample_name = infile.split("/")[-1].split(".")[0]
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     metadata = os.path.join(infile, "metadata.tsv.gz")
-
 
     # Deal with cell-cycle options
     if ( os.path.isfile(PARAMS["cellcycle_sgenes"]) and
@@ -447,12 +426,10 @@ def normaliseAndScale(infile, outfile):
     else:
         seed = ""
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_extreme"],
-                      cpu=PARAMS["resources_numcores"]))
+    job_threads, job_memory, r_memory =  TASK.get_resources(
+        memory=PARAMS["resources_memory_extreme"],
+        cpu=PARAMS["resources_numcores"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_normalise_and_scale.R
                    --species=%(annotation_species)s
@@ -477,7 +454,7 @@ def normaliseAndScale(infile, outfile):
                    %(cell_cycle_genes)s
                    %(cell_cycle_regress)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -491,14 +468,7 @@ def seuratPCA(infile, outfile):
        Perform the PCA task
     '''
 
-    outdir = os.path.dirname(outfile)
-    seurat_object = os.path.join(outdir,
-                                 "begin.rds")
-
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    sample_name = infile.split("/")[-1].split(".")[0]
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     metadata = os.path.join(infile, "metadata.tsv.gz")
 
@@ -515,12 +485,10 @@ def seuratPCA(infile, outfile):
     else:
         jackstraw = ""
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_extreme"],
-                      cpu=PARAMS["resources_numcores"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_extreme"],
+        cpu=PARAMS["resources_numcores"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_pca.R
                    --seuratobject=%(seurat_object)s
@@ -534,7 +502,7 @@ def seuratPCA(infile, outfile):
                    %(jackstraw)s
                    %(seed)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -576,29 +544,24 @@ def singleR(infile, outfile):
     labels ("labels.tsv.gz")
     '''
 
-    ref_outdir = os.path.dirname(outfile)
-
-    if not os.path.exists(ref_outdir):
-        os.makedirs(ref_outdir)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     reference = os.path.basename(
         Path(outfile).parents[0]).replace(".ref.dir","")
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_extreme"],
-                      cpu=PARAMS["singler_workers"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_extreme"],
+        cpu=PARAMS["singleR_workers"])
 
     statement = '''Rscript %(tenx_dir)s/R/singleR_run.R
                        --seuratobject=%(infile)s
                        --reference=%(reference)s
-                       --workers=%(singler_workers)s
-                       --outdir=%(ref_outdir)s
+                       --workers=%(singleR_workers)s
+                       --outdir=%(outdir)s
 
                        &> %(log_file)s
-                       ''' % dict(PARAMS, **locals())
+                       ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -611,19 +574,14 @@ def singleR(infile, outfile):
 def plotSingleR(infile, outfile):
     '''Make the singleR heatmap'''
 
-    predictions = os.path.join(os.path.dirname(infile),
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
+    predictions = os.path.join(spec.indir,
                                "predictions.rds")
 
-    seurat_object = os.path.join(Path(infile).parents[2],
-                                 "begin.rds")
-
-    outdir = os.path.dirname(outfile)
-
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement = '''Rscript %(tenx_dir)s/R/singleR_plots.R
                        --seuratobject=%(seurat_object)s
@@ -631,7 +589,7 @@ def plotSingleR(infile, outfile):
                        --outdir=%(outdir)s
                        --pdf=%(plot_pdf)s
                        &> %(log_file)s
-                       ''' % dict(PARAMS, **locals())
+                       ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -647,19 +605,14 @@ def plotExtraSingleR(infile, outfile):
        (slower, plots not currently included in the report)
     '''
 
-    predictions = os.path.join(os.path.dirname(infile),
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
+    predictions = os.path.join(spec.indir,
                                "predictions.rds")
 
-    seurat_object = os.path.join(Path(infile).parents[2],
-                                 "begin.rds")
-
-    outdir = os.path.dirname(outfile)
-
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement = '''Rscript %(tenx_dir)s/R/singleR_extra_plots.R
                        --seuratobject=%(seurat_object)s
@@ -667,7 +620,7 @@ def plotExtraSingleR(infile, outfile):
                        --outdir=%(outdir)s
 
                        &> %(log_file)s
-                       ''' % dict(PARAMS, **locals())
+                       ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -680,67 +633,102 @@ def plotExtraSingleR(infile, outfile):
 # For each sample, one run will be performed for each combination
 # of the following key parameter choices (as defined in the "runspecs"):
 #
-# * cluster resolution
-# * cluster algorithm
-# * number of PCA components
-# * differential expression algorithm
+# * number of  components
 
-def genClusterJobs():
+def genNeighborJobs():
     '''
     Generate cluster jobs with all paramter combinations.
     '''
 
-    resolutions_str = str(PARAMS["runspecs_cluster_resolutions"])
-    resolutions = resolutions_str.strip().replace(" ", "").split(",")
-
-    algos_str = str(PARAMS["runspecs_cluster_algorithms"])
-    algos = algos_str.strip().replace(" ", "").split(",")
-
-    tests = str(
-        PARAMS["runspecs_de_tests"]).strip().replace(" ", "").split(",")
-
-    if PARAMS["runspecs_skip"] is not None:
-        skip = PARAMS["seurat_skip"].strip().replace(" ", "").split(",")
-    else:
-        skip = []
-
-    pcs_str = str(PARAMS["runspecs_n_components"])
-    pcs = pcs_str.strip().replace(" ", "").split(",")
-
+    components_str = str(PARAMS["runspecs_n_components"])
+    components = components_str.strip().replace(" ", "").split(",")
 
     samples = glob.glob("*.seurat.dir")
 
-    subdir = "cluster.dir"
+    outname = "neighbors.sentinel"
+
+    for sample in samples:
+
+        infile = os.path.join(sample, "begin.rds")
+
+        for comps in components:
+
+            outdir = "components." + comps + ".dir"
+
+            outfile = os.path.join(sample, outdir, outname)
+
+            yield [infile, outfile]
+
+
+@follows(seuratPCA)
+@files(genNeighborJobs)
+def findNeighbors(infile, outfile):
+    '''
+    Compute and save the neighbor graph for the given number of components.
+    '''
+
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
+    if(spec.components == "sig"):
+        comp="--usesigcomponents=TRUE"
+    else:
+        comp="--components=%(components)s" % SPEC
+
+    # set the job threads and memory
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"],
+        cpu=PARAMS["resources_numcores"])
+
+    statement = '''Rscript %(tenx_dir)s/R/seurat_find_neighbors.R
+                   --seuratobject=%(seurat_object)s
+                   --outdir=%(outdir)s
+                   --memory=%(r_memory)s
+                   --nneighbors=%(cluster_nneighbors)s
+                   --reductiontype=%(dimreduction_method)s
+                   %(comp)s
+                   &> %(log_file)s
+                ''' % dict(PARAMS, **SPEC, **locals())
+
+    P.run(statement)
+
+    IOTools.touch_file(outfile)
+
+
+def genClusterJobs():
+
+    components_str = str(PARAMS["runspecs_n_components"])
+    components = components_str.strip().replace(" ", "").split(",")
+    samples = glob.glob("*.seurat.dir")
+
+    resolutions = [ x.strip() for x in
+                    PARAMS["runspecs_cluster_resolutions"].split(",") ]
+
     outname = "cluster.sentinel"
 
     for sample in samples:
 
         infile = os.path.join(sample, "begin.rds")
 
-        for test in tests:
+        for comps in components:
 
-            for pca in pcs:
+            outdir = "components." + comps + ".dir"
 
-                for algorithm in algos:
-
-                    if PARAMS["runspecs_predefined_clusters"] :
-                        outdir = "_".join([pca, "predefined", algorithm, test])
-                        if(os.path.join(sample, outdir) in skip):
-                            continue
-                        outfile = os.path.join(sample, outdir, subdir, outname)
-                        yield [infile, outfile]
+            if PARAMS["runspecs_predefined_clusters"] :
 
 
-                    for resolution in resolutions:
-
-                            outdir = "_".join([pca, resolution, algorithm, test])
-                            if(os.path.join(sample, outdir) in skip):
-                                continue
-                            outfile = os.path.join(sample, outdir, subdir, outname)
-                            yield [infile, outfile]
+                subdir = "cluster.predefined.dir"
+                outfile = os.path.join(sample, outdir, subdir, outname)
+                yield [infile, outfile]
 
 
-@follows(seuratPCA)
+            for resolution in resolutions:
+
+                subdir = "cluster." + resolution + ".dir"
+                outfile = os.path.join(sample, outdir, subdir, outname)
+                yield [infile, outfile]
+
+
+@follows(findNeighbors)
 @files(genClusterJobs)
 def cluster(infile, outfile):
     '''Perform clustering on a saved seurat object.
@@ -751,28 +739,11 @@ def cluster(infile, outfile):
        Clusters are written to "cluster_ids.txt".
     '''
 
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
+    if spec.resolution == "predefined":
 
-    outname = os.path.basename(outfile)
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
-
-    sample = outdir.split(".seurat.dir/")[0]
-
-    reductiontype = PARAMS["dimreduction_method"]
-
-    if(components=="sig"):
-        comp="--usesigcomponents=TRUE"
-    else:
-        comp="--components=%(components)s" % locals()
-
-
-    if resolution == "predefined":
-
-        cluster_file = sample + ".cluster_ids.rds"
+        cluster_file = spec.sample_name + ".cluster_ids.rds"
 
         if os.path.exists(cluster_file):
             predefined = "--predefined=%(cluster_file)s" % locals()
@@ -783,26 +754,23 @@ def cluster(infile, outfile):
     else:
         predefined = ""
 
-    cluster_nneighbours = PARAMS["cluster_nneighbors"]
-
-    log_file = outfile.replace(".sentinel", ".log")
+    if not os.path.exists(spec.seurat_graphs):
+        raise ValueError("graphs.rds file not found...")
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"],
-                      cpu=PARAMS["resources_numcores"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"],
+        cpu=PARAMS["resources_numcores"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_cluster.R
                    --seuratobject=%(infile)s
-                   %(comp)s
+                   --seuratgraphs=%(seurat_graphs)s
                    %(predefined)s
-                   --nneighbors=%(cluster_nneighbors)s
                    --resolution=%(resolution)s
-                   --algorithm=%(algorithm)s
+                   --algorithm=%(cluster_algorithm)s
                    --outdir=%(outdir)s
-                   --reductiontype=%(reductiontype)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -810,8 +778,8 @@ def cluster(infile, outfile):
 
 @active_if(PARAMS["run_compare_clusters"])
 @transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/cluster.dir/compare.clusters.sentinel")
+           regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
+           r"\1/\2/\3/compare.clusters.sentinel")
 def compareClusters(infile, outfile):
     '''Perform clustering on a saved seurat object.
 
@@ -821,27 +789,16 @@ def compareClusters(infile, outfile):
        Clusters are written to "cluster_ids.txt".
     '''
 
-    outdir = os.path.dirname(outfile)
-
-    seurat_dir = Path(outdir).parents[1]
-    seurat_object = os.path.join(seurat_dir, "begin.rds")
-
-    cluster_ids = os.path.join(outdir, "cluster_ids.rds")
-
-    outname = os.path.basename(outfile)
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
-
-    sample = outdir.split(".seurat.dir/")[0]
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     reductiontype = PARAMS["dimreduction_method"]
 
-    if(components=="sig"):
+    if(spec.components=="sig"):
         comp="--usesigcomponents=TRUE"
     else:
-        comp="--components=%(components)s" % locals()
+        comp="--components=%(components)s" % SPEC
 
-    if resolution == "predefined":
+    if spec.resolution == "predefined":
 
         cluster_file = sample + ".cluster_ids.rds"
 
@@ -856,12 +813,10 @@ def compareClusters(infile, outfile):
 
     cluster_nneighbours = PARAMS["cluster_nneighbors"]
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"],
-                      cpu=PARAMS["resources_numcores"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"],
+        cpu=PARAMS["resources_numcores"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_compare_clusters.R
                    --seuratobject=%(seurat_object)s
@@ -870,7 +825,7 @@ def compareClusters(infile, outfile):
                    --outdir=%(outdir)s
                    --reductiontype=%(reductiontype)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -883,48 +838,36 @@ def compareClusters(infile, outfile):
 nresolutions = len(str(PARAMS["runspecs_cluster_resolutions"]).split(","))
 
 @active_if(nresolutions > 1)
-@transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/cluster.dir/clustree.sentinel")
+
+@follows(cluster)
+@transform(findNeighbors,
+           regex(r"(.*)/(.*)/neighbors.sentinel"),
+           r"\1/\2/clustree.sentinel")
 def clustree(infile, outfile):
     '''
-
+       Run clustree.
     '''
 
-    indir = os.path.dirname(infile)
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    resolutions_str = str(PARAMS["runspecs_cluster_resolutions"])
-    resolutions = resolutions_str.strip().replace(" ", "").split(",")
-
-    cluster_ids = os.path.join(indir, "cluster_ids.rds")
-
-    sampleDir = Path(cluster_ids).parts[0]
-    runDir = Path(cluster_ids).parts[1]
-
-    pcs, res, algo, de = runDir.split("_")
-
-    id_files = [ os.path.join(sampleDir,
-                              "_".join([pcs,r,algo,de]),
-                              "cluster.dir",
+    id_files = [ os.path.join(spec.outdir,
+                              "cluster." + r + ".dir",
                               "cluster_ids.rds")
-                 for r in resolutions ]
+                 for r in spec.resolutions ]
 
-    res_str = ",".join(resolutions)
+    res_str = ",".join(spec.resolutions)
     id_files_str = ",".join(id_files)
 
-    log_file = outfile.replace("sentinel","log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_low"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_low"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_clustree.R
                    --resolutions=%(res_str)s
                    --clusteridfiles=%(id_files_str)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -944,11 +887,10 @@ def exportForPython(infile, outfile):
     python (e.g. with scanpy).
 
     When Seurat is fully loom compliant we may simply switch
-   to storing the Seurat results in .loom rather than .rds
+    to storing the Seurat results in .loom rather than .rds
     '''
 
-    seurat_obj = infile
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     reductiontype = PARAMS["dimreduction_method"]
 
@@ -965,14 +907,12 @@ def exportForPython(infile, outfile):
     else:
         export_scaled_data = "FALSE"
 
-    log_file = outfile.replace("sentinel","log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement = '''Rscript %(tenx_dir)s/R/export_for_python.R
-                   --seuratobject=%(seurat_obj)s
+                   --seuratobject=%(seurat_object)s
                    --reductiontype=%(reductiontype)s
                    --counts=%(export_counts)s
                    --data=%(export_data)s
@@ -980,7 +920,7 @@ def exportForPython(infile, outfile):
                    --outdir=%(outdir)s
                    %(comp)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -989,55 +929,44 @@ def exportForPython(infile, outfile):
 @active_if(PARAMS["run_paga"])
 @follows(exportForPython)
 @transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/paga.dir/paga.sentinel")
+           regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
+           r"\1/\2/\3/paga.dir/paga.sentinel")
 def paga(infile, outfile):
     '''
        Run partition-based graph abstraction (PAGA)
        see: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1663-x
     '''
 
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    cluster_assignments = os.path.join(Path(outdir).parents[0],
-                                           "cluster.dir",
+    cluster_assignments = os.path.join(Path(spec.outdir).parents[0],
                                            "cluster_assignments.txt.gz")
 
-    cluster_colors = os.path.join(Path(outdir).parents[0],
-                                  "cluster.dir",
+    cluster_colors = os.path.join(Path(spec.outdir).parents[0],
                                   "cluster_colors.txt")
 
-    seurat_dir = Path(outdir).parents[1]
-
     reductiontype = PARAMS["dimreduction_method"]
-    reduced_dims_matrix_file = os.path.join(seurat_dir,
+    reduced_dims_matrix_file = os.path.join(spec.sample_dir,
                                             "embedding." + reductiontype + ".tsv.gz")
 
-    barcode_file = os.path.join(seurat_dir,
-                                  "barcodes.txt.gz")
+    barcode_file = os.path.join(spec.sample_dir,
+                                "barcodes.txt.gz")
 
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
-
-    if components == "sig":
-        sigcomps = os.path.join(seurat_dir, "sig_comps.txt")
+    if spec.components == "sig":
+        sigcomps = os.path.join(spec.sample_dir, "sig_comps.txt")
         comps = pd.read_table(sigcomps, header=None)
         comps = comps[comps.columns[0]].tolist()
         comps = ','.join([ str(item) for item in comps])
     else :
-        comps = list(range (1, int(components)+1))
+        comps = list(range (1, int(spec.components)+1))
         comps = ','.join([ str(item) for item in comps])
 
     k = PARAMS["paga_k"]
 
-    log_file = outfile.replace("sentinel","log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement = '''python %(tenx_dir)s/python/run_paga.py
                    --reduced_dims_matrix_file=%(reduced_dims_matrix_file)s
@@ -1048,39 +977,45 @@ def paga(infile, outfile):
                    --comps=%(comps)s
                    --k=%(k)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
 
 
 @active_if(PARAMS["run_phate"])
-@follows(exportForPython)
-@transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/phate.dir/phate.sentinel")
+@follows(exportForPython,cluster)
+@transform(findNeighbors,
+           regex(r"(.*)/(.*)/neighbors.sentinel"),
+           r"\1/\2/phate.dir/phate.sentinel")
 def phate(infile, outfile):
     '''
        Run the PHATE dimension reduction alogorithm
        see: https://www.nature.com/articles/s41587-019-0336-3
     '''
 
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
+    id_files = [ os.path.join(spec.component_dir,
+                              "cluster." + r + ".dir",
+                              "cluster_assignments.txt.gz")
+                 for r in spec.resolutions ]
 
-    cluster_assignments = os.path.join(Path(outdir).parents[0],
-                                           "cluster.dir",
-                                           "cluster_assignments.txt.gz")
 
-    cluster_colors = os.path.join(Path(outdir).parents[0],
-                                  "cluster.dir",
-                                  "cluster_colors.txt")
+    color_files = [ os.path.join(spec.component_dir,
+                             "cluster." + r + ".dir",
+                              "cluster_colors.txt")
+                 for r in spec.resolutions ]
 
-    seurat_dir = Path(outdir).parents[1]
-    barcode_file = os.path.join(seurat_dir,
-                                  "barcodes.txt.gz")
+
+    cluster_assignments = ",".join(id_files)
+
+    cluster_colors = ",".join(color_files)
+
+    cluster_resolutions = ",".join(spec.resolutions)
+
+    barcode_file = os.path.join(spec.sample_dir,
+                                "barcodes.txt.gz")
 
     if PARAMS["phate_assay"] == "reduced.dimensions":
 
@@ -1088,36 +1023,33 @@ def phate(infile, outfile):
                                PARAMS["dimreduction_method"],
                                "tsv.gz"])
 
-        assay_data = os.path.join(seurat_dir, embeddings)
+        assay_data = os.path.join(spec.sample_dir, embeddings)
 
     elif PARAMS["phate_assay"] == "scaled.data":
-        assay_data = os.path.join(seurat_dir, "assay.scale.data.tsv.gz")
+        assay_data = os.path.join(spec.sample_dir, "assay.scale.data.tsv.gz")
 
     else:
         raise ValueError("PHATE assay not recognised")
 
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
 
     k = PARAMS["phate_k"]
 
-    log_file = outfile.replace("sentinel","log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement = '''python %(tenx_dir)s/python/run_phate.py
                    --data=%(assay_data)s
                    --assay=%(phate_assay)s
                    --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
+                   --resolution=%(cluster_resolutions)s
                    --cluster_assignments=%(cluster_assignments)s
                    --cluster_colors=%(cluster_colors)s
                    --k=%(k)s
                    --gif=%(phate_gif)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -1127,44 +1059,31 @@ def phate(infile, outfile):
 # ############### UMAP analysis and related plots ########################### #
 # ########################################################################### #
 
-@transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/umap.dir/umap.sentinel")
+@transform(findNeighbors,
+           regex(r"(.*)/(.*)/neighbors.sentinel"),
+           r"\1/\2/umap.dir/umap.sentinel")
 def UMAP(infile, outfile):
     '''
     Run the UMAP analysis on a saved seurat object.
     '''
 
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    cluster_ids = infile.replace(".sentinel","_ids.rds")
-
-    seurat_dir = Path(outdir).parents[1]
-    seurat_object = os.path.join(seurat_dir, "begin.rds")
-
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
-
-    if(components=="sig"):
+    if(spec.components=="sig"):
         comp="--usesigcomponents=TRUE"
     else:
-        comp="--components=%(components)s" % locals()
+        comp="--components=%(components)s" % SPEC
 
-    outname = outfile.replace(".sentinel", ".txt")
-
-    log_file = outname.replace(".txt", ".log")
+    outfile_name = outfile.replace(".sentinel", ".txt.gz")
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"],
-                      cpu=2))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"],
+        cpu=2)
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_umap.R
                              --seuratobject=%(seurat_object)s
-                             --clusterids=%(cluster_ids)s
+                             --seuratgraphs=%(seurat_graphs)s
                              %(comp)s
                              --reductiontype=%(dimreduction_method)s
                              --method=%(umap_method)s
@@ -1173,9 +1092,9 @@ def UMAP(infile, outfile):
                              --metric=%(umap_metric)s
                              --nepochs=%(umap_nepochs)s
                              --seed=%(umap_seed)s
-                             --outfile=%(outname)s
+                             --outfile=%(outfile_name)s
                              &> %(log_file)s
-                          ''' % dict(PARAMS, **locals())
+                          ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -1186,39 +1105,35 @@ def UMAP(infile, outfile):
 # ########################################################################### #
 
 @active_if(PARAMS["run_diffusionmap"])
-@transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/diffusionmap.dir/dm.sentinel")
+@transform(findNeighbors,
+           regex(r"(.*)/(.*)/neighbors.sentinel"),
+           r"\1/\2/diffusionmap.dir/dm.sentinel")
 def diffusionMap(infile, outfile):
     '''
     Run the diffusion map analysis on a saved seurat object.
     '''
 
-    outdir = os.path.dirname(outfile)
+    ## TODO: fix plotting flow
+
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
     cluster_ids = infile.replace(".sentinel","_ids.rds")
 
-    seurat_dir = Path(outdir).parents[1]
-    seurat_object = os.path.join(seurat_dir, "begin.rds")
-
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
-
-    if(components=="sig"):
+    if(spec.components=="sig"):
         comp="--usesigcomponents=TRUE"
     else:
-        comp="--components=%(components)s" % locals()
+        comp="--components=%(components)s" % SPEC
 
     if PARAMS["diffusionmap_usegenes"]:
         usegenes="--usegenes=TRUE"
     else:
         usegenes="--usegenes=FALSE"
 
-    outname = outfile.replace(".sentinel", ".txt.gz")
-    log_file = outname.replace(".txt", ".log")
+    SPEC["outname"] = outfile.replace(".sentinel", ".txt.gz")
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_dm.R
                              --seuratobject=%(seurat_object)s
@@ -1231,7 +1146,7 @@ def diffusionMap(infile, outfile):
                              --outdir=%(outdir)s
                              --plotdirvar=diffmapDir
                              &> %(log_file)s
-                          ''' % dict(PARAMS, **locals())
+                          ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -1250,28 +1165,18 @@ def knownMarkerViolins(infile, outfile):
        Make per-cluster violin plots from a given set of known marker genes.
     '''
 
-    indir = os.path.dirname(infile)
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-
-    cluster_ids = os.path.join(indir, "cluster_ids.rds")
-
-    seurat_dir = Path(outdir).parents[1]
-    seurat_object = os.path.join(seurat_dir, "begin.rds")
-
+    cluster_ids = os.path.join(spec.indir, "cluster_ids.rds")
 
     if not os.path.exists(PARAMS["knownmarkers_file"]):
         raise ValueError("The specified known markers file does not exist")
 
     outprefix = outfile.replace(".sentinel", "")
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_low"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_low"])
 
     statement = '''Rscript %(tenx_dir)s/R/plot_violins.R
                        --genetable=%(knownmarkers_file)s
@@ -1281,7 +1186,7 @@ def knownMarkerViolins(infile, outfile):
                        --outprefix=%(outprefix)s
                        --plotdirvar=knownmarkersDir
                        &> %(log_file)s
-        '''
+        ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -1326,9 +1231,9 @@ def scvelo(infile, outfile):
        suggest different interpretations of the data.
     '''
 
-    outdir = os.path.dirname(outfile)
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
+    # TODO: fix plotting flow
+
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     cluster_assignments = os.path.join(Path(outdir).parents[0],
                                            "cluster.dir",
@@ -1390,8 +1295,8 @@ def scvelo(infile, outfile):
     log_file = outfile.replace(".sentinel", ".log")
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     for run, details in runs.items():
 
@@ -1424,22 +1329,24 @@ def scvelo(infile, outfile):
 # ########################################################################### #
 
 @transform(RDIMS_VIS_TASK,
-           regex(r"(.*)/(.*).dir/(.*).sentinel"),
-           r"\1/rdims.visualisation.dir/plot.rdims.factor.sentinel")
-def plotRdimsFactors(infile, outfile):
+           regex(r"(.*)/(.*)/(.*)/(.*).sentinel"),
+           add_inputs(exportForPython),
+           r"\1/\2/rdims.visualisation.dir/plot.rdims.factor.sentinel")
+def plotRdimsFactors(infiles, outfile):
     '''
-    Visualise the clusters on the chosen projection
+    Visualise factors of interest on the projection.
     '''
 
-    outdir = os.path.dirname(outfile)
+    infile, export_sentinel = infiles
 
-    # if RDIMS_VIS_METHOD == "tsne":
-    #     rdims_table = infile.replace(
-    #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-    # elif RDIMS_VIS_METHOD == "umap":
-    rdims_table = infile.replace(".sentinel", ".txt")
+    metadata_table = os.path.join(os.path.dirname(export_sentinel),
+                                  "metadata.tsv.gz")
 
-    color_factors = ["cluster"]
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
+    rdims_table = infile.replace(".sentinel", ".txt.gz")
+
+    color_factors = []
 
     if PARAMS["plot_qcvars"] is not None:
         color_factors += [x.strip() for x in
@@ -1453,11 +1360,12 @@ def plotRdimsFactors(infile, outfile):
         color_factors += [x.strip() for x in
                           PARAMS["plot_subgroup"].split(",")]
 
+    color_factors = [ x for x in color_factors if x != "cluster" ]
+
     # ensure list is unique whilst preserving order.
     color_factors = list(dict.fromkeys(color_factors))
 
     color_factors = "--colorfactors=" + ",".join(color_factors)
-
 
     if PARAMS["plot_shape"] is not None:
         shape_factors = "--shapefactor=%(plot_shape)s" % PARAMS
@@ -1469,15 +1377,14 @@ def plotRdimsFactors(infile, outfile):
     rdim1 = RDIMS_VIS_COMP_1
     rdim2 = RDIMS_VIS_COMP_2
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
                    --method=%(rdims_vis_method)s
                    --table=%(rdims_table)s
+                   --metadata=%(metadata_table)s
                    --rdim1=%(rdim1)s
                    --rdim2=%(rdim2)s
                    %(shape_factors)s
@@ -1487,45 +1394,106 @@ def plotRdimsFactors(infile, outfile):
                    --pointpch=%(plot_pointpch)s
                    --pdf=%(plot_pdf)s
                    --outdir=%(outdir)s
-                   --plotdirvar=rdimsVisDir
+                   --plotdirvar=rdimsVisFactorDir
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
 
 
-@active_if(PARAMS["run_singleR"])
-@product(singleR,
-         formatter("(.sentinel)$"),
-         UMAP,
-         formatter("(.sentinel)$"),
-         "{subpath[1][0][1]}/"
-         "singleR.dir/"
-         "{subdir[0][0][0]}/"
-         "singleR.umap.sentinel")
-def plotUmapSingleR(infiles, outfile):
-    '''Plot the SingleR primary identity assignments on a UMAP'''
+@follows(RDIMS_VIS_TASK)
+@transform(cluster,
+           regex(r"(.*)/(.*).dir/(.*).dir/(.*).sentinel"),
+           r"\1/\2.dir/\3.dir/rdims.visualisation.dir/plot.rdims.factor.sentinel")
+def plotRdimsClusters(infile, outfile):
+    '''
+    Visualise the clusters on the chosen projection
+    '''
 
-    singleR_sentinel, umap_sentinel = infiles
+    metadata_table = os.path.join(os.path.dirname(infile),
+                                  "cluster_assignments.txt.gz")
 
-    singleR_dir = os.path.dirname(singleR_sentinel)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    metadata = os.path.join(singleR_dir, "labels.tsv.gz")
+    rdims_table = os.path.join(spec.component_dir,
+                               "umap.dir",
+                               "umap.txt.gz")
 
-    rdims_table = umap_sentinel.replace(".sentinel", ".txt")
+    color_factors = "--colorfactors=cluster_id"
+
+    if PARAMS["plot_shape"] is not None:
+        shape_factors = "--shapefactor=%(plot_shape)s" % PARAMS
+    else:
+        shape_factors = ""
 
     # bring vars into local scope..
     rdims_vis_method = RDIMS_VIS_METHOD
     rdim1 = RDIMS_VIS_COMP_1
     rdim2 = RDIMS_VIS_COMP_2
 
-    outdir = os.path.dirname(outfile)
-    log_file = outfile.replace(".sentinel", ".log")
+    # set the job threads and memory
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
+
+    statement = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
+                   --method=%(rdims_vis_method)s
+                   --table=%(rdims_table)s
+                   --metadata=%(metadata_table)s
+                   --rdim1=%(rdim1)s
+                   --rdim2=%(rdim2)s
+                   %(shape_factors)s
+                   %(color_factors)s
+                   --pointsize=%(plot_pointsize)s
+                   --pointalpha=%(plot_pointalpha)s
+                   --pointpch=%(plot_pointpch)s
+                   --pdf=%(plot_pdf)s
+                   --outdir=%(outdir)s
+                   --plotdirvar=rdimsVisClusterDir
+                   &> %(log_file)s
+                ''' % dict(PARAMS, **SPEC, **locals())
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+
+#@follows(UMAP)
+@active_if(PARAMS["run_singleR"])
+@product(UMAP,
+         formatter("(.sentinel)$"),
+         singleR,
+         formatter("(.sentinel)$"),
+         "{subpath[0][0][1]}/"         #  cluster files, first file  seurat.dir/comp.dir/cluster.dir/clusters
+         "singleR.dir/"
+         "{subdir[1][0][0]}/"
+         "singleR.umap.sentinel")
+def plotUmapSingleR(infiles, outfile):
+    '''Plot the SingleR primary identity assignments on a UMAP'''
+
+    cluster_sentinel, singleR_sentinel = infiles
+
+    spec, SPEC = TASK.get_vars(cluster_sentinel, outfile, PARAMS)
+
+
+    singleR_dir = os.path.dirname(singleR_sentinel)
+
+    metadata = os.path.join(singleR_dir, "labels.tsv.gz")
+
+    rdims_table = os.path.join(spec.component_dir,
+                               "umap.dir",
+                               "umap.txt.gz")
+
+    # bring vars into local scope..
+    rdims_vis_method = RDIMS_VIS_METHOD
+    rdim1 = RDIMS_VIS_COMP_1
+    rdim2 = RDIMS_VIS_COMP_2
+
+    #outdir = os.path.dirname(outfile)
+    #log_file = outfile.replace(".sentinel", ".log")
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement  = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
                         --method=%(rdims_vis_method)s
@@ -1539,36 +1507,35 @@ def plotUmapSingleR(infiles, outfile):
                         --pointpch=%(plot_pointpch)s
                         --pdf=%(plot_pdf)s
                         --outdir=%(outdir)s
-                        --plotdirvar=rdimsVisDir
+                        --plotdirvar=rdimsVisSingleRDir
                         &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
 
 
 @active_if(PARAMS["run_singleR"])
-@follows(plotUmapSingleR, plotSingleR)
-@transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+@follows(plotUmapSingleR)
+@transform(UMAP,
+           regex(r"(.*)/umap.dir/umap.sentinel"),
            r"\1/singleR.dir/singleR.summary.tex")
 def summariseSingleR(infile, outfile):
     '''Collect the single R plots into a section for the report'''
 
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     references = [x.strip() for x in PARAMS["singleR_reference"].split(",")]
 
     singleR_path = os.path.join(Path(infile).parents[2],
                                 "singleR.dir")
 
-    singleR_umap_path = os.path.join(Path(infile).parents[1],
-                                     "singleR.dir")
+    singleR_umap_path = spec.outdir
 
 
     latex_path = outfile  # .replace(".sentinel", ".tex")
 
     with open(latex_path, "w") as tex:
-
 
         for reference in references:
 
@@ -1608,9 +1575,10 @@ def summariseSingleR(infile, outfile):
 
                 tex.write("\n")
 
+@follows(RDIMS_VIS_TASK)
 @active_if(PARAMS["run_exprsreport"])
-@transform(RDIMS_VIS_TASK,
-           regex(r"(.*)/(.*).dir/(.*).sentinel"),
+@transform(cluster,
+           regex(r"(.*)/cluster.sentinel"),
            r"\1/genelists.dir/plot.rdims.genes.sentinel")
 def plotRdimsGenes(infile, outfile):
     '''
@@ -1619,18 +1587,20 @@ def plotRdimsGenes(infile, outfile):
     The @data slot of the seurat object is used.
     '''
 
-    outdir = os.path.dirname(outfile)
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
+    # TODO: test and fix.
 
-    sample_dir = str(Path(outdir).parents[1])
-    seurat_object = os.path.join(sample_dir, "begin.rds")
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    tex_path = os.path.join(outdir, "plot.rdims.known.genes.tex")
+    tex_path = os.path.join(spec.outdir, "plot.rdims.known.genes.tex")
 
     rdims_vis_method = RDIMS_VIS_METHOD
     rdim1 = RDIMS_VIS_COMP_1
     rdim2 = RDIMS_VIS_COMP_2
+
+    rdims_table = os.path.join(spec.component_dir,
+                               "umap.dir",
+                               "umap.txt.gz")
+
 
     if PARAMS["exprsreport_genelists"]:
         genelists = glob.glob(
@@ -1643,8 +1613,8 @@ def plotRdimsGenes(infile, outfile):
         rdims_table = infile.replace( ".sentinel", ".txt")
 
         # set the job threads and memory
-        locals().update(
-            resources.get(memory=PARAMS["resources_memory_standard"]),
+        job_threads, job_memory, r_memory = TASK.get_resources(
+            memory=PARAMS["resources_memory_standard"],
             cpu=PARAMS["resources_numcores"])
 
         for genelist in genelists:
@@ -1674,7 +1644,8 @@ def plotRdimsGenes(infile, outfile):
                            --plotdirvar=genelistsDir
                            --workers=%(exprsreport_workers)s
                            &> %(log_file)s
-                       '''
+                       ''' % dict(PARAMS, **SPEC, **locals())
+
             P.run(statement)
 
         # prepare a summary tex snippet for inclusion in the report.
@@ -1712,8 +1683,9 @@ def plotRdimsGenes(infile, outfile):
 # ################# plot per-cluster summary statistics ##################### #
 # ########################################################################### #
 
-@transform(RDIMS_VIS_TASK,
-           regex(r"(.*)/(.*).dir/(.*).sentinel"),
+@follows(exportForPython)
+@transform(cluster,
+           regex(r"(.*)/cluster.sentinel"),
            r"\1/group.numbers.dir/plot.group.numbers.sentinel")
 def plotGroupNumbers(infile, outfile):
     '''
@@ -1722,15 +1694,14 @@ def plotGroupNumbers(infile, outfile):
     Plots are defined on a case-by-case basis in the yaml.
     '''
 
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
+    metadata_table = os.path.join(spec.sample_dir,
+                                  "metadata.tsv.gz")
 
-    sample_dir = str(Path(outdir).parents[1])
-    seurat_object = os.path.join(sample_dir, "begin.rds")
 
-    rdims_table = infile.replace(".sentinel", ".txt")
+    clusters = os.path.join(os.path.dirname(infile),
+                            "cluster_assignments.txt.gz")
 
     # we need the yaml as a dict, so...
     config_file = "pipeline.yml"
@@ -1764,10 +1735,11 @@ def plotGroupNumbers(infile, outfile):
 
         options = "\n".join(options)
 
-        log_file = os.path.join(outdir, summary_key + ".log")
+        SPEC["log_file"] = os.path.join(spec.outdir, summary_key + ".log")
 
         statement = '''Rscript %(tenx_dir)s/R/plot_group_numbers.R
-                   --table=%(rdims_table)s
+                   --metadata=%(metadata_table)s
+                   --clusters=%(clusters)s
                    --seuratobject=%(seurat_object)s
                    --seuratassay=RNA
                    --title=%(summary_key)s
@@ -1775,14 +1747,14 @@ def plotGroupNumbers(infile, outfile):
                    --outdir=%(outdir)s
                    --plotdirvar=groupNumbersDir
                    &> %(log_file)s
-                ''' % dict(PARAMS, **locals())
+                ''' % dict(PARAMS, **SPEC, **locals())
 
         statements.append(statement)
 
     P.run(statements)
 
     # write out the latex snippet...
-    with open(os.path.join(outdir, "number.plots.tex"),"w") as tex:
+    with open(os.path.join(spec.outdir, "number.plots.tex"),"w") as tex:
 
         for fig in params.keys():
 
@@ -1796,7 +1768,7 @@ def plotGroupNumbers(infile, outfile):
 
             tex.write("\n")
 
-            fig_path = os.path.join(outdir, fig)
+            fig_path = os.path.join(spec.outdir, fig)
 
             if(os.path.exists(fig_path + ".png")):
                 fig_spec = {"width": "1", "height": "0.9",
@@ -1830,9 +1802,7 @@ def getGenesetAnnotations(infile, outfile):
        and (ii) KEGG pathways.
     '''
 
-    outdir = os.path.dirname(outfile)
-
-    log_file = outfile.replace(".sentinel", ".log")
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     if PARAMS["annotation_ensembl_host"] == "default":
         ensembl_host = ""
@@ -1840,8 +1810,8 @@ def getGenesetAnnotations(infile, outfile):
         ensembl_host = "--ensemblhost=%(annotation_ensembl_host)s" % PARAMS
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_low"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_low"])
 
     statement = '''Rscript %(tenx_dir)s/R/fetch_geneset_annotations.R
                  --ensemblversion=%(annotation_ensembl_release)s
@@ -1849,7 +1819,7 @@ def getGenesetAnnotations(infile, outfile):
                  --species=%(annotation_species)s
                  --outdir=%(outdir)s
                  &> %(log_file)s
-              '''
+              ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -1861,7 +1831,7 @@ def getGenesetAnnotations(infile, outfile):
 
 @follows(getGenesetAnnotations)
 @transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           regex(r"(.*)/cluster.sentinel"),
            r"\1/cluster.markers.dir/findMarkers.sentinel")
 def findMarkers(infile, outfile):
     '''
@@ -1870,21 +1840,14 @@ def findMarkers(infile, outfile):
     This analysis is run in parallel for each cluster.
     '''
 
-    indir = os.path.dirname(infile)
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    cluster_ids = infile.replace(".sentinel","_ids.rds")
+    #cluster_ids = infile.replace(".sentinel","_ids.rds")
 
-    clusters = pd.read_table(os.path.join(indir, "cluster_ids.txt"),
+    clusters = pd.read_table(os.path.join(spec.indir, "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
-
-    seurat_object = os.path.join(Path(outdir).parents[1],
-                                 "begin.rds")
-
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
 
     if PARAMS["findmarkers_conserved"]:
         conservedfactor = PARAMS["findmarkers_conserved_factor"]
@@ -1898,19 +1861,20 @@ def findMarkers(infile, outfile):
     statements = []
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"],
-                      cpu=PARAMS["findmarkers_numcores"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"],
+        cpu=PARAMS["findmarkers_numcores"])
 
     for i in range(min(clusters), max(clusters)+1):
 
-        log_file = outfile.replace(".sentinel", "." + str(i) + ".log")
+        SPEC["log_file"] = outfile.replace(".sentinel", "." + str(i) + ".log")
+
         statements.append('''Rscript %(tenx_dir)s/R/seurat_FindMarkers.R
                    --seuratobject=%(seurat_object)s
                    --seuratassay=RNA
                    --clusterids=%(cluster_ids)s
                    --cluster=%(i)s
-                   --testuse=%(test)s
+                   --testuse=%(findmarkers_test)s
                    --minpct=%(findmarkers_minpct)s
                    --mindiffpct=-Inf
                    --maxcellsperident=%(findmarkers_maxcellsperident)s
@@ -1920,14 +1884,14 @@ def findMarkers(infile, outfile):
                    --numcores=%(findmarkers_numcores)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
-                ''' % dict(PARAMS, **locals()))
+                ''' % dict(PARAMS, **SPEC, **locals()))
 
     P.run(statements)
     IOTools.touch_file(outfile)
 
 
 @transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
+           regex(r"(.*)/cluster.sentinel"),
            r"\1/cluster.markers.dir/cluster.stats.sentinel")
 def clusterStats(infile, outfile):
     '''
@@ -1936,22 +1900,13 @@ def clusterStats(infile, outfile):
     This analysis is run in parallel for each cluster.
     '''
 
-    indir = os.path.dirname(infile)
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    cluster_ids = infile.replace(".sentinel","_ids.rds")
-
-    clusters = pd.read_table(os.path.join(indir, "cluster_ids.txt"),
+    clusters = pd.read_table(os.path.join(spec.indir, "cluster_ids.txt"),
                             header=None)
+
     clusters = clusters[clusters.columns[0]].tolist()
     nclusters = len(clusters)
-
-    seurat_object = os.path.join(Path(outdir).parents[1],
-                                 "begin.rds")
-
-    components, resolution, algorithm, test = outdir.split(
-        "/")[-2].split("_")
-
 
     if PARAMS["findmarkers_conserved"]:
         conservedfactor = PARAMS["findmarkers_conserved_factor"]
@@ -1963,13 +1918,14 @@ def clusterStats(infile, outfile):
     statements = []
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"],
-                      cpu=1))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"],
+        cpu=1)
 
     for i in range(min(clusters), max(clusters)+1):
 
-        log_file = outfile.replace(".sentinel", "." + str(i) + ".log")
+        SPEC["log_file"] = outfile.replace(".sentinel", "." + str(i) + ".log")
+
         statements.append('''Rscript %(tenx_dir)s/R/seurat_clusterStats.R
                    --seuratobject=%(seurat_object)s
                    --seuratassay=RNA
@@ -1978,7 +1934,7 @@ def clusterStats(infile, outfile):
                    %(conserved_options)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
-                ''' % dict(PARAMS, **locals()))
+                ''' % dict(PARAMS, **SPEC, **locals()))
 
     P.run(statements)
     IOTools.touch_file(outfile)
@@ -1993,26 +1949,19 @@ def summariseClusterStats(infile, outfile):
 
     '''
 
-    outdir = os.path.dirname(outfile)
-
-    cluster_ids = os.path.join(Path(outdir).parents[0],
-                               "cluster.dir",
-                               "cluster_ids.rds")
-
-
-    log_file = outfile.replace(".sentinel", ".log")
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"],
-                      cpu=1))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"],
+        cpu=1)
 
     # make sumamary tables and plots of the differentially expressed genes
     statement = '''Rscript %(tenx_dir)s/R/summarise_clusterStats.R
                    --clusterids=%(cluster_ids)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -2022,7 +1971,7 @@ def summariseClusterStats(infile, outfile):
 @transform(findMarkers,
            regex(r"(.*)/findMarkers.sentinel"),
            r"\1/summariseMarkers.sentinel")
-def summariseMarkers(infiles, outfile):
+def summariseMarkers(infile, outfile):
     '''
     Make summary tables and plots of cluster marker genes.
 
@@ -2031,30 +1980,20 @@ def summariseMarkers(infiles, outfile):
     Tables for geneset enrichment testing are prepared.
     '''
 
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    cluster_stats_table = os.path.join(outdir,
+    cluster_stats_table = os.path.join(spec.outdir,
                                        "cluster.stats.summary.table.txt.gz")
-
-
-    cluster_ids = os.path.join(Path(outdir).parents[0],
-                               "cluster.dir",
-                               "cluster_ids.rds")
-
-    seurat_object = os.path.join(Path(outdir).parents[1],
-                               "begin.rds")
 
     if PARAMS["plot_subgroup"] is not None:
         subgroup = '''--subgroup=%(plot_subgroup)s''' % PARAMS
     else:
         subgroup = ""
 
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"],
-                      cpu=1))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"],
+        cpu=1)
 
     # make sumamary tables and plots of the differentially expressed genes
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkers.R
@@ -2066,7 +2005,7 @@ def summariseMarkers(infiles, outfile):
                    %(subgroup)s
                    --outdir=%(outdir)s
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
@@ -2086,34 +2025,24 @@ def characteriseClusterMarkers(infile, outfile):
     Parallelised per-cluster.
     '''
 
-    outdir = os.path.dirname(outfile)
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     marker_table = os.path.join(os.path.dirname(infile),
                                 "markers.summary.table.txt.gz")
-
-
-    cluster_ids = os.path.join(Path(outdir).parents[0],
-                               "cluster.dir",
-                               "cluster_ids.rds")
-
-    seurat_object = os.path.join(Path(outdir).parents[1],
-                               "begin.rds")
 
     # not all clusters may have degenes
     degenes = pd.read_csv(marker_table, sep="\t")
     clusters = [x for x in set(degenes["cluster"].values)]
 
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"],
-                      cpu=1))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"],
+        cpu=1)
 
     statements = []
     tex = []
     for i in clusters:
 
-        log_file = outfile[:-len(".tex")] + "." + str(i) + ".log"
+        SPEC["log_file"] = outfile[:-len(".tex")] + "." + str(i) + ".log"
 
         statement = '''
                     Rscript %(tenx_dir)s/R/seurat_characteriseClusterDEGenes.R
@@ -2130,7 +2059,7 @@ def characteriseClusterMarkers(infile, outfile):
                     --pdf=%(plot_pdf)s
                     --plotdirvar=clusterMarkerDEPlotsDir
                     &> %(log_file)s
-                    ''' % dict(PARAMS, **locals())
+                    ''' % dict(PARAMS, **SPEC, **locals())
 
         cluster_tex_file = ".".join(["characterise.degenes", str(i), "tex"])
         tex.append("\\input{\\clusterMarkerDEPlotsDir/" + cluster_tex_file + "}")
@@ -2151,20 +2080,14 @@ def plotMarkerNumbers(infile, outfile):
     Summarise the numbers of per-cluster marker genes.
     '''
 
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
     marker_table = os.path.join(os.path.dirname(infile),
                                 "markers.summary.table.txt.gz")
 
-    outdir = os.path.dirname(outfile)
-
-    cluster_ids = os.path.join(Path(outdir).parents[0],
-                               "cluster.dir",
-                               "cluster_ids.rds")
-
-    log_file = outfile.replace(".sentinel", ".log")
-
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_low"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_low"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkerNumbers.R
                    --degenes=%(marker_table)s
@@ -2174,15 +2097,16 @@ def plotMarkerNumbers(infile, outfile):
                    --minpadj=0.05
                    --plotdirvar=clusterMarkerDEPlotsDir
                    &> %(log_file)s
-                '''
+                ''' % dict(PARAMS, **SPEC, **locals())
 
     P.run(statement)
     IOTools.touch_file(outfile)
 
+
 @active_if(PARAMS["run_exprsreport"])
-@follows(summariseMarkers)
-@transform(RDIMS_VIS_TASK,
-           regex(r"(.*)/(.*).dir/(.*).sentinel"),
+@follows(summariseMarkers, RDIMS_VIS_TASK)
+@transform(cluster,
+           regex(r"(.*)/cluster.sentinel"),
            r"\1/cluster.marker.rdims.plots.dir/plot.rdims.markers.sentinel")
 def plotRdimsMarkers(infile, outfile):
     '''
@@ -2193,17 +2117,12 @@ def plotRdimsMarkers(infile, outfile):
     and fold change.
     '''
 
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    seurat_object = os.path.join(Path(outdir).parents[1],
-                                 "begin.rds")
-
-    marker_summary_file = os.path.join(Path(outdir).parents[0],
+    marker_summary_file = os.path.join(spec.cluster_dir,
                                        "cluster.markers.dir",
                                        "markers.summary.table.txt.gz")
+
 
     data = pd.read_csv(marker_summary_file, sep="\t")
 
@@ -2262,15 +2181,15 @@ def plotRdimsMarkers(infile, outfile):
                          d["cluster"].astype(str) + ")"
         return d
 
-    def _report(d, name="none", seurat_object=seurat_object):
+    def _report(d, name="none"):
 
         # write the markers out to a table
         file_name = ".".join(["top", name, "cluster.markers.txt"])
-        markers_file = os.path.join(outdir, file_name)
+        markers_file = os.path.join(spec.outdir, file_name)
         d.to_csv(markers_file, header=True, sep="\t")
 
         log_name = ".".join(["plot.rdims.top", name, "cluster.markers.log"])
-        log_file = os.path.join(outdir, log_name)
+        SPEC["log_file"] = os.path.join(spec.outdir, log_name)
         rdims_vis_method = RDIMS_VIS_METHOD
         rdim1 = RDIMS_VIS_COMP_1
         rdim2 = RDIMS_VIS_COMP_2
@@ -2279,7 +2198,10 @@ def plotRdimsMarkers(infile, outfile):
         #     rdims_table = infile.replace(
         #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
         # elif rdims_vis_method == "umap":
-        rdims_table = infile.replace(".sentinel", ".txt")
+
+        rdims_table = os.path.join(spec.component_dir,
+                                   "umap.dir",
+                                   "umap.txt.gz")
 
         if(d.shape[0] > 0):
 
@@ -2306,12 +2228,12 @@ def plotRdimsMarkers(infile, outfile):
                            --plotdirvar=clusterMarkerRdimsPlotsDir
                            --pdf=%(plot_pdf)s
                            &> %(log_file)s
-                       ''' % dict(PARAMS, **locals())
+                       ''' % dict(PARAMS, **SPEC, **locals())
 
             return statement
 
         else:
-            with(open(os.path.join(outdir, "plot.rdims.genes.top." + name +
+            with(open(os.path.join(spec.outdir, "plot.rdims.genes.top." + name +
                                    ".cluster.markers.tex"), "w")) as tex:
 
                 tex.write("No marker genes passed criteria for plotting\n")
@@ -2344,9 +2266,8 @@ def plotRdimsMarkers(infile, outfile):
         statements.append(stat)
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_high"]))
-
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_high"])
 
     P.run(statements)
 
@@ -2377,6 +2298,8 @@ def findMarkersBetweenConditions(infile, outfile):
 
     This analysis is run in parallel for each cluster.
     '''
+
+    # TODO
 
     indir = os.path.dirname(infile)
     outdir = os.path.dirname(outfile)
@@ -2409,7 +2332,7 @@ def findMarkersBetweenConditions(infile, outfile):
         conserved_options = ""
 
     locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"],
+        TASK.get_resources(memory=PARAMS["resources_memory_standard"],
                       cpu=PARAMS["findmarkers_numcores"]))
 
     for i in range(min(clusters), max(clusters)+1):
@@ -2451,6 +2374,8 @@ def summariseMarkersBetweenConditions(infile, outfile):
     Tables for geneset enrichment testing are prepared.
     '''
 
+    # TODO
+
     outdir = os.path.dirname(outfile)
 
     cluster_ids = os.path.join(Path(outdir).parents[0],
@@ -2466,7 +2391,7 @@ def summariseMarkersBetweenConditions(infile, outfile):
 
     # set the job threads and memory
     locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+        TASK.get_resources(memory=PARAMS["resources_memory_standard"]))
 
     # make sumamary tables and plots of the differentially expressed genes
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkersBetween.R
@@ -2498,6 +2423,8 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
     Parallelised per-cluster.
     '''
 
+    # TODO
+
     marker_table = os.path.join(os.path.dirname(infile),
                                 "markers.between." +
                                 PARAMS["findmarkers_between_testfactor"] +
@@ -2518,7 +2445,7 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
 
     # set the job threads and memory
     locals().update(
-        resources.get(memory=PARAMS["resources_memory_low"]))
+        TASK.get_resources(memory=PARAMS["resources_memory_low"]))
 
     statements = []
     tex = []
@@ -2564,6 +2491,8 @@ def plotMarkerNumbersBetweenConditions(infile, outfile):
     Summarise the numbers of within-cluster DE genes.
     '''
 
+    # TODO
+
     marker_table = os.path.join(os.path.dirname(infile),
                                 "markers.between." +
                                 PARAMS["findmarkers_between_testfactor"] +
@@ -2579,7 +2508,7 @@ def plotMarkerNumbersBetweenConditions(infile, outfile):
 
     # set the job threads and memory
     locals().update(
-        resources.get(memory=PARAMS["resources_memory_low"]))
+        TASK.get_resources(memory=PARAMS["resources_memory_low"]))
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkerNumbers.R
                    --degenes=%(marker_table)s
@@ -2681,7 +2610,6 @@ def genesetAnalysis(infiles, outfile):
     gmt_names, gmt_files = parseGMTs(param_keys=param_keys)
 
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
-                           "cluster.dir",
                            "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
@@ -2690,8 +2618,8 @@ def genesetAnalysis(infiles, outfile):
     statements = []
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     for i in range(min(clusters), max(clusters)+1):
 
@@ -2747,7 +2675,6 @@ def summariseGenesetAnalysis(infile, outfile):
 
     # Read clusters
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
-                           "cluster.dir",
                            "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
@@ -2762,8 +2689,8 @@ def summariseGenesetAnalysis(infile, outfile):
     log_file = outfile.replace(".sentinel", ".log")
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement = '''Rscript %(tenx_dir)s/R/summariseGenesets.R
                          --genesetdir=%(genesetdir)s
@@ -2827,7 +2754,6 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     # Read custers
     clusters = pd.read_table(os.path.join(Path(outdir).parents[0],
-                           "cluster.dir",
                            "cluster_ids.txt"),
                             header=None)
     clusters = clusters[clusters.columns[0]].tolist()
@@ -2837,7 +2763,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     # set the job threads and memory
     locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+        TASK.get_resources(memory=PARAMS["resources_memory_standard"]))
 
     for i in range(min(clusters), max(clusters)+1):
 
@@ -2913,8 +2839,8 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
     log_file = outfile.replace(".sentinel", ".log")
 
     # set the job threads and memory
-    locals().update(
-        resources.get(memory=PARAMS["resources_memory_standard"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
 
     statement = '''Rscript %(tenx_dir)s/R/summariseGenesets.R
                          --genesetdir=%(genesetdir)s
@@ -2958,6 +2884,7 @@ def genesets():
          paga,
 #         plotTSNEPerplexities,
          plotRdimsFactors,
+         plotRdimsClusters,
          plotRdimsGenes,
          plotRdimsMarkers,
          diffusionMap,
@@ -2987,7 +2914,7 @@ def plots():
          genesets,
          plots,
          summariseGenesetAnalysis)
-@transform(plotRdimsFactors,
+@transform(plotRdimsClusters,
            regex("(.*)/rdims.visualisation.dir/plot.rdims.factor.sentinel"),
            r"\1/latex.dir/report.vars.sty")
 def latexVars(infile, outfile):
@@ -2995,87 +2922,74 @@ def latexVars(infile, outfile):
     Prepare a file containing the latex variable definitions.
     '''
 
-    outdir = os.path.dirname(outfile)
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
+    outdir = spec.outdir
 
-    runDir = Path(outdir).parents[0]
+
+
+    clusterDir = spec.cluster_dir
+
+    compDir = spec.component_dir
 
     outfile_name = os.path.basename(outfile)
 
-    clusterDir = os.path.join(runDir,
-                              "cluster.dir")
-
-    singleRDir = os.path.join(runDir,
+    singleRDir = os.path.join(compDir,
                               "singleR.dir")
 
-
-    clusterGenesetsDir = os.path.join(runDir,
+    clusterGenesetsDir = os.path.join(clusterDir,
                               "cluster.genesets.dir")
-
-    clusterMarkerDEPlotsDir = os.path.join(runDir,
+    clusterMarkerDEPlotsDir = os.path.join(clusterDir,
                               "cluster.marker.de.plots.dir")
-
-    clusterMarkerRdimsPlotsDir = os.path.join(runDir,
+    clusterMarkerRdimsPlotsDir = os.path.join(clusterDir,
                                              "cluster.marker.rdims" +\
                                              ".plots.dir")
-
-    clusterMarkersDir = os.path.join(runDir,
+    clusterMarkersDir = os.path.join(clusterDir,
                                      "cluster.markers.dir")
-
-    conditionGenesetsDir = os.path.join(runDir,
+    conditionGenesetsDir = os.path.join(clusterDir,
                               "condition.genesets.dir")
-
-    conditionMarkerDEPlotsDir = os.path.join(runDir,
+    conditionMarkerDEPlotsDir = os.path.join(clusterDir,
                               "condition.marker.de.plots.dir")
-
-#    conditionMarkerTSNEPlotsDir = os.path.join(runDir,
-#                                             "condition.marker.tsne.plots.dir")
-
-    conditionMarkersDir = os.path.join(runDir,
+    conditionMarkersDir = os.path.join(clusterDir,
                                      "condition.markers.dir")
-
-    genelistsDir = os.path.join(runDir,
+    genelistsDir = os.path.join(clusterDir,
                                 "genelists.dir")
-
-    knownmarkersDir = os.path.join(runDir,
+    knownmarkersDir = os.path.join(clusterDir,
                                    "known.markers.dir")
-
-    diffmapDir = os.path.join(runDir,
+    diffmapDir = os.path.join(clusterDir,
                               "diffusionmap.dir")
-
-    groupNumbersDir = os.path.join(runDir,
+    groupNumbersDir = os.path.join(clusterDir,
                                    "group.numbers.dir")
-
-#    tsneDir = os.path.join(runDir,
-#                           "tsne.dir")
-
-    umapDir = os.path.join(runDir,
+    umapDir = os.path.join(compDir,
                            "umap.dir")
 
-    rdimsVisDir = os.path.join(runDir,
+    rdimsVisClusterDir = os.path.join(clusterDir,
+                               "rdims.visualisation.dir")
+    rdimsVisFactorDir = os.path.join(compDir,
+                               "rdims.visualisation.dir")
+
+    rdimsVisSingleRDir = os.path.join(compDir, "singleR.dir",
                                "rdims.visualisation.dir")
 
     rdimsVisMethod = RDIMS_VIS_METHOD
 
-    velocityDir = os.path.join(runDir,
+    velocityDir = os.path.join(clusterDir,
                                "velocity.dir")
-
-    pagaDir = os.path.join(runDir,
+    pagaDir = os.path.join(clusterDir,
                                "paga.dir")
-
-    phateDir = os.path.join(runDir,
+    phateDir = os.path.join(compDir,
                             "phate.dir")
+    sampleDir = spec.sample_dir
 
-    # runDir is the directory containing the begin.rds object.
-    sampleDir = Path(outdir).parents[1]
+    clusterDirBaseName = os.path.basename(clusterDir)
 
-    runDirBaseName = os.path.basename(runDir)
+    nPCs = spec.components
+    resolution = spec.resolution
+    deTest = PARAMS["findmarkers_test"]
+    algorithm = PARAMS["cluster_algorithm"]
 
-    nPCs, resolution, algorithm, deTest = runDirBaseName.split("_")
 
-    runName = runDirBaseName.replace("_", "\\_")
+    runName = nPCs + "\\_" + resolution #clusterDirBaseName.replace("_", "\\_")
 
     runDetails = ("no. components: " + str(nPCs) +
                   ", cluster resolution: " + str(resolution) +
@@ -3085,7 +2999,8 @@ def latexVars(infile, outfile):
     reductionType = PARAMS["dimreduction_method"]
 
     sample = Path(outfile).parts[0].split(".")[0]
-    jobName = sample + "_" + runName.replace(".cluster.dir", "")
+
+    jobName = runName  #sample + "_" + runName.replace(".cluster.dir", "")
 
     sample = sample.replace("_", "\\_")
 
@@ -3113,7 +3028,8 @@ def latexVars(infile, outfile):
     vars = {"sample": "%(sample)s" % locals(),
             "projectName": "%(projectname)s" % PARAMS,
             "reportAuthor": "%(author)s" % PARAMS,
-            "runDir": "%(runDir)s" % locals(),
+#            "runDir": "%(runDir)s" % locals(),
+            "compDir": "%(compDir)s" % locals(),
             "sampleDir": "%(sampleDir)s" % locals(),
             "clusterDir": "%(clusterDir)s" % locals(),
             "singleRDir": "%(singleRDir)s" % locals(),
@@ -3130,7 +3046,9 @@ def latexVars(infile, outfile):
             "diffmapDir": "%(diffmapDir)s" % locals(),
             "groupNumbersDir": "%(groupNumbersDir)s" % locals(),
             "umapDir": "%(umapDir)s" % locals(),
-            "rdimsVisDir": "%(rdimsVisDir)s" % locals(),
+            "rdimsVisClusterDir": "%(rdimsVisClusterDir)s" % locals(),
+            "rdimsVisFactorDir": "%(rdimsVisFactorDir)s" % locals(),
+            "rdimsVisSingleRDir": "%(rdimsVisSingleRDir)s" % locals(),
             "rdimsVisMethod": "%(rdimsVisMethod)s" % locals() ,
             "velocityDir": "%(velocityDir)s" % locals(),
             "pagaDir": "%(pagaDir)s" % locals(),
@@ -3380,9 +3298,11 @@ def export(infile, outfile):
     '''
 
 
+    spec, SPEC = TASK.get_vars(infile, infile, PARAMS)
+
     sample = Path(infile).parts[0].split(".")[0]
 
-    cluster_run = Path(infile).parts[1]
+    cluster_run = spec.components + "_" + spec.resolution
 
     out_dir = os.path.join("reports.dir",
                            ".".join([sample, cluster_run]))
@@ -3468,7 +3388,7 @@ def cellbrowser(infile, outfile):
 
         # set the job threads and memory
         locals().update(
-            resources.get(memory=PARAMS["resources_memory_standard"]))
+            TASK.get_resources(memory=PARAMS["resources_memory_standard"]))
 
 
         statement = '''Rscript %(tenx_dir)s/R/cellbrowser_prep.R
@@ -3570,7 +3490,7 @@ def aggregateUMIsPseudobulks(infile, outfile):
     log_file = os.path.join(outdir, 'aggregated_clusters.log')
 
     locals().update(
-        resources.get(memory=PARAMS["resources_memory_low"]))
+        TASK.get_resources(memory=PARAMS["resources_memory_low"]))
 
     statement = '''Rscript %(tenx_dir)s/R/aggregate_umis_pseudobulks.R
                            --tenxdir=%(tenxdir)s

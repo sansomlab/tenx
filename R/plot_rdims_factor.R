@@ -110,6 +110,7 @@ if(opt$metadata!="none")
     meta_data <- read.table(opt$metadata, sep="\t", header=TRUE)
     rownames(meta_data) <- meta_data$barcode
     meta_data$barcode <- NULL
+    meta_cols <- colnames(meta_data)
 
     if(length(intersect(rownames(plot_data), rownames(meta_data))) < length(rownames(meta_data)))
     {
@@ -117,7 +118,9 @@ if(opt$metadata!="none")
     } else {
 
         meta_data <- meta_data[rownames(plot_data),]
+        plot_cols <- colnames(plot_data)
         plot_data <- cbind(plot_data, meta_data)
+        colnames(plot_data) <- c(plot_cols, meta_cols)
     }
 }
 

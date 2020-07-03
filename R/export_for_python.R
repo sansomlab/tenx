@@ -46,6 +46,14 @@ exportEmbedding <- function(seurat_object, embedding="PCA", outdir=NULL) {
                 quote=FALSE, sep="\t", row.names = FALSE, col.names = TRUE)
     }
 
+exportMetaData <- function(seurat_object, outdir=NULL) {
+    x <- seurat_object[[]]
+    x$barcode <- Cells(seurat_object)
+    write.table(x, gzfile(file.path(outdir, "metadata.tsv.gz")),
+                quote=FALSE, sep="\t", row.names = FALSE, col.names = TRUE)
+    }
+
+
 # Read RDS seurat object
 message("readRDS")
 s <- readRDS(opt$seuratobject)
@@ -59,6 +67,11 @@ writeLines(rownames(s), gzfile(file.path(opt$outdir,"features.txt.gz")))
 # Write out embeddings (such as e.g. PCA)
 message("Writing matrix of reduced dimensions")
 exportEmbedding(s, opt$reductiontype, outdir=opt$outdir)
+
+# Write out the metadata
+message("Writing out the metadata")
+exportMetaData(s, outdir=opt$outdir)
+
 
 # Write out significant components
 if (opt$usesigcomponents == TRUE) {

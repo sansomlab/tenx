@@ -39,8 +39,10 @@ parser.add_argument("--barcode_file", default="barcodes.tsv.gz", type=str,
                     help="File with the cell barcodes")
 parser.add_argument("--outdir",default=1, type=str,
                     help="path to output directory")
+parser.add_argument("--resolution",default=1, type=str,
+                    help="comma separated list of cluster resolutions")
 parser.add_argument("--cluster_assignments", default=1, type=str,
-                    help="gzipped tsv file with cell cluster assignments")
+                    help="comma separated list of gzipped tsv files with cell cluster assignments")
 parser.add_argument("--cluster_colors", default=1, type=str,
                     help="tsv file with the color palette for the clusters")
 parser.add_argument("--k", default=5, type=int,
@@ -56,11 +58,6 @@ args = parser.parse_args()
 # ########################################################################### #
 
 
-# Get the color palette
-ggplot_palette = [x for x in pd.read_csv(args.cluster_colors,
-                      header=None, sep="\t")[0].values]
-
-ggplot_cmap = ListedColormap(sns.color_palette(ggplot_palette).as_hex())
 
 
 # ########################################################################### #
@@ -78,17 +75,34 @@ if args.assay == "scaled.data":
     # we need to transpose the data for PHATE
     data = data.transpose()
 
-# Read and add cluster ids
-clusters = pd.read_csv(args.cluster_assignments,sep="\t")
 
 phate_operator = phate.PHATE(n_jobs=-2, knn=args.k)
 x2 = phate_operator.fit_transform(data)
 
-# save a 2D plot
-scprep.plot.scatter2d(x2, c=clusters["cluster_id"],
+# Read and add cluster ids
+cluster_files = [x.strip() for x in args.cluster_assignments.split(",")]
+resolutions = [x.strip() for x in args.resolution.split(",")]
+color_files =  [x.strip() for x in args.cluster_colors.split(",")]
+
+clusterings = dict(zip(resolutions, cluster_files))
+colorings = dict(zip(resolutions, color_files))
+
+for resolution, cluster_file in clusterings.items():
+
+    clusters = pd.read_csv(cluster_file,sep="\t")
+
+    # Get the color palette
+    ggplot_palette = [x for x in pd.read_csv(colorings[resolution],
+                      header=None, sep="\t")[0].values]
+
+    ggplot_cmap = ListedColormap(sns.color_palette(ggplot_palette).as_hex())
+
+
+    # save a 2D plot
+    scprep.plot.scatter2d(x2, c=clusters["cluster_id"],
                       figsize=(12,8), cmap=ggplot_cmap,
                       ticks=False, label_prefix="PHATE", s=15,
-                      filename=os.path.join(args.outdir,"phate.2D.png"),
+                      filename=os.path.join(args.outdir,"phate." + resolution + ".2D.png"),
                       dpi=300)
 
 # save the 2D coordinates
@@ -103,11 +117,25 @@ rdims_phate.to_csv(os.path.join(args.outdir,"phate.tsv.gz"),
 # save a 3D plot
 phate_operator.set_params(n_components=3)
 x3 = phate_operator.transform()
-scprep.plot.scatter3d(x3, c=clusters["cluster_id"],
-                      figsize=(8,6), cmap=ggplot_cmap,
-                      ticks=False, label_prefix="PHATE",
-                      filename=os.path.join(args.outdir,"phate.3D.png"),
-                      dpi=300)
+
+
+for resolution, cluster_file in clusterings.items():
+
+    clusters = pd.read_csv(cluster_file,sep="\t")
+
+    # Get the color palette
+    ggplot_palette = [x for x in pd.read_csv(colorings[resolution],
+                      header=None, sep="\t")[0].values]
+
+    ggplot_cmap = ListedColormap(sns.color_palette(ggplot_palette).as_hex())
+
+
+    scprep.plot.scatter3d(x3, c=clusters["cluster_id"],
+                          figsize=(8,6), cmap=ggplot_cmap,
+                          ticks=False, label_prefix="PHATE",
+                          filename=os.path.join(args.outdir,"phate." + resolution + ".3D.png"),
+                          dpi=300)
+
 
 # save the 3D coordinates
 rdims_phate = pd.DataFrame(x3,
@@ -120,10 +148,22 @@ rdims_phate.to_csv(os.path.join(args.outdir,"phate_3D.tsv.gz"),
 
 # save a GIF!
 if args.gif.lower() == "yes":
-    scprep.plot.rotate_scatter3d(x3, c=clusters["cluster_id"],
+
+    for resolution, cluster_file in clusterings.items():
+
+        clusters = pd.read_csv(cluster_file,sep="\t")
+
+        # Get the color palette
+        ggplot_palette = [x for x in pd.read_csv(colorings[resolution],
+                      header=None, sep="\t")[0].values]
+
+        ggplot_cmap = ListedColormap(sns.color_palette(ggplot_palette).as_hex())
+
+
+        scprep.plot.rotate_scatter3d(x3, c=clusters["cluster_id"],
                                  figsize=(8,6), cmap=ggplot_cmap,
                                  ticks=False, label_prefix="PHATE",
-                                 filename=os.path.join(args.outdir,"phate.3D.gif"),
+                                 filename=os.path.join(args.outdir,"phate." + resolution + ".3D.gif"),
                                  dpi=300)
 
 
