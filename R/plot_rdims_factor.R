@@ -125,11 +125,23 @@ if(opt$metadata!="none")
 }
 
 if ("cluster" %in% colnames(plot_data)){
-  plot_data$cluster <- factor(plot_data$cluster, levels=sort(as.numeric(unique(plot_data$cluster))))
+    cluster_col = "cluster"
+} else if ("cluster_id" %in% colnames(plot_data))
+{
+    cluster_col = "cluster_id"
+} else
+{
+    cluster_col = NULL
 }
 
 
+if(!is.null(cluster_col))
+{
+  plot_data[[cluster_col]] <- factor(plot_data[[cluster_col]], levels=sort(as.numeric(unique(plot_data[[cluster_col]]))))
+}
+
 color_vars <- strsplit(opt$colorfactors,",")[[1]]
+print(color_vars)
 tex = ""
 
 print("Making tSNE plots colored by each of the factor variables")
@@ -139,9 +151,9 @@ for(color_var in color_vars)
     print(paste("Making",color_var,"tSNE plot"))
 
 
-    if(color_var=="cluster")
+    if(color_var==cluster_col)
     {
-        clust_levels = unique(plot_data$cluster)
+        clust_levels = unique(plot_data[[cluster_col]])
 
         print(head(plot_data))
         message("computing cluster centers")
@@ -152,8 +164,8 @@ for(color_var in color_vars)
         print(head(centers))
         for(clust in clust_levels)
         {
-            centers[clust,"x"] = median(plot_data[plot_data$cluster==clust,opt$rdim1])
-            centers[clust,"y"] = median(plot_data[plot_data$cluster==clust,opt$rdim2])
+            centers[clust,"x"] = median(plot_data[plot_data[[cluster_col]]==clust,opt$rdim1])
+            centers[clust,"y"] = median(plot_data[plot_data[[cluster_col]]==clust,opt$rdim2])
         }
         message("computed cluster centers")
         print(head(centers))
@@ -167,7 +179,7 @@ for(color_var in color_vars)
     if(is.numeric(plot_data[[color_var]]))
     {
         if((all(plot_data[[color_var]] == round(plot_data[[color_var]]))
-           & length(unique(plot_data[[color_var]])) < 50) || color_var == "cluster")
+           & length(unique(plot_data[[color_var]])) < 50) || color_var == cluster_col)
         {
             plot_data[[color_var]] <- as.character(plot_data[[color_var]])
         }
@@ -199,7 +211,7 @@ for(color_var in color_vars)
     }
 
 
-    if(color_var == "cluster")
+    if(color_var == cluster_col)
     {
         gp <- gp + geom_text(data=centers, aes(x, y, label=cluster), color="black")
     }

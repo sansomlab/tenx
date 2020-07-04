@@ -926,6 +926,93 @@ def exportForPython(infile, outfile):
     IOTools.touch_file(outfile)
 
 
+
+def genScanpyClusterJobs():
+
+    components_str = str(PARAMS["runspecs_n_components"])
+    components = components_str.strip().replace(" ", "").split(",")
+    samples = glob.glob("*.seurat.dir")
+
+    resolutions = [ x.strip() for x in
+                    PARAMS["runspecs_cluster_resolutions"].split(",") ]
+
+    outname = "cluster.sentinel"
+
+    for sample in samples:
+
+        infile = os.path.join(sample, "begin.rds")
+
+        for comps in components:
+
+            outdir = "components." + comps + ".dir"
+
+            if PARAMS["runspecs_predefined_clusters"] :
+
+
+                subdir = "cluster.predefined.dir"
+                outfile = os.path.join(sample, outdir, subdir, outname)
+                yield [infile, outfile]
+
+
+            for resolution in resolutions:
+
+                subdir = "cluster." + resolution + ".dir"
+                outfile = os.path.join(sample, outdir, subdir, outname)
+                yield [infile, outfile]
+
+
+#@active_if(PARAMS["run_paga"])
+@files(genScanpyClusterJobs)
+def scanpyCluster(infile, outfile):
+    '''
+       discover clusters using scanpy.
+    '''
+
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
+    # cluster_assignments = os.path.join(Path(spec.outdir).parents[0],
+    #                                        "cluster_assignments.txt.gz")
+
+    # cluster_colors = os.path.join(Path(spec.outdir).parents[0],
+    #                               "cluster_colors.txt")
+
+    reductiontype = PARAMS["dimreduction_method"]
+    reduced_dims_matrix_file = os.path.join(spec.sample_dir,
+                                            "embedding." + reductiontype + ".tsv.gz")
+
+    barcode_file = os.path.join(spec.sample_dir,
+                                "barcodes.txt.gz")
+
+    if spec.components == "sig":
+        sigcomps = os.path.join(spec.sample_dir, "sig_comps.txt")
+        comps = pd.read_table(sigcomps, header=None)
+        comps = comps[comps.columns[0]].tolist()
+        comps = ','.join([ str(item) for item in comps])
+    else :
+        comps = list(range (1, int(spec.components)+1))
+        comps = ','.join([ str(item) for item in comps])
+
+    k = PARAMS["paga_k"]
+
+    # set the job threads and memory
+
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
+
+    statement = '''python %(tenx_dir)s/python/run_cluster.py
+                   --reduced_dims_matrix_file=%(reduced_dims_matrix_file)s
+                   --barcode_file=%(barcode_file)s
+                   --outdir=%(outdir)s
+                   --comps=%(comps)s
+                   --k=%(k)s
+                   &> %(log_file)s
+                ''' % dict(PARAMS, **SPEC, **locals())
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+
+
 @active_if(PARAMS["run_paga"])
 @follows(exportForPython)
 @transform(cluster,
@@ -1405,7 +1492,7 @@ def plotRdimsFactors(infiles, outfile):
 @follows(RDIMS_VIS_TASK)
 @transform(cluster,
            regex(r"(.*)/(.*).dir/(.*).dir/(.*).sentinel"),
-           r"\1/\2.dir/\3.dir/rdims.visualisation.dir/plot.rdims.factor.sentinel")
+           r"\1/\2.dir/\3.dir/rdims.visualisation.dir/plot.rdims.cluster.sentinel")
 def plotRdimsClusters(infile, outfile):
     '''
     Visualise the clusters on the chosen projection
@@ -2103,16 +2190,15 @@ def plotMarkerNumbers(infile, outfile):
     IOTools.touch_file(outfile)
 
 
+
 @active_if(PARAMS["run_exprsreport"])
-@follows(summariseMarkers, RDIMS_VIS_TASK)
+@follows(summariseMarkers)
 @transform(cluster,
            regex(r"(.*)/cluster.sentinel"),
-           r"\1/cluster.marker.rdims.plots.dir/plot.rdims.markers.sentinel")
-def plotRdimsMarkers(infile, outfile):
+           r"\1/cluster.marker.rdims.plots.dir/top.cluster.markers.sentinel")
+def topClusterMarkers(infile, outfile):
     '''
-    Visualise expression of discovered markers on rdims plots.
-
-    An effort is made to prioritise the strongest cluster markers
+    Identify the strongest cluster markers
     based on significance, expression frequency, expression level
     and fold change.
     '''
@@ -2122,7 +2208,6 @@ def plotRdimsMarkers(infile, outfile):
     marker_summary_file = os.path.join(spec.cluster_dir,
                                        "cluster.markers.dir",
                                        "markers.summary.table.txt.gz")
-
 
     data = pd.read_csv(marker_summary_file, sep="\t")
 
@@ -2149,8 +2234,10 @@ def plotRdimsMarkers(infile, outfile):
         data["score"] = np.squeeze(np.asarray(gmean(temp)))
 
         # keep only the best record for each gene
-        data = data.sort_values(["score"], ascending=False)
-        data = data.drop_duplicates(subset="gene_id", keep="first")
+        # July 2020 - keep all so that we can see the combinations
+        #             of markers for each cluster.
+        # data = data.sort_values(["score"], ascending=False)
+        # data = data.drop_duplicates(subset="gene_id", keep="first")
 
         # re-sort by cluster and then score
         data = data.sort_values(["cluster", "score"], ascending=[True, False])
@@ -2181,7 +2268,7 @@ def plotRdimsMarkers(infile, outfile):
                          d["cluster"].astype(str) + ")"
         return d
 
-    def _report(d, name="none"):
+    def _write_tables(d, name="none"):
 
         # write the markers out to a table
         file_name = ".".join(["top", name, "cluster.markers.txt"])
@@ -2190,46 +2277,23 @@ def plotRdimsMarkers(infile, outfile):
 
         log_name = ".".join(["plot.rdims.top", name, "cluster.markers.log"])
         SPEC["log_file"] = os.path.join(spec.outdir, log_name)
-        rdims_vis_method = RDIMS_VIS_METHOD
-        rdim1 = RDIMS_VIS_COMP_1
-        rdim2 = RDIMS_VIS_COMP_2
-
-        # if rdims_vis_method == "tsne":
-        #     rdims_table = infile.replace(
-        #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".txt")
-        # elif rdims_vis_method == "umap":
-
-        rdims_table = os.path.join(spec.component_dir,
-                                   "umap.dir",
-                                   "umap.txt.gz")
 
         if(d.shape[0] > 0):
 
-            if PARAMS["plot_shape"] != "":
-                shape = "--shapefactor=%(plot_shape)s" % PARAMS
-            else:
-                shape = ""
+            assay_file = markers_file.replace(".txt",".rds")
 
-            statement = '''Rscript %(tenx_dir)s/R/plot_rdims_gene.R
-                           --method=%(rdims_vis_method)s
-                           --table=%(rdims_table)s
+            job_threads, job_memory, r_memory = TASK.get_resources(
+                memory=PARAMS["resources_memory_standard"])
+
+
+            statement = '''Rscript %(tenx_dir)s/R/seurat_get_assay_data.R
                            --seuratobject=%(seurat_object)s
                            --seuratassay=RNA
-                           --rdim1=%(rdim1)s
-                           --rdim2=%(rdim2)s
-                           %(shape)s
-                           --genetable=%(markers_file)s
-                           --pointsize=%(plot_pointsize)s
-                           --pointalpha=%(plot_pointalpha)s
-                           --pointpch=%(plot_pointpch)s
-                           --maxcells=%(plot_maxcells)s
-                           --outdir=%(outdir)s
-                           --workers=%(exprsreport_workers)s
-                           --plotdirvar=clusterMarkerRdimsPlotsDir
-                           --pdf=%(plot_pdf)s
+                           --slot=data
+                           --features=%(markers_file)s
+                           --outfile=%(assay_file)s
                            &> %(log_file)s
                        ''' % dict(PARAMS, **SPEC, **locals())
-
             return statement
 
         else:
@@ -2248,11 +2312,10 @@ def plotRdimsMarkers(infile, outfile):
                                     PARAMS["exprsreport_n_positive"])
     positive_markers["type"] = "+ve"
     positive_markers = _addGeneName(positive_markers)
-    stat = _report(positive_markers, "positive")
+    stat = _write_tables(positive_markers, "positive")
 
     if stat:
         statements = [stat]
-
 
     negative_markers = data[data["avg_logFC"] < 0]
     negative_markers = _filterAndScore(negative_markers)
@@ -2260,7 +2323,7 @@ def plotRdimsMarkers(infile, outfile):
                                     PARAMS["exprsreport_n_negative"])
     negative_markers["type"] = "-ve"
     negative_markers = _addGeneName(negative_markers)
-    stat = _report(negative_markers, "negative")
+    stat = _write_tables(negative_markers, "negative")
 
     if stat:
         statements.append(stat)
@@ -2272,6 +2335,137 @@ def plotRdimsMarkers(infile, outfile):
     P.run(statements)
 
     IOTools.touch_file(outfile)
+
+
+
+@active_if(PARAMS["run_exprsreport"])
+@follows(summariseMarkers, RDIMS_VIS_TASK)
+@transform(topClusterMarkers,
+           regex(r"(.*)/top.cluster.markers.sentinel"),
+           r"\1/plot.rdims.markers.sentinel")
+def plotRdimsMarkers(infile, outfile):
+    '''
+    Visualise expression of discovered markers on rdims plots.
+    '''
+
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
+    def _plot(marker_table, assay_data, name):
+
+        rdims_vis_method = RDIMS_VIS_METHOD
+        rdim1 = RDIMS_VIS_COMP_1
+        rdim2 = RDIMS_VIS_COMP_2
+        rdims_table = os.path.join(spec.component_dir,
+                                   "umap.dir",
+                                   "umap.txt.gz")
+
+        if PARAMS["plot_shape"] != "":
+            shape = "--shapefactor=%(plot_shape)s" % PARAMS
+        else:
+            shape = ""
+
+        statements = []
+        markers = pd.read_csv(marker_table, sep="\t")
+
+        name = "plot.rdims.genes.top." + name
+
+        for cluster in markers.cluster.unique():
+
+            clog_file = spec.log_file.replace(".log",
+                                              "." + name + "." + str(cluster) + ".log")
+
+            statement = '''Rscript %(tenx_dir)s/R/plot_rdims_cluster_genes.R
+                           --method=%(rdims_vis_method)s
+                           --table=%(rdims_table)s
+                           --assaydata=%(assay_data)s
+                           --rdim1=%(rdim1)s
+                           --rdim2=%(rdim2)s
+                           %(shape)s
+                           --name=%(name)s
+                           --genetable=%(marker_table)s
+                           --cluster=%(cluster)s
+                           --pointsize=%(plot_pointsize)s
+                           --pointalpha=%(plot_pointalpha)s
+                           --pointpch=%(plot_pointpch)s
+                           --maxcells=%(plot_maxcells)s
+                           --outdir=%(outdir)s
+                           --pdf=%(plot_pdf)s
+                           &> %(clog_file)s
+                       ''' % dict(PARAMS, **SPEC, **locals())
+
+            statements.append(statement)
+
+        return statements
+
+    def _tex(marker_table, tex_file, name="markers_genes"):
+
+        markers = pd.read_csv(marker_table, sep="\t")
+
+        with open(tex_file,"w") as tex:
+
+            for cluster in [x for x in markers.cluster.unique()]:
+
+                npages = math.ceil(markers[
+                    markers["cluster"]==cluster].shape[0] / 9)
+
+                for page in list(range(1,int(npages)+1)):
+
+                    print("writing  page")
+                    page_title = "Cluster " + str(cluster)
+                    page_title += ": " + name + " marker genes"
+
+                    if page > 1:
+                        page_title += " (continued)"
+
+                    tex.write(templates.subsection % {"title": page_title})
+                    tex.write("\n")
+
+                    plot_name = "plot.rdims.genes.top." + name + ".cluster." +\
+                                str(cluster) + ".page." + str(page)
+#                    plot_name += "." + str(cluster)
+                    plot_path = os.path.join(os.path.dirname(marker_table),
+                                             plot_name)
+
+                    heatmap_fig = {"width": "1", "height": "0.9",
+                                   "path": plot_path,
+                                   "caption": page_title
+                                   }
+                    tex.write(textwrap.dedent(
+                        templates.figure % heatmap_fig))
+                    tex.write("\n")
+
+
+    positive_markers = os.path.join(spec.outdir,
+                                    "top.positive.cluster.markers.txt")
+    positive_data = positive_markers.replace(".txt", ".rds")
+    pstats = _plot(positive_markers, positive_data, "positive")
+
+
+    negative_markers = os.path.join(spec.outdir,
+                                    "top.negative.cluster.markers.txt")
+    negative_data = negative_markers.replace(".txt", ".rds")
+    nstats = _plot(negative_markers, negative_data, "negative")
+
+
+    # set the job threads and memory
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_low"])
+
+    P.run( pstats + nstats )
+
+    # write out the latex snippets
+    positive_tex = os.path.join(spec.outdir,
+                                "top.positive.cluster.markers.tex")
+    _tex(positive_markers, positive_tex, "positive")
+
+    negative_tex = os.path.join(spec.outdir,
+                                "top.negative.cluster.markers.tex")
+    _tex(negative_markers, negative_tex, "negative")
+
+
+
+    IOTools.touch_file(outfile)
+
 
 
 # ########################################################################### #
@@ -2472,7 +2666,7 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
         cluster_tex_file = ".".join(["characterise.degenes", str(i),
                                      "between.tex"])
 
-        tex.append("\\input{\\conditionMarkerDEPlotsDir/" + cluster_tex_file + "}")
+        tex.append("\\input{\\conditionMarkerDEPlotDir/" + cluster_tex_file + "}")
         statements.append(statement)
 
     P.run(statements)
@@ -2915,7 +3109,7 @@ def plots():
          plots,
          summariseGenesetAnalysis)
 @transform(plotRdimsClusters,
-           regex("(.*)/rdims.visualisation.dir/plot.rdims.factor.sentinel"),
+           regex("(.*)/rdims.visualisation.dir/plot.rdims.cluster.sentinel"),
            r"\1/latex.dir/report.vars.sty")
 def latexVars(infile, outfile):
     '''

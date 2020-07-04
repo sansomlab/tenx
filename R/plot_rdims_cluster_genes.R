@@ -22,7 +22,6 @@ stopifnot(
   require(optparse),
   require(ggplot2),
   require(reshape2),
-  require(Seurat),
   require(tenxutils),
   require(BiocParallel),
   require(Matrix)
@@ -59,22 +58,22 @@ option_list <- list(
       c("--genetable"),
       default="none",
       help="A tab-delimited text file containing gene_id (or gene if s@misc$gene_id is not set) and gene_name"
+    ),
+    make_option(
+      c("--cluster"),
+      default="none",
+      help="the cluster for which to make the plots"
       ),
     make_option(
-      c("--seuratobject"),
+      c("--name"),
+      default="none",
+      help="the name of the set of genes"
+      ),
+    make_option(
+      c("--assaydata"),
       default="none",
       help="The seurat object (e.g. begin.rds)"
     ),
-    make_option(
-      c("--seuratassay"),
-      default="RNA",
-      help="The seurat assay to pull the expression data from"
-    ),
-    make_option(
-      c("--plotdirvar"),
-      default="clusterMarkerTSNEPlotsDir",
-      help="The name of the latex var specifying the location of the plots"
-      ),
     make_option(
       c("--pointsize"),
       default=0.5,
@@ -102,11 +101,6 @@ option_list <- list(
         type="integer",
         help="max cells to plot, if there are more they will be randomly downsampled"),
     make_option(
-        c("--workers"),
-        default=10,
-        type="integer",
-        help="number of worker threads"),
-    make_option(
       c("--outdir"),
       default="seurat.out.dir",
       help="outdir")
@@ -118,36 +112,14 @@ cat("Running with options:\n")
 print(opt)
 
 
-## read in the raw count matrix
-s <- readRDS(opt$seuratobject)
-
-## set the default assay
-message("Setting default assay to: ", opt$seuratassay)
-DefaultAssay(s) <- opt$seuratassay
-
-message("plot_rdims_gene.R running with default assay: ", DefaultAssay(s))
-
-
-data <- GetAssayData(object = s, slot = "data")
-
-
-if("gene_id" %in% colnames(s@misc))
-{
-    ## relabel data with ensembl ids
-    rownames(data) <- s@misc[rownames(data),"gene_id"]
-    id_col = "gene_id"
-} else {
-    ## if "gene_id" not avaliable fall back to "gene"
-    id_col = "gene"
-}
-
-# remove the Seurat object
-rm(s)
-
+## read in the assay data
+#data <- read.table(opt$assaydata, sep="\t", header=T, as.is=T, check.names=F)
+message("reading in assay data")
+data <- readRDS(opt$assaydata)
 ##
+message("reading in the coordinates")
 plot_data <- read.table(opt$table,sep="\t",header=TRUE)
 
-print(head(plot_data))
 rownames(plot_data) <- plot_data$barcode
 
 if(nrow(plot_data) > opt$maxcells)
@@ -157,30 +129,20 @@ if(nrow(plot_data) > opt$maxcells)
     plot_data <- plot_data[sample(rownames(plot_data), opt$maxcells, replace=FALSE),]
 }
 
+message("reading in the features")
 ## read in the table containing the genes to visualise
 genes <- read.table(opt$genetable, header=TRUE, sep="\t",as.is=TRUE)
-if("common_name" %in% colnames(genes))
-{
-    plot_names <- make.unique(paste(genes$common_name," (",genes$gene_name,")",sep=""))
-} else {
-    plot_names <- make.unique(genes$gene_name)
-    }
-genes$plot_name <- plot_names
+rownames(genes) <- genes$gene
 
-rownames(genes) <- genes[[id_col]]
+genes <- genes[genes$cluster==opt$cluster,]
 
-## get the geneset name
-geneset <- gsub(".txt", "", basename(opt$genetable))
-geneset <- gsub(".csv", "", geneset)
+good_ids <- genes$gene[genes$gene %in% rownames(data)]
 
-## initialise the tex snippet
-tex = "" # getSubsectionTex(geneset)
 
-good_ids <- genes[[id_col]][genes[[id_col]] %in% rownames(data)]
-
+#print(head(data))
+data <- as.matrix(data)
 xx<-which(data>0)
 upper_limit = quantile(data[xx], 0.95)
-
 
 ## subset the gene expression matrix
 exprs <- as.matrix(data[good_ids, plot_data$barcode, drop=F])
@@ -188,17 +150,6 @@ print(dim(exprs))
 
 rm(data)
 
-rownames(exprs) <-genes$plot_name[match(rownames(exprs),genes[[id_col]])]
-
-## get the 95th quantile of log10 n+1 counts > 0
-## upper_limit = quantile(log10(data[data>0]+1),0.95)
-
-# upper_limit = quantile(data[data>0],0.95)
-# logical crashes transforming sparse matrix into dense. Use indexes, load Matrix.
-
-
-## log transform
-## exprs <- log10(exprs+1)
 exprs[exprs > upper_limit] <- upper_limit
 
 plot_genes <- rownames(exprs)
@@ -251,11 +202,13 @@ draw_page <- function(page,
     nplotrows = ceiling(nplots/3)
     genes_of_interest <- plot_genes[start:end]
 
+
     message("add gene information")
     # add the gene expression information
     plot_data <- merge(plot_data, t(exprs[genes_of_interest,]), by=0)
     rownames(plot_data) <- plot_data$Row.names
     plot_data$Row.names <- NULL
+
 
     message("melt the data")
     # melt the data for plotting by gene
@@ -296,7 +249,6 @@ draw_page <- function(page,
         gp <- gp + geom_point(size=pointsize, alpha=pointalpha)
     }
 
-    # gp <- gp + geom_point(size=pointsize, pch=pointpch, alpha=pointalpha)
     gp <- gp + theme(panel.background = element_rect(fill = 'lightgrey'))
 
     if(nplotrows==1) { h=3.5 }
@@ -304,7 +256,8 @@ draw_page <- function(page,
     if(nplotrows==3) { h=10 }
 
     pagename <- paste("genes",page,sep="_")
-    plotfilename <- paste("plot.rdims.genes", geneset, page, sep=".")
+    plotfilename <- paste(opt$name, "cluster", opt$cluster,
+                          "page", page, sep=".")
 
     message("save the plot")
     save_ggplots(file.path(outdir, plotfilename),
@@ -320,22 +273,7 @@ draw_page <- function(page,
 xpages <- seqWrapper(1,npages)
 print(xpages)
 
-multicoreParam <- MulticoreParam(workers = opt$workers)
-
 message("drawing the pages")
-## res <- bplapply(xpages, FUN=draw_page,
-##         shapefactor=opt$shapefactor,
-##         ngenes=ngenes,
-##         plot_genes=plot_genes,
-##         exprs=exprs,
-##         pointpch=opt$pointpch,
-##         pointsize=opt$pointsize,
-##         pointalpha=opt$pointalpha,
-##         rdim1=opt$rdim1,
-##         rdim2=opt$rdim2,
-##         outdir=opt$outdir,
-##         to_pdf=opt$pdf,
-##         BPPARAM=multicoreParam)
 
 for(page in xpages)
 {
@@ -353,24 +291,5 @@ for(page in xpages)
               to_pdf=opt$pdf)
 }
 
-
-
-print(res)
-
-## sort out the latex
-for(page in xpages)
-{
-    plotfilename <- paste("plot.rdims.genes", geneset, page, sep=".")
-    texCaption <- paste(geneset," genes (",page," of ",npages,")",sep="")
-    tex <- c(tex, getFigureTex(plotfilename, texCaption,
-                               plot_dir_var=opt$plotdirvar))
-}
-
 message("Completed plotting.")
-
-tex_file <- file.path(opt$outdir, paste("plot.rdims.genes", geneset, "tex", sep="."))
-
-writeTex(tex_file, tex)
-
-
 message("completed")

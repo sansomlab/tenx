@@ -88,12 +88,12 @@ reduced_dims_mat = reduced_dims_mat[select_comps]
 
 L.info("Using comps " + ', '.join(list(reduced_dims_mat.columns)))
 
-adata.obsm['X_pca'] = reduced_dims_mat.to_numpy(dtype="float32")
+adata.obsm['X_rdim'] = reduced_dims_mat.to_numpy(dtype="float32")
 
 # Run neighbors
 L.info( "Using " + str(args.k) + " neighbors")
 
-sc.pp.neighbors(adata, n_neighbors = args.k, use_rep = 'X_pca')
+sc.pp.neighbors(adata, n_neighbors = args.k, use_rep = 'X_rdims')
 
 # compute clusters
 sc.tl.leiden(adata, resolution=float(args.resolution))

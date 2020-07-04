@@ -135,7 +135,7 @@ option_list <- list(
       help="outdir"),
     make_option(
       c("--savedata"),
-      default=FALSE,
+      default=TRUE,
       help="should the plot data be saved?")
     )
 
@@ -398,9 +398,11 @@ save_ggplots(file.path(opt$outdir, opt$title),
 
 ## optionally save the plot data
 if(opt$savedata)
-    {
-        write.table(plot_data, gzfile("plot.data.tsv.gz"),
-                    sep="\t", col.names=T, row.names=F, quote=F)
+{
+    data_file <- file.path(opt$outdir,
+                           paste(opt$title, "data.tsv.gz", sep="."))
+    write.table(plot_data, gzfile(data_file),
+                sep="\t", col.names=T, row.names=F, quote=F)
 }
 
 message("completed")
