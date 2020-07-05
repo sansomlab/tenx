@@ -75,7 +75,7 @@ if(is.null(opt$ensembl_host))
 }
 
 write.table(anno,
-            gzfile(file.path(opt$outdir,"ensembl.to.entrez.txt.gz")),
+            gzfile(file.path(opt$outdir,"ensembl.to.entrez.tsv.gz")),
             quote=FALSE,
             row.names=FALSE,sep="\t")
 

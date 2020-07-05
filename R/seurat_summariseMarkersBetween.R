@@ -91,7 +91,7 @@ for(cluster in clusters)
         opt$outdir,
         paste("markers.between",opt$testfactor,
               "cluster",cluster,
-              "txt","gz",
+              "tsv","gz",
               sep="."))
     message("res_fn:")
     print(res_fn)
@@ -132,12 +132,12 @@ res <- res[,c("cluster","gene","p.adj","p_val","avg_logFC",
 out_fn <- file.path(
     opt$outdir,
     paste("markers.between",opt$testfactor,
-          "summary.table.txt.gz",sep=".")
+          "summary.table.tsv.gz",sep=".")
 )
 
 ## write out the full table of differentially expressed genes.
-## in txt format
-message("Saving markers to txt file")
+## in.tsv format
+message("Saving markers to.tsv file")
 write.table(res, gzfile(out_fn), quote=F,
             row.names=F, col.names=T,
             sep="\t")
@@ -155,7 +155,7 @@ setColWidths(wb,"markers_between",cols=1:ncol(xres),widths=10)
 hs <- createStyle(textDecoration = "BOLD")
 writeData(wb, "markers_between", tidyNumbers(xres),
           withFilter = T, headerStyle=hs)
-saveWorkbook(wb, file=gsub(".txt.gz",".xlsx",out_fn),
+saveWorkbook(wb, file=gsub(".tsv.gz",".xlsx",out_fn),
              overwrite=T)
 
 

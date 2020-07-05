@@ -35,7 +35,7 @@ option_list <- list(
                 help="project name"),
     make_option(c("--reductiontype"), default="pca",
                 help="Name of dimensional reduction technique to use in construction of SNN graph. (e.g. 'pca', 'ica', 'zinbwave', etc)"),
-    make_option(c("--outfile"), default="tsne.txt",
+    make_option(c("--outfile"), default="tsne.tsv",
                 help="the file to which the tSNE coordinates will be written")
     )
 

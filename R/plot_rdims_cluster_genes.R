@@ -108,6 +108,8 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list=option_list))
 
+if(opt$pointpch != ".") { opt$pointpch <- as.numeric(opt$pointpch) }
+
 cat("Running with options:\n")
 print(opt)
 
@@ -116,7 +118,7 @@ print(opt)
 #data <- read.table(opt$assaydata, sep="\t", header=T, as.is=T, check.names=F)
 message("reading in assay data")
 data <- readRDS(opt$assaydata)
-##
+
 message("reading in the coordinates")
 plot_data <- read.table(opt$table,sep="\t",header=TRUE)
 

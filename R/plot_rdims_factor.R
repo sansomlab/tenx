@@ -96,6 +96,8 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list=option_list))
 
+if(opt$pointpch != ".") { opt$pointpch <- as.numeric(opt$pointpch) }
+
 cat("Running with options:\n")
 print(opt)
 
@@ -131,13 +133,14 @@ if ("cluster" %in% colnames(plot_data)){
     cluster_col = "cluster_id"
 } else
 {
-    cluster_col = NULL
+    cluster_col = "__none__"
 }
 
 
-if(!is.null(cluster_col))
+if(!cluster_col=="__none__")
 {
-  plot_data[[cluster_col]] <- factor(plot_data[[cluster_col]], levels=sort(as.numeric(unique(plot_data[[cluster_col]]))))
+    plot_data[[cluster_col]] <- factor(plot_data[[cluster_col]],
+                                       levels=sort(as.numeric(unique(plot_data[[cluster_col]]))))
 }
 
 color_vars <- strsplit(opt$colorfactors,",")[[1]]
@@ -148,29 +151,29 @@ print("Making tSNE plots colored by each of the factor variables")
 ## Make one whole-page tSNE plot per color variable
 for(color_var in color_vars)
 {
-    print(paste("Making",color_var,"tSNE plot"))
-
+    print(paste("Making",color_var,"rdims plot"))
 
     if(color_var==cluster_col)
     {
-        clust_levels = unique(plot_data[[cluster_col]])
+                clust_levels = unique(plot_data[[cluster_col]])
 
-        print(head(plot_data))
-        message("computing cluster centers")
-        centers = data.frame(row.names=clust_levels, "cluster"=clust_levels,
-                             "x"=1,
-                             "y"=1)
+                print(head(plot_data))
+                message("computing cluster centers")
+                centers = data.frame(row.names=clust_levels, "cluster"=clust_levels,
+                                     "x"=1,
+                                     "y"=1)
 
-        print(head(centers))
-        for(clust in clust_levels)
-        {
-            centers[clust,"x"] = median(plot_data[plot_data[[cluster_col]]==clust,opt$rdim1])
-            centers[clust,"y"] = median(plot_data[plot_data[[cluster_col]]==clust,opt$rdim2])
+                print(head(centers))
+                for(clust in clust_levels)
+                {
+                    centers[clust,"x"] = median(plot_data[plot_data[[cluster_col]]==clust,opt$rdim1])
+                    centers[clust,"y"] = median(plot_data[plot_data[[cluster_col]]==clust,opt$rdim2])
+                }
+                message("computed cluster centers")
+                print(head(centers))
+
+
         }
-        message("computed cluster centers")
-        print(head(centers))
-
-    }
 
 
     ## If a variable comprises only integers, coerce it to a character vector
@@ -236,9 +239,8 @@ for(color_var in color_vars)
 
 
 
-
     ## write out a separate legend if we have more than 20 levels.
-
+    gp <- gp + theme_minimal()
 
 
     plotfilename = paste(opt$method, color_var, sep=".")

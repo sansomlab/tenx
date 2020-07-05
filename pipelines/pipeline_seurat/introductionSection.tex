@@ -1,12 +1,23 @@
-The 10x data was analysed using the \href{http://satijalab.org/seurat/}{Seurat} package. The key parameter choices used for this analysis were:
+The core of the data analysis was performed using \href{http://satijalab.org/seurat/}{Seurat} and \href{https://scanpy.readthedocs.io/}{scanpy}:
+
+\begin{itemize}
+\item The construction of the nearest neighbor graph, clustering and UMAP computation were performed using scanpy.
+\item The differential expression analysis was performed using Seurat.
+\item The geneset analysis was performed using \href{https://github.com/sansomlab/gsfisher}{gsfisher}
+\item Please see \href{https://github.com/sansomlab/tenx}{https://github/sansomlab/tenx} for more details.
+\end{itemize}
+
+The key parameter choices used for this analysis were:
 
 \begin{itemize}
 \item The number of \reductionType{} components: \nPCs
+\item The number of nearest neighbors: \nnK
+\item The distance metric used for the nearest neighbor graph: \nnMetric
 \item The resolution of the clustering: \resolution
 \item The clustering algorithm: \clusteringAlgorithm
 \item The differential expression test: \deTest
 \end{itemize}
 
-(The clustering algorithms avaliable are: 1 = original Louvain; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm.)
+
 
 \input{\tenxDir/pipelines/pipeline_seurat/taskSummary.tex}

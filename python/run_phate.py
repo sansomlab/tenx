@@ -22,8 +22,12 @@ import phate
 # ###################### Set up the logging ################################# #
 # ########################################################################### #
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-L = logging.getLogger("run_paga")
+L = logging.getLogger(__name__)
+log_handler = logging.StreamHandler(sys.stdout)
+log_handler.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+log_handler.setLevel(logging.INFO)
+L.addHandler(log_handler)
+L.setLevel(logging.INFO)
 
 
 # ########################################################################### #

@@ -41,6 +41,8 @@ message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
 
 Idents(s) <- readRDS(opt$clusterids)
 
+print(Idents(s))
+
 ## Get the components
 if(opt$usesigcomponents)
 {

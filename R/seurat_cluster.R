@@ -123,12 +123,12 @@ if(is.null(opt$predefined))
 unique_cluster_ids <- sort(unique(cluster_ids))
 
 message(sprintf("saving a unique list ofe cluster ids"))
-write.table(unique_cluster_ids, file=file.path(opt$outdir,"cluster_ids.txt"),
+write.table(unique_cluster_ids, file=file.path(opt$outdir,"cluster_ids.tsv"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
 
 cluster_colors <- gg_color_hue(length(unique_cluster_ids))
 message(sprintf("saving the cluster colors (ggplot)"))
-write.table(cluster_colors, file=file.path(opt$outdir,"cluster_colors.txt"),
+write.table(cluster_colors, file=file.path(opt$outdir,"cluster_colors.tsv"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
 
 message(sprintf("saveRDS"))
@@ -138,7 +138,7 @@ cluster_assignments <- data.frame(barcode=as.character(names(cluster_ids)),
                                   cluster_id=as.character(cluster_ids))
 
 write.table(cluster_assignments,
-            gzfile(file.path(opt$outdir, "cluster_assignments.txt.gz")),
+            gzfile(file.path(opt$outdir, "cluster_assignments.tsv.gz")),
             sep="\t", col.names=T, row.names=F, quote=F)
 
 

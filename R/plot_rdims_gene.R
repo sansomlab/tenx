@@ -114,6 +114,8 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list=option_list))
 
+if(opt$pointpch != ".") { opt$pointpch <- as.numeric(opt$pointpch) }
+
 cat("Running with options:\n")
 print(opt)
 
@@ -170,7 +172,7 @@ genes$plot_name <- plot_names
 rownames(genes) <- genes[[id_col]]
 
 ## get the geneset name
-geneset <- gsub(".txt", "", basename(opt$genetable))
+geneset <- gsub(".tsv", "", basename(opt$genetable))
 geneset <- gsub(".csv", "", geneset)
 
 ## initialise the tex snippet

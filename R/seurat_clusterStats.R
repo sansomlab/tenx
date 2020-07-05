@@ -200,7 +200,7 @@ if (length(stats.list) > 1){
 
 out_path <- file.path(
     opt$outdir,
-    paste("cluster.stats",opt$cluster,"txt","gz",sep="."))
+    paste("cluster.stats",opt$cluster,"tsv","gz",sep="."))
 
 print(paste("Saving markers to:", out_path))
 

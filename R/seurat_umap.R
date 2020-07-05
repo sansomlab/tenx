@@ -41,7 +41,7 @@ option_list <- list(
                 help="project name"),
     make_option(c("--reductiontype"), default="pca",
                 help="Name of dimensional reduction slot to use as the input to UMAP (e.g. 'pca', 'ica')"),
-    make_option(c("--outfile"), default="umap.txt",
+    make_option(c("--outfile"), default="umap.tsv",
                 help="the file to which the UMAP coordinates will be written")
     )
 

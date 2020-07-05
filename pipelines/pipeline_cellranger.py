@@ -92,7 +92,7 @@ $ cat data.dir/donor1_butyrate.1000.1.sample
 (B) If starting from the output of cellranger count:
 
 Two files are required:
-sample.information.txt: containing "sample_id", "agg_id" and "seq_id" coloumns/
+sample.information.tsv: containing "sample_id", "agg_id" and "seq_id" coloumns/
 cellranger.aggr.specification.csv: the specification file cellranger aggr.
 
 
@@ -319,7 +319,7 @@ def cellrangerCount(infile, outfile):
 @active_if(PARAMS["input"] == "mkfastq")
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
-           r"\1-count/cellranger_metrics_summary.txt")
+           r"\1-count/cellranger_metrics_summary.tsv")
 def reformatCellrangerCountMetrics(infile, outfile):
     '''
     Parse the cellranger count summary metrics into a tabular format.
@@ -359,7 +359,7 @@ def loadCellrangerCountMetrics(infiles, outfile):
 
     P.concatenate_and_load(
         infiles, outfile,
-        regex_filename="(.*)-count/.*.txt",
+        regex_filename="(.*)-count/.*.tsv",
         has_titles=True,
         options="",
         cat="sample")
@@ -368,7 +368,7 @@ def loadCellrangerCountMetrics(infiles, outfile):
 @active_if(PARAMS["input"] == "mkfastq")
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
-           r"\1-count/cellranger.raw.qc.txt")
+           r"\1-count/cellranger.raw.qc.tsv")
 def rawQcMetricsPerBarcode(infile, outfile):
     '''
     Compute the total UMI, rank, mitochondrial UMI for each barcode.
@@ -385,7 +385,7 @@ def rawQcMetricsPerBarcode(infile, outfile):
     gtf = os.path.join(transcriptome, "genes", "genes.gtf")
 
     # Build the path to the log file
-    log_file = P.snip(outfile, ".txt") + ".log"
+    log_file = P.snip(outfile, ".tsv") + ".log"
 
     statement = '''Rscript %(tenx_dir)s/R/cellranger_rawQcMetrics.R
                    --matrixpath=%(matrixpath)s
@@ -407,7 +407,7 @@ def loadRawQcMetricsPerBarcode(infiles, outfile):
 
     P.concatenate_and_load(
         infiles, outfile,
-        regex_filename="(.*)-count/.*.txt",
+        regex_filename="(.*)-count/.*.tsv",
         has_titles=True,
         options="",
         cat="sample")
@@ -498,7 +498,7 @@ PICARD_MEMORY = str(
 @active_if(PARAMS["input"] == "mkfastq")
 @transform(cellrangerCount,
            regex(r"(.*)-count/cellranger.count.sentinel"),
-           r"\1-count/picard_duplication_metrics.txt")
+           r"\1-count/picard_duplication_metrics.tsv")
 def picardMarkDuplicates(infile, outfile):
     '''
     Yield duplication metrics using Picard Tools.
@@ -553,7 +553,7 @@ def loadDuplicationMetrics(infiles, outfile):
 
     P.concatenate_and_load(
         infiles, outfile,
-        regex_filename="(.*)-count/.*.txt",
+        regex_filename="(.*)-count/.*.tsv",
         has_titles=True,
         options="",
         cat="sample")
@@ -588,7 +588,7 @@ def plotMetrics(infile, outfile):
 
 
 @follows(cellrangerCount)
-@files(None, "sample.information.txt")
+@files(None, "sample.information.tsv")
 def writeSampleInformation(infile, outfile):
     '''
     Write out the sample information table.
@@ -607,7 +607,7 @@ if PARAMS["input"] == "mkfastq":
     collectSampleInformation = writeSampleInformation
 
 elif PARAMS["input"] == "count":
-    collectSampleInformation = "sample.information.txt"
+    collectSampleInformation = "sample.information.tsv"
 
 else:
     raise ValueError('Input type must be either "mkfastq"'

@@ -46,7 +46,7 @@ annotation <- seurat_obj@misc
 
 ## Load UMAP coordinates
 cat("Load UMAP coordinates ... \n")
-data_selected = read.table(file.path(opt$seurat_path, opt$runspecs,"umap.dir", "umap.txt"),
+data_selected = read.table(file.path(opt$seurat_path, opt$runspecs,"umap.dir", "umap.tsv"),
                            header=TRUE, as.is=TRUE, sep="\t")
 data_selected$cluster = as.character(data_selected$cluster)
 output = data_selected[,c("barcode", "UMAP_1", "UMAP_2")]
@@ -56,7 +56,7 @@ write.table(output,file.path(opt$outdir, "UMAP.tsv"), quote = FALSE, row.names =
 
 ## Load Force-directed graph coordinates
 cat("Load Force-directed graph coordinates ... \n")
-infile_gzip = gzfile(file.path(opt$seurat_path, opt$runspecs,"paga.dir", "paga_init_fa2.txt.gz"))
+infile_gzip = gzfile(file.path(opt$seurat_path, opt$runspecs,"paga.dir", "paga_init_fa2.tsv.gz"))
 output = read.table(infile_gzip, header=TRUE, as.is=TRUE, sep="\t")
 colnames(output) = c("cellId", "x", "y")
 write.table(output,file.path(opt$outdir, "FA.tsv"), quote = FALSE, row.names = FALSE,
@@ -71,7 +71,7 @@ output = data_selected[,!grepl("UMAP", colnames(data_selected))] %>%
 write.table(output,file.path(opt$outdir, "meta.tsv"), quote = FALSE, row.names = FALSE,
             sep = "\t")
 
-## write out txt of expression for all included cells
+## write out.tsv of expression for all included cells
 cat("Prepare expression matrix ... \n")
 expr_data = as.data.frame(as.matrix(GetAssayData(seurat_obj, slot = "data")))
 expr_data = cbind(data.frame(gene=rownames(expr_data)),expr_data)
@@ -85,7 +85,7 @@ cat("Finished writing expression matrix ... \n")
 ## set the cell colors according to cluster
 cat("Read in the colors to match colors in other visualisations ... \n")
 
-cols = read.csv(file.path(opt$seurat_path, opt$runspecs, "cluster.dir", "cluster_colors.txt"),
+cols = read.csv(file.path(opt$seurat_path, opt$runspecs, "cluster.dir", "cluster_colors.tsv"),
                   header = FALSE, stringsAsFactors = FALSE)
 clusters = sort(unique(as.numeric(data_selected$cluster)))
 out_color = data.frame(name = clusters,

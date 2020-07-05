@@ -369,7 +369,7 @@ if(opt$matrixtype=="10X")
     rownames(genes) <- genes$seurat_id
 
     write.table(
-        genes, file.path(opt$outdir, "annotation.txt"),
+        genes, file.path(opt$outdir, "annotation.tsv"),
         sep="\t", col.names=TRUE, row.names=FALSE, quote=FALSE
     )
 

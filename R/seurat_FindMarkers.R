@@ -329,7 +329,7 @@ for (conserved.level in levels(ident.conserved)){
         }
 
         ## write out the full results
-        ## file name should be markers.cluster.x.txt
+        ## file name should be markers.cluster.x.tsv
 
         if(opt$testfactor=="none"){
             if (opt$conservedfactor == "none"){
@@ -348,7 +348,7 @@ for (conserved.level in levels(ident.conserved)){
 
         out_path <- file.path(
             opt$outdir,
-            paste(prefix,opt$cluster,"txt","gz",sep="."))
+            paste(prefix,opt$cluster,"tsv","gz",sep="."))
 
         print(paste("Saving markers to:", out_path))
 
@@ -383,7 +383,7 @@ for (conserved.level in levels(ident.conserved)){
 
         universe_path <- file.path(
             opt$outdir,
-            paste(prefix,opt$cluster,"universe","txt","gz",sep="."))
+            paste(prefix,opt$cluster,"universe","tsv","gz",sep="."))
 
         write.table(universe,
                     gzfile(universe_path),
@@ -554,7 +554,7 @@ if (length(markers.conserved.list) > 1){
 
     out_path <- file.path(
             opt$outdir,
-            paste(prefix,opt$cluster,"txt","gz",sep="."))
+            paste(prefix,opt$cluster,"tsv","gz",sep="."))
 
     print(paste("Saving markers to:", out_path))
 
@@ -597,7 +597,7 @@ if (length(markers.conserved.list) > 1){
 
     universe_path <- file.path(
         opt$outdir,
-        paste(prefix,opt$cluster,"universe","txt","gz",sep="."))
+        paste(prefix,opt$cluster,"universe","tsv","gz",sep="."))
 
     write.table(universe,
                 gzfile(universe_path),

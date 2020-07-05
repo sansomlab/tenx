@@ -17,7 +17,7 @@
 ## Usage ----
 ##
 ## $ Rscript getGenesetAnnotations.R
-##           --table=grouping.factors.txt
+##           --table=grouping.factors.tsv
 ##           --seuratobject=seurat.Robj
 ##           --groupfactors=cluster
 ##           --subgroupfactors=patient
@@ -151,7 +151,7 @@ for(group_var in group_vars)
 
         # save the plot data.
         write.table(plot_data,
-                    file.path(opt$outdir,paste0(plotfilename,".plotdata.txt")),
+                    file.path(opt$outdir,paste0(plotfilename,".plotdata.tsv")),
                     col.names=TRUE,
                     row.names=FALSE,
                     quote=FALSE,
@@ -232,7 +232,7 @@ for(group_var in group_vars)
 
         # save the plot data.
         write.table(plot_data,
-                    file.path(opt$outdir,paste0(plotfilename,".plotdata.txt")),
+                    file.path(opt$outdir,paste0(plotfilename,".plotdata.tsv")),
                     col.names=TRUE,
                     row.names=FALSE,
                     quote=FALSE,

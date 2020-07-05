@@ -69,6 +69,37 @@ run:
   genesets: False
   cellbrowser: False
 
+
+# Give the pipeline a head start?
+# --------------------------------
+#
+# whenever possible to save time and disk space
+# we should link in previous  outputs rather than
+# re-computing them unnecessarily
+
+headstart:
+
+  # the path to a previous pipeline run
+  # False | /path/to/run
+  path: False
+
+  # Link in the annotation?
+  # True | False
+  annotation: False
+
+  # Link in the seurat_object?
+  # True | False
+  seurat_object: False
+
+  # Link in the singleR output?
+  # True | False
+  singleR: False
+
+  # Link in the data exported for python?
+  # True | False
+  export_for_python: False
+
+
 # Gene annotations
 # ----------------
 
@@ -147,6 +178,25 @@ runspecs:
 
     # Runs to skip (comma separated list of subfolders within each sample directory)
     skip:
+
+
+# Nearest neighbor parameters
+# --------------------------
+neighbors:
+  # The number of neighbors to use when constructing the nearest neighbor graph
+  # - it is recommended to match the value chosen for UMAP
+  n_neighbors: 20
+
+  # the distance metric (as supported by Scanpy)
+  # e.g. euclidean | cosine
+  metric: euclidean
+
+# Clustering parameters
+# ---------------------
+cluster:
+  # Clustering algorithm (as supported by Scanpy)
+  # "leiden" | "louvain"
+  algorithm: leiden
 
 
 # QC parameters
@@ -312,23 +362,6 @@ jackstraw:
   ## Determine statistical significance of PCA scores (see seurat_jackstraw.R)
   # Number of replicate samplings to perform (see Seurat::JackStraw)
   n_replicate: 100
-
-
-
-# Clustering parameters
-# ---------------------
-cluster:
-  # Clustering algorithm(s)
-  # (see Seurat::FindClusters)
-  # 1 = louvain, 4 = leiden
-  algorithm: 4
-
-  # The number of neighbors to use when constructing the nearest neighbor graph
-  # - it is recommended to match the value chosen for UMAP
-  nneighbors: 20
-
-  # By default Seurat will use the RANN package to build the nearest-neighbor
-  # graph before clustering. This package uses the euclidean (L2) metric.
 
 
 # Data summary plots
@@ -686,19 +719,19 @@ gmt_pathway_files:
   #
   # > human msigdb sets >
   #
-  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.gmt
-  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.reactome.v6.1.entrez.gmt
-  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.gmt
-  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.gmt
-  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.gmt
+  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.biocarta.v7.1.entrez.gmt
+  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.reactome.v7.1.entrez.gmt
+  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.v7.1.entrez.gmt
+  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c3.tft.v7.1.entrez.gmt
+  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c7.all.v7.1.entrez.gmt
   #
   # > mouse msigdb sets >
   #
-  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.mouse.gmt
-  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.reactome.v6.1.entrez.mouse.gmt
-  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.mouse.gmt
-  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.mouse.gmt
-  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.mouse.gmt
+  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.biocarta.v7.1.entrez.mouse.gmt
+  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.reactome.v7.1.entrez.mouse.gmt
+  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.v7.1.entrez.mouse.gmt
+  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c3.tft.v7.1.entrez.mouse.gmt
+  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c7.all.v7.1.entrez.mouse.gmt
 
 gmt_celltype_files:
   # > human cell types >

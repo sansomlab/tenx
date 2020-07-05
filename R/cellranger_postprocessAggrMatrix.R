@@ -20,7 +20,7 @@
 ##
 ## e.g.
 ##
-## $ cat samples.txt
+## $ cat samples.tsv
 ## sample_id          seq_id     agg_id
 ## d1_butyrate_mono   1          1
 ## d1_control_mono    1          2
@@ -40,7 +40,7 @@
 ## The script is run by specifying the location of the cellranger aggr matrix and the sample table, e.g.
 ## $ Rscript cellranger_cleanAggMatrix.R
 ##           --tenxdir=/gfs/work/ssansom/10x/holm_butyrate/agg/all_samples/outs/filtered_gene_bc_matrices_mex/GRCh38/
-##           --sampletable=samples.txt
+##           --sampletable=samples.tsv
 ##           --outdir=.
 
 message("cellranger_postprocessAggrMatrix.R")

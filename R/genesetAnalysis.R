@@ -133,7 +133,7 @@ if(length(fg_entrez)>0)
         for(geneset in names(results))
             {
                 write.table(results[[geneset]],
-                            gzfile(paste(outPrefix,geneset,"txt","gz",sep=".")),
+                            gzfile(paste(outPrefix,geneset,"tsv","gz",sep=".")),
                             row.names=FALSE, col.names=TRUE, quote=FALSE,
                             sep="\t")
             }
