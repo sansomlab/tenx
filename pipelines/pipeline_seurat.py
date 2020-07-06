@@ -888,7 +888,7 @@ def scanpyCluster(infile, outfile):
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_high"])
+        memory=PARAMS["resources_memory_low"])
 
     statement = '''python %(tenx_dir)s/python/run_cluster.py
                    --anndata=%(anndata)s
@@ -1449,7 +1449,7 @@ def plotRdimsFactors(infiles, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_min"])
 
     statement = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
                    --method=%(rdims_vis_method)s
@@ -1504,7 +1504,7 @@ def plotRdimsClusters(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_min"])
 
     statement = '''Rscript %(tenx_dir)s/R/plot_rdims_factor.R
                    --method=%(rdims_vis_method)s
@@ -1803,6 +1803,9 @@ def plotGroupNumbers(infile, outfile):
 
         SPEC["log_file"] = os.path.join(spec.outdir, summary_key + ".log")
 
+        job_threads, job_memory, r_memory = TASK.get_resources(
+            memory=PARAMS["resources_memory_min"])
+
         statement = '''Rscript %(tenx_dir)s/R/plot_group_numbers.R
                    --metadata=%(metadata_table)s
                    --clusters=%(cluster_assignments)s
@@ -2026,7 +2029,7 @@ def summariseClusterStats(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_high"],
+        memory=PARAMS["resources_memory_min"],
         cpu=1)
 
     # make sumamary tables and plots of the differentially expressed genes
@@ -2065,7 +2068,7 @@ def summariseMarkers(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_high"],
+        memory=PARAMS["resources_memory_standard"],
         cpu=1)
 
     # make sumamary tables and plots of the differentially expressed genes
@@ -2107,7 +2110,7 @@ def characteriseClusterMarkers(infile, outfile):
     degenes = pd.read_csv(marker_table, sep="\t")
 
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"],
+        memory=PARAMS["resources_memory_low"],
         cpu=1)
 
     statements = []
@@ -2160,7 +2163,7 @@ def plotMarkerNumbers(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_low"])
+        memory=PARAMS["resources_memory_min"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkerNumbers.R
                    --degenes=%(marker_table)s
@@ -2743,7 +2746,7 @@ def genesetAnalysis(infiles, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_min"])
 
     for i in spec.clusters:
 
@@ -2806,7 +2809,7 @@ def summariseGenesetAnalysis(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_min"])
 
     statement = '''Rscript %(tenx_dir)s/R/summariseGenesets.R
                          --genesetdir=%(genesetdir)s
@@ -2867,7 +2870,7 @@ def genesetAnalysisBetweenConditions(infiles, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_min"])
 
     for i in spec.clusters:
 
@@ -2933,7 +2936,7 @@ def summariseGenesetAnalysisBetweenConditions(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_min"])
 
     statement = '''Rscript %(tenx_dir)s/R/summariseGenesets.R
                          --genesetdir=%(genesetdir)s
