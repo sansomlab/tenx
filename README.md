@@ -14,7 +14,7 @@ The pipelines are in active development, and should be considered "beta" softwar
 
 This example shows how the [Seurat stimulated and control vignette](https://satijalab.org/seurat/v3.1/immune_alignment.html) can be reproduced by the pipeline.
 
-* [Summary Report](https://dl.dropbox.com/s/v8pe24jy7gw2txp/summaryReport.pdf)
+* [Summary Report](https://dl.dropbox.com/s/84x0m9sjdsah8b3/summaryReport.pdf)
 
 * [Aligned example vignette](docs/AlignedExample.md).
 
