@@ -37,7 +37,7 @@ option_list <- list(
                 help="Name of dimensional reduction technique to use for building the diffusion map. (e.g. 'pca', 'ica')"),
     make_option(c("--plotdirvar"), default="diffmapDir",
                 help="name of the latex var containing the directory with the plots"),
-    make_option(c("--outfile"), default="dm.txt",
+    make_option(c("--outfile"), default="dm.tsv",
                 help="the file to which the diffusion map coordinates will be written"),
     make_option(c("--outdir"), default="seurat.out.dir",
                 help="the directory in which plots will be saved")

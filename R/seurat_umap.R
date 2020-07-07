@@ -15,10 +15,10 @@ stopifnot(
 # Options ----
 
 option_list <- list(
-    make_option(c("--seuratobject"), default="begin.Robj",
+    make_option(c("--seuratobject"), default="begin.rds",
                 help="A seurat object after PCA"),
-    make_option(c("--clusterids"), default="none",
-                help="A list object containing the cluster identities"),
+    make_option(c("--seuratgraphs"), default="graphs.rds",
+                help="the nn/snn graphs in an rds file"),
     make_option(c("--annotation"), default="none",
                 help="A file containing the mapping of gene_id, gene_name and seurat_id"),
     make_option(c("--method"), default="umap-learn",
@@ -41,7 +41,7 @@ option_list <- list(
                 help="project name"),
     make_option(c("--reductiontype"), default="pca",
                 help="Name of dimensional reduction slot to use as the input to UMAP (e.g. 'pca', 'ica')"),
-    make_option(c("--outfile"), default="umap.txt",
+    make_option(c("--outfile"), default="umap.tsv",
                 help="the file to which the UMAP coordinates will be written")
     )
 
@@ -53,8 +53,7 @@ print(opt)
 
 message("readRDS")
 s <- readRDS(opt$seuratobject)
-cluster_ids <- readRDS(opt$clusterids)
-Idents(s) <- cluster_ids
+s@graphs <- readRDS(opt$seuratgraphs)
 
 message("seurat_umap.R running with default assay: ", DefaultAssay(s))
 
@@ -85,17 +84,11 @@ s <- RunUMAP(s,
 
 ## extract the UMAP coordinates from the seurat object
 umap <- as.data.frame(s@reductions$umap@cell.embeddings)
-umap$cluster <- Idents(s)[rownames(umap)]
 
-plot_data <- merge(umap, s[[]], by=0)
-
-rownames(plot_data) <- plot_data$Row.names
-plot_data$Row.names <- NULL
-
-plot_data$barcode <- row.names(plot_data)
+umap$barcode <- row.names(umap)
 
 ## save the annotated tSNE data frame
-write.table(plot_data, opt$outfile,
+write.table(umap, gzfile(opt$outfile),
             sep="\t", quote=FALSE, row.names=FALSE)
 
 message("seurat_umap.R final default assay: ", DefaultAssay(s))

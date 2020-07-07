@@ -34,6 +34,8 @@ resources:
   # (ScaleData and JackStraw)
   numcores: 12
 
+  memory_min: 8G
+
   # Memory options for the different steps
   # Memory_low is used for tasks: velocity,
   # characteriseClusterMarkers*, plotMarkerNumbers*,
@@ -68,6 +70,37 @@ run:
   exprsreport: False
   genesets: False
   cellbrowser: False
+
+
+# Give the pipeline a head start?
+# --------------------------------
+#
+# whenever possible to save time and disk space
+# we should link in previous  outputs rather than
+# re-computing them unnecessarily
+
+headstart:
+
+  # the path to a previous pipeline run
+  # False | /path/to/run
+  path: False
+
+  # Link in the annotation?
+  # True | False
+  annotation: False
+
+  # Link in the seurat_object?
+  # True | False
+  seurat_object: False
+
+  # Link in the singleR output?
+  # True | False
+  singleR: False
+
+  # Link in the data exported for python?
+  # True | False
+  export_for_python: False
+
 
 # Gene annotations
 # ----------------
@@ -138,15 +171,6 @@ runspecs:
     # (see Seurat::FindClusters)
     cluster_resolutions: 0.6,1
 
-    # Clustering algorithm(s)
-    # (see Seurat::FindClusters)
-    # 1 = louvain, 4 = leiden
-    cluster_algorithms: 4
-
-
-    # Differential expression testing method(s)
-    # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
-    de_tests: wilcox
 
     # To manually specify cluster assignments set to True
     # - Manual cluster assignmets should be provided as sample_name.cluster_ids.rds file(s)
@@ -156,6 +180,35 @@ runspecs:
 
     # Runs to skip (comma separated list of subfolders within each sample directory)
     skip:
+
+
+# Nearest neighbor parameters
+# --------------------------
+neighbors:
+
+  # scanpy | hnsw
+  methods: hnsw
+
+  # for hnsw
+  threads: 4
+
+  # for hnsw
+  full_speed: False
+
+  # The number of neighbors to use when constructing the nearest neighbor graph
+  # - it is recommended to match the value chosen for UMAP
+  n_neighbors: 20
+
+  # the distance metric (as supported by Scanpy)
+  # e.g. euclidean | cosine
+  metric: euclidean
+
+# Clustering parameters
+# ---------------------
+cluster:
+  # Clustering algorithm (as supported by Scanpy)
+  # "leiden" | "louvain"
+  algorithm: leiden
 
 
 # QC parameters
@@ -195,7 +248,7 @@ qc:
 singleR:
 
   # number of cores for multiprocessing
-  workers: 10
+  workers: 4
 
   plot_extra: False
 
@@ -323,16 +376,68 @@ jackstraw:
   n_replicate: 100
 
 
-
-# Clustering parameters
+# Data summary plots
 # ---------------------
-cluster:
-  # The number of neighbors to use when constructing the nearest neighbor graph
-  # - it is recommended to match the value chosen for UMAP
-  nneighbors: 20
 
-  # By default Seurat will use the RANN package to build the nearest-neighbor
-  # graph before clustering. This package uses the euclidean (L2) metric.
+# Summary plots of data statistics
+# --------------------------------
+#
+# Each plot is individually defined.
+#
+# title: the name of the plot for the report (the key is used as the file basename)
+#
+# group: major grouping factor (must be present in metadata)
+# subgroup: either a factor or None (must be present in metadata if set)
+# subgrouplevels: manually order levels for plots (comma separated list)
+#
+# replicate: if set the pct stat will be normalised to total counts per-replicate.
+#            if not set the pct stat will be computed within the grouped data.
+#
+# stat: the statistic to plot. Either:
+#
+#       (1)  "count" or "pct" which will be computed from the grouped date (dplyr)
+#       (2) a column from the metadata
+#       (3) "ngenes" or "total_UMI" which will be computed on the seurat object
+#           (if not present in the metadata)
+#
+# trans: transformation to apply to the y axis (only "sqrt" supported)
+#
+# geom: the plot geom to use: supported are 'bar' and 'boxplot'
+#
+# facet: should the plot be facted by the major grouping factor?
+# freey: whould the y scales be free (when facetting)
+#
+# width: width of the plot in inches
+# height: height of the plot in inches
+# ncol: number of columns for facets
+#
+# for a full list of the options supported please see the
+# R/plot_group_numbers.R script
+#
+
+# Note: (i) in titles and labels % symbols must be escaped as %%
+#       (ii) use of underscores in titles is not supported.
+#
+
+summaries:
+
+  cells_by_cluster:
+    title: Cells by cluster
+    group: cluster
+    subgroup: None
+    replicate: None
+    stat: pct
+    geom: bar
+    facet: False
+    freey: False
+    xlab: cluster
+    ylab: cells (%%)
+    width: 8
+    height: 4
+
+
+
+
 
 # Plotting parameters
 # -------------------
@@ -362,6 +467,19 @@ plot:
   pointalpha: 0.8
   # Size of data points
   pointsize: 0.5
+
+  # set the point shape:
+  pointpch: 16
+
+  # maximum number of cells to draw (for gene expression plots)
+  maxcells: 200000
+
+  # violin point size
+  vpointsize: 0.1
+
+  # violin number of columns
+  vncol: 4
+  vnrow: 3
 
 
 # tSNE parameters
@@ -482,6 +600,11 @@ knownmarkers:
 # ----------------------
 
 findmarkers:
+    numcores: 1
+    # Differential expression testing method(s)
+    # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
+    test: wilcox
+
     ## Differential expression parameters (see Seurat::FindMarkers)
     # Limit testing to genes which show, on average, at least X-fold difference
     # (see logfc.threshold=...)
@@ -489,6 +612,8 @@ findmarkers:
     # Only test genes that are detected in a minimum fraction of min.pct cells
     # (see min.pct=...)
     minpct: 0.1
+
+    maxcellsperident: 50000
     #
     # Within-cluster differential expression (optional)
     # ------------------------------------------------
@@ -539,6 +664,8 @@ findmarkers:
 # ------------------------------
 
 exprsreport:
+
+    workers: 12
 
    # Count of up-regulated markers to represent in tSNE plots for each cluster
     n_positive: 50
@@ -604,19 +731,19 @@ gmt_pathway_files:
   #
   # > human msigdb sets >
   #
-  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.gmt
-  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.reactome.v6.1.entrez.gmt
-  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.gmt
-  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.gmt
-  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.gmt
+  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.biocarta.v7.1.entrez.gmt
+  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.reactome.v7.1.entrez.gmt
+  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.v7.1.entrez.gmt
+  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c3.tft.v7.1.entrez.gmt
+  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c7.all.v7.1.entrez.gmt
   #
   # > mouse msigdb sets >
   #
-  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.biocarta.v6.1.entrez.mouse.gmt
-  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.reactome.v6.1.entrez.mouse.gmt
-  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c2.cp.v6.1.entrez.mouse.gmt
-  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c3.tft.v6.1.entrez.mouse.gmt
-  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v6.1/msigdb_v6.1_GMTs/c7.all.v6.1.entrez.mouse.gmt
+  # msigdb_biocarta: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.biocarta.v7.1.entrez.mouse.gmt
+  # msigdb_reactome: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.reactome.v7.1.entrez.mouse.gmt
+  # msigdb_canonical_pathways: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c2.cp.v7.1.entrez.mouse.gmt
+  # msigdb_tf_motifs: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c3.tft.v7.1.entrez.mouse.gmt
+  # msigdb_immunological_signatures: /gfs/mirror/msigdb/msigdb_v7.1/msigdb_v7.1_GMTs/c7.all.v7.1.entrez.mouse.gmt
 
 gmt_celltype_files:
   # > human cell types >

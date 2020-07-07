@@ -49,6 +49,12 @@ option_list <- list(
                 help="latex var containing location of the plots"),
     make_option(c("--useminfc"), default=FALSE,
                 help="Use minimum fold change for second page of violin plots"),
+    make_option(c("--ncol"), type="integer", default=4,
+                help="Number of columns for the plots"),
+        make_option(c("--nrow"), type="integer", default=4,
+                help="Number of rows for the plots"),
+    make_option(c("--pointsize"), type="integer", default=FALSE,
+                help="pointsize for the violin plots"),
     make_option(c("--pdf"), default=FALSE,
                 help="Produce pdf plots"),
     make_option(c("--outdir"), default="seurat.out.dir",
@@ -83,23 +89,11 @@ if(is.null(opt$testfactor))
 tex = ""
 
 ## read in the de genes
-degenes <- read.table(gzfile(opt$degenes),header=T,as.is=T,sep="\t")
-
-## read in the seurat object
-s <- readRDS(opt$seuratobject)
-cluster_ids <- readRDS(opt$clusterids)
-Idents(s) <- cluster_ids
-
-## set the default assay
-message("Setting default assay to: ", opt$seuratassay)
-DefaultAssay(s) <- opt$seuratassay
-
-message("seurat_characteriseClusterDEGenes.R running with default assay: ", DefaultAssay(s))
-
 
 cluster <- opt$cluster
+data <- read.table(gzfile(opt$degenes),header=T,as.is=T,sep="\t")
 
-if(!cluster %in% degenes$cluster)
+if(!cluster %in% data$cluster)
 {
     ## we have no DE genes.
     message("No significant genes for cluster: ",cluster)
@@ -107,7 +101,8 @@ if(!cluster %in% degenes$cluster)
 
 {
 
-decluster <- degenes[degenes$cluster == cluster,]
+data <- data[data$cluster == cluster,]
+
 
 message("processing cluster: ",cluster)
 
@@ -115,7 +110,7 @@ message("making scatter plots")
 ## analyse expression level vs fold change
 ## note that we intentionally ignore the pseudocount that seurat has added.
 
-data <- decluster
+#data <- decluster
 print(head(data))
 
 data$M <- log2( exp(data[[a]]) / exp(data[[b]]) )
@@ -124,8 +119,11 @@ data$A <- 1/2 * (log2(exp(data[[a]])) + log2(exp(data[[b]])))
 ma <- plotMA(data,xlab="expression level (log2)",ylab="fold change (log2)")
 vol <- plotVolcano(data,xlab="fold change (log2)",ylab="adjusted p-value (-log10)")
 
+data$M <- NULL
+data$A <- NULL
+
 ## analyse percentage vs change in percentage
-data <- decluster
+#data <- decluster
 
 data$M <- log2((data$pct.1*100 + 1) / (data$pct.2*100 + 1))
 data$A <- 1/2 * (log2(data$pct.1*100 + 1) + log2(data$pct.2*100 + 1))
@@ -133,20 +131,29 @@ data$A <- 1/2 * (log2(data$pct.1*100 + 1) + log2(data$pct.2*100 + 1))
 pma <- plotMA(data,xlab="percent cells (log2)",ylab="percent change (log2)")
 pvol <- plotVolcano(data,xlab="percent change (log2)",ylab="adjusted p-value (-log10)")
 
+data$M <- NULL
+data$A <- NULL
+
 ## directly compare fold change and percentage change
-data <- decluster
+#data <- decluster
 data$L <- log2((data$pct.1*100 + 1) / (data$pct.2*100 + 1))
 data$M <- log2(exp(data[[a]]) / exp(data[[b]]))
 
 fve <- plotFvE(data)
+
+data$M <- NULL
+data$L <- NULL
 
 ## sneakily extract the legend...
 legend <- g_legend(fve)
 fve <- fve + theme(legend.position = 'none')
 
 gs <- list(ma, vol, pma, pvol, fve, legend)
+rm(ma, vol, pma, pvol, fve, legend)
+
 lay <- rbind(c(1,2),c(3,4),c(5,6))
 ga <- arrangeGrob(grobs = gs, layout_matrix = lay)
+rm(gs)
 
 defn <- paste(c("dePlots",cluster,file_suffix),collapse=".")
 defpath <- file.path(opt$outdir, defn)
@@ -156,6 +163,9 @@ save_ggplots(defpath,
              to_pdf=opt$pdf,
              width=8,
              height=10)
+
+rm(ga)
+gc()
 
 ## start building figure latex...
 subsectionTitle <- getSubsectionTex(paste0("Cluster ",cluster,": summary plots"))
@@ -176,10 +186,22 @@ tex <- c(tex, getFigureTex(defn, deCaption,plot_dir_var=opt$plotdirvar))
 ## order by should be one of "p-value", "fold-change" or "min-fold-change".
 ## enforce significance
 
+## read in the seurat object
+s <- readRDS(opt$seuratobject)
+cluster_ids <- readRDS(opt$clusterids)
+Idents(s) <- cluster_ids
+
+## set the default assay
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+message("seurat_characteriseClusterDEGenes.R running with default assay: ", DefaultAssay(s))
+
 violin_fn_template <- paste(c("violinPlots.type",cluster,file_suffix),collapse=".")
 
-violin_data <- decluster[decluster$p.adj < 0.05,]
-print(dim(violin_data))
+data <- data[data$p.adj < 0.05,]
+
+print(dim(data))
 
 if(opt$useminfc)
 {
@@ -188,7 +210,7 @@ if(opt$useminfc)
     fc_type="fold change"
 }
 
-ncol = 4
+ncol = opt$ncol
 
 if(is.null(opt$testfactor))
 {
@@ -201,9 +223,10 @@ if(is.null(opt$testfactor))
 
 ## make the +ve plots
 message("making violin plots for +ve genes")
-pos_tex <- violinPlotSection(violin_data, s, cluster_ids, type="positive",
+pos_tex <- violinPlotSection(data, s, cluster_ids, type="positive",
                              group.by = opt$testfactor,
-                             ident.include = ident.include, ncol=ncol,
+                             ident.include = ident.include, vncol=opt$ncol, vnrow=opt$nrow,
+                             pt_size=opt$pointsize,
                              outdir = opt$outdir,
                              analysis_title = analysis_title, fc_type = fc_type,
                              use.minfc = opt$useminfc,
@@ -212,9 +235,10 @@ pos_tex <- violinPlotSection(violin_data, s, cluster_ids, type="positive",
 
 ## make the -ve plots
 message("making violin plots for -ve genes")
-neg_tex <- violinPlotSection(violin_data, s, cluster_ids, type="negative",
+neg_tex <- violinPlotSection(data, s, cluster_ids, type="negative",
                              group.by = opt$testfactor,
-                             ident.include = ident.include, ncol=ncol,
+                             ident.include = ident.include, vncol=opt$ncol, vnrow=opt$nrow,
+                             pt_size=opt$pointsize,
                              outdir = opt$outdir,
                              analysis_title = analysis_title, fc_type = fc_type,
                              use.minfc = opt$useminfc,

@@ -15,10 +15,8 @@ stopifnot(
 option_list <- list(
     make_option(c("--genesetdir"), default="none",
                 help="directory containing the genesets to aggregate"),
-    make_option(c("--nclusters"), type="integer", default=0,
-                help="the number of the clusters being analysed"),
-    make_option(c("--firstcluster"), type="integer", default=0,
-                help="clusters might not be zero based..."),
+    make_option(c("--clusters"), type="integer", default=0,
+                help="text file containing the cluster ids"),
     make_option(c("--pvaluethreshold"),type="double",default=0.05,
                 help="p value threshold for filtering sets"),
     make_option(c("--padjustmethod"), default="BH",
@@ -90,6 +88,9 @@ ltabs <- list()
 hmaps <- list()
 tex <- c()
 
+clusters <- as.numeric(read.table(opt$clusters, header=F)$V1)
+clusters <- clusters[order(clusters)]
+
 for(geneset in genesets)
 {
     genesets <- NULL
@@ -97,22 +98,22 @@ for(geneset in genesets)
     message(paste("Processing:", geneset,"annotations."))
     begin=T
 
-    if(opt$firstcluster==0)
-    {
-        first <- 0
-        last <- opt$nclusters - 1
-        }
-    else {
-            first <- opt$firstcluster
-            last <- opt$nclusters}
+    ## if(opt$firstcluster==0)
+    ## {
+    ##     first <- 0
+    ##     last <- opt$nclusters - 1
+    ##     }
+    ## else {
+    ##         first <- opt$firstcluster
+    ##         last <- opt$nclusters}
 
     ## build a single table containing the results of the geneset tests for
     ## all clusters
-    for(cluster in first:last)
+    for(cluster in clusters)
     {
         message(paste("Working on cluster: ", cluster))
 
-        fn = paste0(opt$genesetdir,"/",opt$prefix,".",cluster,".",geneset,".txt.gz")
+        fn = paste0(opt$genesetdir,"/",opt$prefix,".",cluster,".",geneset,".tsv.gz")
         if(file.exists(fn))
             {
                 temp = read.table(gzfile(fn),sep="\t",header=T,as.is=T,quote="")
@@ -257,7 +258,8 @@ for(geneset in genesets)
 
         if(!opt$showcommon)
         {
-           tmp <- table(xx$geneset_id)
+            tmp <- table(xx$geneset_id)
+            ## what is this? TODO: fix.
            xx <- xx[!xx$geneset_id %in% names(tmp)[tmp==opt$nclusters],]
         }
 
@@ -276,7 +278,7 @@ for(geneset in genesets)
         gp <- sampleEnrichmentDotplot(genesets,
                                       selected_genesets = genesets_to_show,
                                       selection_col = "geneset_id",
-                                      sample_levels =c(first:last),
+                                      sample_levels = clusters,
                                       min_dot_size =1, max_dot_size = 6,
                                       maxl = 45,
                                       pvalue_threshold = opt$pvaluethreshold,

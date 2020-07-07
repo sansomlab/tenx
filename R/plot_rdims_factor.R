@@ -71,6 +71,11 @@ option_list <- list(
       c("--pointsize"),
       default=0.5,
       help="The point size for the tSNE plots"
+    ),
+    make_option(
+      c("--pointpch"),
+      default="16",
+      help="The point pch for the tSNE plots (if no shapefactor)"
       ),
     make_option(
       c("--pointalpha"),
@@ -91,6 +96,8 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list=option_list))
 
+if(opt$pointpch != ".") { opt$pointpch <- as.numeric(opt$pointpch) }
+
 cat("Running with options:\n")
 print(opt)
 
@@ -105,6 +112,7 @@ if(opt$metadata!="none")
     meta_data <- read.table(opt$metadata, sep="\t", header=TRUE)
     rownames(meta_data) <- meta_data$barcode
     meta_data$barcode <- NULL
+    meta_cols <- colnames(meta_data)
 
     if(length(intersect(rownames(plot_data), rownames(meta_data))) < length(rownames(meta_data)))
     {
@@ -112,23 +120,61 @@ if(opt$metadata!="none")
     } else {
 
         meta_data <- meta_data[rownames(plot_data),]
+        plot_cols <- colnames(plot_data)
         plot_data <- cbind(plot_data, meta_data)
+        colnames(plot_data) <- c(plot_cols, meta_cols)
     }
 }
 
 if ("cluster" %in% colnames(plot_data)){
-  plot_data$cluster <- factor(plot_data$cluster, levels=sort(as.numeric(unique(plot_data$cluster))))
+    cluster_col = "cluster"
+} else if ("cluster_id" %in% colnames(plot_data))
+{
+    cluster_col = "cluster_id"
+} else
+{
+    cluster_col = "__none__"
 }
 
 
+if(!cluster_col=="__none__")
+{
+    plot_data[[cluster_col]] <- factor(plot_data[[cluster_col]],
+                                       levels=sort(as.numeric(unique(plot_data[[cluster_col]]))))
+}
+
 color_vars <- strsplit(opt$colorfactors,",")[[1]]
+print(color_vars)
 tex = ""
 
 print("Making tSNE plots colored by each of the factor variables")
 ## Make one whole-page tSNE plot per color variable
 for(color_var in color_vars)
 {
-    print(paste("Making",color_var,"tSNE plot"))
+    print(paste("Making",color_var,"rdims plot"))
+
+    if(color_var==cluster_col)
+    {
+                clust_levels = unique(plot_data[[cluster_col]])
+
+                print(head(plot_data))
+                message("computing cluster centers")
+                centers = data.frame(row.names=clust_levels, "cluster"=clust_levels,
+                                     "x"=1,
+                                     "y"=1)
+
+                print(head(centers))
+                for(clust in clust_levels)
+                {
+                    centers[clust,"x"] = median(plot_data[plot_data[[cluster_col]]==clust,opt$rdim1])
+                    centers[clust,"y"] = median(plot_data[plot_data[[cluster_col]]==clust,opt$rdim2])
+                }
+                message("computed cluster centers")
+                print(head(centers))
+
+
+        }
+
 
     ## If a variable comprises only integers, coerce it to a character vector
 
@@ -136,7 +182,7 @@ for(color_var in color_vars)
     if(is.numeric(plot_data[[color_var]]))
     {
         if((all(plot_data[[color_var]] == round(plot_data[[color_var]]))
-           & length(unique(plot_data[[color_var]])) < 50) || color_var == "cluster")
+           & length(unique(plot_data[[color_var]])) < 50) || color_var == cluster_col)
         {
             plot_data[[color_var]] <- as.character(plot_data[[color_var]])
         }
@@ -160,14 +206,41 @@ for(color_var in color_vars)
         gp <- gp + scale_color_gradient2(low="black",mid="yellow",high="red",midpoint=midpoint)
     }
 
-    gp <- gp + geom_point(size=opt$pointsize)
+    if(opt$shapefactor=="none" | !(opt$shapefactor %in% colnames(plot_data)))
+    {
+        gp <- gp + geom_point(size=opt$pointsize, pch=opt$pointpch,alpha=opt$pointalpha)
+    } else {
+        gp <- gp + geom_point(size=opt$pointsize, alpha=opt$pointalpha)
+    }
+
+
+    if(color_var == cluster_col)
+    {
+        gp <- gp + geom_text(data=centers, aes(x, y, label=cluster), color="black")
+    }
+
 
     # increase the size of the points in the legend.
-    gp <- gp + guides(color = guide_legend(override.aes = list(size=5)))
-    gp <- gp + guides(shape = guide_legend(override.aes = list(size=5)))
+
+    if(opt$shapefactor=="none" | !(opt$shapefactor %in% colnames(plot_data)))
+    {
+
+        gp <- gp + guides(color = guide_legend(override.aes = list(size=5, pch=16, alpha=1)))
+        gp <- gp + guides(shape = guide_legend(override.aes = list(size=5, pch=16, alpha=1)))
+
+
+    } else {
+
+        gp <- gp + guides(color = guide_legend(override.aes = list(size=5, alpha=1)))
+        gp <- gp + guides(shape = guide_legend(override.aes = list(size=5, alpha=1)))
+
+
+    }
+
+
 
     ## write out a separate legend if we have more than 20 levels.
-
+    gp <- gp + theme_minimal()
 
 
     plotfilename = paste(opt$method, color_var, sep=".")

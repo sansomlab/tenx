@@ -65,7 +65,7 @@ for (i in 1:length(idents.all)) {
 
     id <- idents.all[i]
 
-    tableName = paste("markers.cluster",id,"txt","gz",
+    tableName = paste("markers.cluster",id,"tsv","gz",
                       sep=".")
 
     markerFile <- file.path(opt$outdir,tableName)
@@ -197,11 +197,11 @@ take_cols <- c("min_logFC","max_logFC")
 markers[filtered_markers$index, take_cols] <- filtered_markers[,take_cols,with=F]
 
 ## write out the full (unannotated) table of significantly
-## differentially expressed marker genes as a txt file.
+## differentially expressed marker genes as a.tsv file.
 
-message("Saving marker.summary.table.txt")
+message("Saving marker.summary.table.tsv")
 
-marker_file <- paste(outPrefix,"table","txt","gz",
+marker_file <- paste(outPrefix,"table","tsv","gz",
                      sep=".")
 
 write.table(markers,
@@ -273,7 +273,7 @@ colnames(sumdf) <-c("cluster","ncells","n_pos_markers","n_neg_markers","n_marker
 
 print("Writing out some summary statistics")
 write.table(sumdf,
-            paste(outPrefix,"stats","txt",
+            paste(outPrefix,"stats","tsv",
                   sep="."),
             quote=F,sep="\t",row.names=F)
 

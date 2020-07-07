@@ -42,7 +42,7 @@ close(out)
 if (opt$usesigcomponents == TRUE) {
   message("Writing vector of significant components")
   comps <- getSigPC(s)
-  write.table(comps, file = paste0(opt$outdir, "/sig_comps.txt"), quote = FALSE, col.names = FALSE, row.names = FALSE)
+  write.table(comps, file = paste0(opt$outdir, "/sig_comps.tsv"), quote = FALSE, col.names = FALSE, row.names = FALSE)
 }
 
 message("paga_prepare_input.R final default assay: ", DefaultAssay(s))

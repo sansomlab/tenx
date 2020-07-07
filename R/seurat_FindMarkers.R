@@ -37,6 +37,8 @@ option_list <- list(
                 help="testing limited to genes with this (log scale) difference in mean expression level."),
     make_option(c("--mincells"), default=3,
                 help="minimum number of cells required (applies to cluster and to the other cells)"),
+    make_option(c("--maxcellsperident"), default=Inf,
+                help="max.cell.per.ident"),
     make_option(c("--testfactor"),default="none",
                 help="A column of @meta.data containing the conditions to be contrasted"),
     make_option(c("--a"), default="none",
@@ -190,11 +192,16 @@ for (conserved.level in levels(ident.conserved)){
 	cluster_pct <- round(rowSums(GetAssayData(object = s, slot="data")[genes,cluster_cells, drop=F]>0)/length(cluster_cells),digits=3)
 	other_pct <- round(rowSums(GetAssayData(object = s, slot="data")[genes,other_cells, drop=F]>0)/length(other_cells),digits=3)
 
-
         pcts <- cbind(cluster_pct,other_pct)
+        rm(cluster_pct)
+        rm(other_pct)
+
         max_pct <- apply(pcts,1,max)
         min_pct <- apply(pcts,1,min)
         diff_pct <- max_pct - min_pct
+
+        rm(min_pct)
+        rm(pcts)
 
         ## compute mean expression levels and difference
         #cluster_mean <- apply(GetAssayData(object = s)[,cluster_cells, drop=F], 1, FUN = ExpMean)
@@ -215,11 +222,17 @@ for (conserved.level in levels(ident.conserved)){
                                    cluster_mean=signif(cluster_mean,4),
                                    other_mean=signif(other_mean,4))
 
+        rm(cluster_mean)
+        rm(other_mean)
+
         ## make an identity vector of genes satisfying the given criteria
         take <- max_pct > opt$minpct & diff_pct > opt$mindiffpct & diff_mean > opt$threshuse
+        rm(diff_pct)
+        rm(diff_mean)
 
         ## deliberately ignore diff_mean when selecting the background genes
         background_take <- max_pct > opt$minpct
+        rm(max_pct)
 
         genes.use <- rownames(x = s)[take]
         background.use <- rownames(x = s)[background_take]
@@ -257,44 +270,46 @@ for (conserved.level in levels(ident.conserved)){
 
         id <- opt$cluster #idents.all[i]
 
-        genes.de <- FindMarkers(s,
-                                ident.1 = "a",
-                                ident.2 = "b",
-                                # genes.use = NULL,
-                                logfc.threshold = opt$threshuse,
-                                test.use = opt$testuse,
-                                min.pct = opt$minpct,
-                                min.diff.pct = opt$mindiffpct,
-                                # print.bar = F,
-                                min.cells.feature = min.cells,
-                                min.cells.group = min.cells)
+        markers <- FindMarkers(s,
+                               ident.1 = "a",
+                               ident.2 = "b",
+                                        # genes.use = NULL,
+                               logfc.threshold = opt$threshuse,
+                               test.use = opt$testuse,
+                               min.pct = opt$minpct,
+                               min.diff.pct = opt$mindiffpct,
+                                        # print.bar = F,
+                               min.cells.feature = min.cells,
+                               min.cells.group = min.cells,
 
+                               max.cells.per.ident=opt$maxcellsperident)
+
+        print(head(markers))
         ## keep everything, adjust later
         return.thresh = 1
-        gde = genes.de
 
-        if (nrow(gde) > 0) {
-            gde = gde[order(gde$p_val, -gde$avg_logFC), ]
-            gde = subset(gde, p_val < return.thresh)
+        if (nrow(markers) > 0) {
+            markers = markers[order(markers$p_val, -markers$avg_logFC), ]
+            markers = subset(markers, p_val < return.thresh)
 
-            if (nrow(gde) > 0){
-                gde$cluster = opt$cluster
+            if (nrow(markers) > 0){
+                markers$cluster = opt$cluster
             }
-            gde$gene = rownames(gde)
+            markers$gene = rownames(markers)
         }
 
-        markers <- gde
-
         print("FindMarkers complete")
-        print(dim(markers))
 
+        message("correcting p-values")
         ## Add a BH corrected p-value
         ## correction is deliberately applied separately within cluster
         markers$p.adj <- p.adjust(markers$p_val, method="BH")
 
+        message("selecting columns of interest")
         markers <- markers[,c("cluster","gene","p.adj","p_val","avg_logFC","pct.1","pct.2")]
         markers <- markers[order(markers$cluster, markers$p_val),]
 
+        print(head(markers))
         print(dim(markers))
 
         ## add the ensembl gene_ids...
@@ -304,11 +319,11 @@ for (conserved.level in levels(ident.conserved)){
             markers$gene_id <- s@misc[markers$gene,"gene_id"]
         } else {
             print("Adding ensembl gene_ids from annotation")
-
             markers$gene_id <- ann[markers$gene, "ensembl_id"]
         }
 
 
+        message("adding the filter stats")
         ## add the filter stats for each gene
         markers <- cbind(markers, filter_stats[rownames(markers),])
 
@@ -317,7 +332,7 @@ for (conserved.level in levels(ident.conserved)){
         }
 
         ## write out the full results
-        ## file name should be markers.cluster.x.txt
+        ## file name should be markers.cluster.x.tsv
 
         if(opt$testfactor=="none"){
             if (opt$conservedfactor == "none"){
@@ -336,7 +351,7 @@ for (conserved.level in levels(ident.conserved)){
 
         out_path <- file.path(
             opt$outdir,
-            paste(prefix,opt$cluster,"txt","gz",sep="."))
+            paste(prefix,opt$cluster,"tsv","gz",sep="."))
 
         print(paste("Saving markers to:", out_path))
 
@@ -344,6 +359,7 @@ for (conserved.level in levels(ident.conserved)){
                     gzfile(out_path),
                     quote=F,sep="\t",row.names=F)
 
+        rm(markers)
         ## write out the ensembl gene_ids of the "universe" for downstream
         ## geneset analysis
         ##
@@ -371,7 +387,7 @@ for (conserved.level in levels(ident.conserved)){
 
         universe_path <- file.path(
             opt$outdir,
-            paste(prefix,opt$cluster,"universe","txt","gz",sep="."))
+            paste(prefix,opt$cluster,"universe","tsv","gz",sep="."))
 
         write.table(universe,
                     gzfile(universe_path),
@@ -542,7 +558,7 @@ if (length(markers.conserved.list) > 1){
 
     out_path <- file.path(
             opt$outdir,
-            paste(prefix,opt$cluster,"txt","gz",sep="."))
+            paste(prefix,opt$cluster,"tsv","gz",sep="."))
 
     print(paste("Saving markers to:", out_path))
 
@@ -585,7 +601,7 @@ if (length(markers.conserved.list) > 1){
 
     universe_path <- file.path(
         opt$outdir,
-        paste(prefix,opt$cluster,"universe","txt","gz",sep="."))
+        paste(prefix,opt$cluster,"universe","tsv","gz",sep="."))
 
     write.table(universe,
                 gzfile(universe_path),

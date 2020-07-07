@@ -225,14 +225,14 @@ cat("Saving output tables \n")
 pc_out <- df %>% dplyr::select(PC1, PC2, barcode)
 colnames(pc_out) <- c("singler_scores_pc1", "singler_scores_pc2", "barcode")
 top_scores <- left_join(top_scores, pc_out, by="barcode")
-write.table(top_scores, gzfile(paste0(opt$outdir, "/singler_predictions.txt.gz")),
+write.table(top_scores, gzfile(paste0(opt$outdir, "/singler_predictions.tsv.gz")),
             sep="\t", quote=FALSE, row.names=FALSE)
 
 # Output summary table
 t <- table(top_scores$pruned_label) %>% as.data.frame()
 colnames(t) <- c("label", "n")
 t <- t[order(t$n, decreasing = TRUE),]
-write.table(t,paste0(opt$outdir, "/singler_predictions_summary.txt"),
+write.table(t,paste0(opt$outdir, "/singler_predictions_summary.tsv"),
             sep="\t", quote=FALSE, row.names=FALSE)
 
 message("Completed\n\n")

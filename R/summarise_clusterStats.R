@@ -40,7 +40,7 @@ for (i in 1:length(idents.all)) {
 
     id <- idents.all[i]
 
-    tableName = paste("cluster.stats",id,"txt","gz",
+    tableName = paste("cluster.stats",id,"tsv","gz",
                       sep=".")
 
     markerFile <- file.path(opt$outdir,tableName)
@@ -78,7 +78,7 @@ for (i in 1:length(idents.all)) {
 
 stats.all$gene <- rownames(stats.all)
 
-out_path = file.path(opt$outdir, "cluster.stats.summary.table.txt.gz")
+out_path = file.path(opt$outdir, "cluster.stats.summary.table.tsv.gz")
 write.table(stats.all, gzfile(out_path),
             sep="\t", col.names=T, row.names=T, quote=F)
 

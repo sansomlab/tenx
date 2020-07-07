@@ -17,14 +17,15 @@ stopifnot(
 option_list <- list(
     make_option(c("--seuratobject"), default="begin.Robj",
                 help="A seurat object after PCA"),
-    make_option(c("--usesigcomponents"), default=FALSE,
-                help="use significant principle component"),
-    make_option(c("--components"), type="integer", default=10,
-                help="if usesigcomponents is FALSE, the number of principle components to use"),
+    make_option(c("--seuratgraphs"), default="begin.Robj",
+                help="An rds object containing the seurat nn and snn graphs"),
+
+    ## make_option(c("--usesigcomponents"), default=FALSE,
+    ##             help="use significant principle component"),
+    ## make_option(c("--components"), type="integer", default=10,
+    ##             help="if usesigcomponents is FALSE, the number of principle components to use"),
     make_option(c("--predefined"), default=NULL,
                 help="An rds file containing a named vector of predefined cell cluster assignments"),
-    make_option(c("--nneighbors"), type="integer", default=20L,
-                help="number of neighbors (k.param)"),
     make_option(c("--resolution"), type="double", default=1,
                 help="cluster resolution"),
     make_option(c("--algorithm"), type="integer", default=3,
@@ -32,9 +33,7 @@ option_list <- list(
     make_option(c("--project"), default="SeuratAnalysis",
                 help="project name"),
     make_option(c("--outdir"), default="seurat.out.dir",
-                help="outdir"),
-    make_option(c("--reductiontype"), default="pca",
-                help="Name of dimensional reduction technique to use in construction of SNN graph. (e.g. 'pca', 'ica')")
+                help="outdir")
     )
 
 opt <- parse_args(OptionParser(option_list=option_list))
@@ -44,7 +43,7 @@ print(opt)
 
 message(sprintf("readRDS: %s", opt$seuratobject))
 s <- readRDS(opt$seuratobject)
-
+s@graphs <- readRDS(opt$seuratgraphs)
 
 message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
 
@@ -55,35 +54,35 @@ message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
 ## good results for single cell datasets of around 3K cells. Optimal resolution
 ## often increases for larger datasets. The clusters are saved in the object\@ident slot.
 
-if(opt$usesigcomponents)
-{
-    comps <- getSigPC(s)
-    message("using the following pcas:")
-    print(comps)
-} else {
-    comps <- 1:as.numeric(opt$components)
-}
+## if(opt$usesigcomponents)
+## {
+##     comps <- getSigPC(s)
+##     message("using the following pcas:")
+##     print(comps)
+## } else {
+##     comps <- 1:as.numeric(opt$components)
+## }
 
-if(toupper(opt$reductiontype)=="PCA")
-{ if(nrow(s@reductions$pca@jackstraw@overall.p.values) > 0)
-  {
-    ## Make a table of the retained principle components
-    x <- as.data.frame(s@reductions$pca@jackstraw@overall.p.values)
-    x$p.adj <- p.adjust(x$Score, method="BH")
-    x$significant <- "no"
-    x$significant[x$p.adj < 0.05] <- "yes"
-    x <- x[x$PC %in% comps,]
-    x$sdev <- s@reductions$pca@stdev[x$PC]
+## if(toupper(opt$reductiontype)=="PCA")
+## { if(nrow(s@reductions$pca@jackstraw@overall.p.values) > 0)
+##   {
+##     ## Make a table of the retained principle components
+##     x <- as.data.frame(s@reductions$pca@jackstraw@overall.p.values)
+##     x$p.adj <- p.adjust(x$Score, method="BH")
+##     x$significant <- "no"
+##     x$significant[x$p.adj < 0.05] <- "yes"
+##     x <- x[x$PC %in% comps,]
+##     x$sdev <- s@reductions$pca@stdev[x$PC]
 
-    print(
-        xtable(sprintfResults(x), caption=paste("Table of the selected (n=",
-                                                nrow(x),
-                                                ") principle components",
-                                                sep="")),
-        file=file.path(opt$outdir, "selected.principal.components.tex")
-    )
-  }
-}
+##     print(
+##         xtable(sprintfResults(x), caption=paste("Table of the selected (n=",
+##                                                 nrow(x),
+##                                                 ") principle components",
+##                                                 sep="")),
+##         file=file.path(opt$outdir, "selected.principal.components.tex")
+##     )
+##   }
+## }
 
 
 if(is.null(opt$predefined))
@@ -91,10 +90,6 @@ if(is.null(opt$predefined))
 
 
     message(sprintf("FindClusters"))
-    s <- FindNeighbors(s,
-                       reduction = opt$reductiontype,
-                       k.param = opt$nneighbors,
-                       dims = comps)
 
 
     s <- FindClusters(s,
@@ -128,22 +123,22 @@ if(is.null(opt$predefined))
 unique_cluster_ids <- sort(unique(cluster_ids))
 
 message(sprintf("saving a unique list ofe cluster ids"))
-write.table(unique_cluster_ids, file=file.path(opt$outdir,"cluster_ids.txt"),
+write.table(unique_cluster_ids, file=file.path(opt$outdir,"cluster_ids.tsv"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
 
 cluster_colors <- gg_color_hue(length(unique_cluster_ids))
 message(sprintf("saving the cluster colors (ggplot)"))
-write.table(cluster_colors, file=file.path(opt$outdir,"cluster_colors.txt"),
+write.table(cluster_colors, file=file.path(opt$outdir,"cluster_colors.tsv"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
 
 message(sprintf("saveRDS"))
 saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 
-cluster_assignments <- data.frame(barcodes=as.character(names(cluster_ids)),
+cluster_assignments <- data.frame(barcode=as.character(names(cluster_ids)),
                                   cluster_id=as.character(cluster_ids))
 
 write.table(cluster_assignments,
-            gzfile(file.path(opt$outdir, "cluster_assignments.txt.gz")),
+            gzfile(file.path(opt$outdir, "cluster_assignments.tsv.gz")),
             sep="\t", col.names=T, row.names=F, quote=F)
 
 
