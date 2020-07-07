@@ -512,6 +512,35 @@ def seuratPCA(infile, outfile):
 # ############### Predict cell-types using singleR ################### #
 # #################################################################### #
 
+
+@active_if(PARAMS["headstart_seurat_object"])
+@transform(os.path.join(str(PARAMS["headstart_path"]),
+                        "*.seurat.dir/begin.rds"),
+           regex(r".*/(.*).seurat.dir/begin.rds"),
+                 r"\1.seurat.dir/begin.rds")
+def headstart(infile, outfile):
+    '''
+    link in the begin.rds objects
+    '''
+
+    outdir = os.path.dirname(outfile)
+
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+
+    if os.path.exists(infile):
+
+        os.symlink(os.path.relpath(infile, start=outdir),
+                   outfile)
+
+    else:
+        raise ValueError("Headstart seurat object path not found")
+
+
+# ################################################################### #
+# ############### Predict cell-types using singleR ################### #
+# #################################################################### #
+
 def genSingleRjobs():
     '''generate the singleR jobs'''
 
@@ -533,7 +562,7 @@ def genSingleRjobs():
 
 
 @active_if(PARAMS["run_singleR"])
-@follows(seuratPCA)
+@follows(seuratPCA, headstart)
 @files(genSingleRjobs)
 def singleR(infile, outfile):
     '''Perform cell identity prediction on a saved seurat object.
@@ -657,31 +686,6 @@ def plotExtraSingleR(infile, outfile):
 
     P.run(statement)
     IOTools.touch_file(outfile)
-
-
-@active_if(PARAMS["headstart_seurat_object"])
-@transform(os.path.join(str(PARAMS["headstart_path"]),
-                        "*.seurat.dir/begin.rds"),
-           regex(r".*/(.*).seurat.dir/begin.rds"),
-                 r"\1.seurat.dir/begin.rds")
-def headstart(infile, outfile):
-    '''
-    link in the begin.rds objects
-    '''
-
-    outdir = os.path.dirname(outfile)
-
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-
-    if os.path.exists(infile):
-
-        os.symlink(os.path.relpath(infile, start=outdir),
-                   outfile)
-
-    else:
-        raise ValueError("Headstart seurat object path not found")
-
 
 
 
@@ -828,16 +832,24 @@ def anndata(infile, outfile):
 
     # set the job threads and memory
 
+    if PARAMS["neighbors_full_speed"]:
+        full_speed = "--fullspeed"
+    else:
+        full_speed = ""
+
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_high"])
+        memory=PARAMS["resources_memory_extreme"])
 
     statement = '''python %(tenx_dir)s/python/make_anndata.py
                    --reduced_dims_matrix_file=%(reduced_dims_matrix_file)s
                    --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
                    --comps=%(comps)s
+                   --method=%(neighbors_method)s
+                   --threads=%(neighbors_threads)s
                    --k=%(neighbors_n_neighbors)s
                    --metric=%(neighbors_metric)s
+                   %(full_speed)s
                    &> %(log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 
@@ -3160,6 +3172,7 @@ def latexVars(infile, outfile):
             "nPositiveMarkers": "%(exprsreport_n_positive)s" % PARAMS,
             "nNegativeMarkers": "%(exprsreport_n_negative)s" % PARAMS,
             "nnK": "%(neighbors_n_neighbors)s" % PARAMS,
+            "nnMethod": "%(neighbors_method)s" % PARAMS,
             "nnMetric": "%(neighbors_metric)s" % PARAMS,
             "resolution": "%(resolution)s" % locals(),
             "clusteringAlgorithm": "%(algorithm)s" % locals(),

@@ -1,7 +1,7 @@
 The core of the data analysis was performed using \href{http://satijalab.org/seurat/}{Seurat} and \href{https://scanpy.readthedocs.io/}{scanpy}:
 
 \begin{itemize}
-\item The construction of the nearest neighbor graph, clustering and UMAP computation were performed using scanpy.
+\item The construction of the nearest neighbor graph, clustering and UMAP computation were performed using scanpy (or scvelo for use of hnswlib).
 \item The differential expression analysis was performed using Seurat.
 \item The geneset analysis was performed using \href{https://github.com/sansomlab/gsfisher}{gsfisher}
 \item Please see \href{https://github.com/sansomlab/tenx}{https://github/sansomlab/tenx} for more details.
@@ -13,6 +13,7 @@ The key parameter choices used for this analysis were:
 \item The number of \reductionType{} components: \nPCs
 \item The number of nearest neighbors: \nnK
 \item The distance metric used for the nearest neighbor graph: \nnMetric
+\item The method used for construction of the nearest neighbor graph: \nnMethod
 \item The resolution of the clustering: \resolution
 \item The clustering algorithm: \clusteringAlgorithm
 \item The differential expression test: \deTest

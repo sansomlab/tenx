@@ -185,6 +185,16 @@ runspecs:
 # Nearest neighbor parameters
 # --------------------------
 neighbors:
+
+  # scanpy | hnsw
+  methods: scanpy
+
+  # for hnsw
+  threads: 4
+
+  # for hnsw
+  full_speed: True
+
   # The number of neighbors to use when constructing the nearest neighbor graph
   # - it is recommended to match the value chosen for UMAP
   n_neighbors: 20
