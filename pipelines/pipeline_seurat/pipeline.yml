@@ -503,28 +503,9 @@ tsne:
 # ----------------
 
 umap:
-  # method: umap-learn (to use the python implementation) or uwot (R)
-  # See: https://jlmelville.github.io/uwot/pycompare
-  # umap-learn has superior performance but requires the python package,
-  # which can be achieved with "pip install umap-learn"
-  # Choices: umap-learn|uwot
-  method: umap-learn
-  # number of neighboring points used for local approximation of the manifold
-  # structure. In scanpy the default is 15, in seurat it is 30
-  nneighbors: 20
-  # how tightly the embedding is allowed to compress points together
-  # the seurat default is 0.3, in scanpy it is 0.5, in umap-learn 0.1.
+  # Computed using scanpy
+  # and the pre-computed neighbor graph (see above)
   mindist: 0.5
-  # the choice of metric used to measure distance in the input space
-  # Seurat defaults to cosine, scanpy to euclidean
-  # Choices include: cosine|correlation|euclidean
-  metric: euclidean
-  # seed: either a number or NULL for no seed
-  seed: 42
-  # epochs
-  # seurat varies this between 200-500, scanpy sets to 500
-  # Choices NULL (Seurat will set automatically) | int
-  nepochs: 500
 
 # Diffusion map parameters
 # ------------------------
@@ -557,6 +538,9 @@ phate:
 # ------------
 
 velocity:
+
+  # "loom" | "dropest"
+  matrix_type: dropest
 
   # ncores: 8
   # minmaxclustavemat: 0.2

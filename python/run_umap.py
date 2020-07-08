@@ -41,8 +41,12 @@ sc.logging.print_versions()
 parser = argparse.ArgumentParser()
 parser.add_argument("--anndata", default="anndata.h5ad", type=str,
                     help="File with the cell barcodes")
+parser.add_argument("--mindist",default=0.5, type=str,
+                    help="the minimum distance for the umap")
 parser.add_argument("--outdir",default=1, type=str,
                     help="path to output directory")
+
+
 # parser.add_argument("--resolution", default=1, type=str,
 #                     help="the clustering resolution")
 
@@ -70,7 +74,8 @@ sc.settings.set_figure_params(dpi=300, dpi_save=300)
 adata = anndata.read_h5ad(args.anndata)
 
 # compute clusters
-sc.tl.umap(adata)
+sc.tl.umap(adata,
+           min_dist = float(args.mindist))
 
 umap  = pd.DataFrame(adata.obsm["X_umap"], columns=["UMAP_1", "UMAP_2"])
 umap["barcode"] = adata.obs["barcode"].values
