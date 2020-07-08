@@ -1,4 +1,4 @@
-##############################################################################
+
 #
 #   Kennedy Institute of Rheumatology
 #
@@ -1041,7 +1041,7 @@ def clustree(infile, outfile):
 
 
 @active_if(PARAMS["run_paga"])
-@follows(exportForPython)
+@follows(anndata)
 @transform(cluster,
            regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
            r"\1/\2/\3/paga.dir/paga.sentinel")
@@ -1053,37 +1053,15 @@ def paga(infile, outfile):
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    reductiontype = PARAMS["dimreduction_method"]
-    reduced_dims_matrix_file = os.path.join(spec.sample_dir,
-                                            "embedding." + reductiontype + ".tsv.gz")
-
-    barcode_file = os.path.join(spec.sample_dir,
-                                "barcodes.tsv.gz")
-
-    if spec.components == "sig":
-        sigcomps = os.path.join(spec.sample_dir, "sig_comps.tsv")
-        comps = pd.read_table(sigcomps, header=None)
-        comps = comps[comps.columns[0]].tolist()
-        comps = ','.join([ str(item) for item in comps])
-    else :
-        comps = list(range (1, int(spec.components)+1))
-        comps = ','.join([ str(item) for item in comps])
-
-    k = PARAMS["paga_k"]
-
     # set the job threads and memory
-
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_high"])
 
     statement = '''python %(tenx_dir)s/python/run_paga.py
-                   --reduced_dims_matrix_file=%(reduced_dims_matrix_file)s
-                   --barcode_file=%(barcode_file)s
+                   --anndata=%(anndata)s
                    --outdir=%(outdir)s
                    --cluster_assignments=%(cluster_assignments)s
                    --cluster_colors=%(cluster_colors)s
-                   --comps=%(comps)s
-                   --k=%(k)s
                    &> %(log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 
@@ -1184,6 +1162,7 @@ def UMAP(infile, outfile):
 
     statement = '''python %(tenx_dir)s/python/run_umap.py
                              --anndata=%(anndata)s
+                             --mindist=%(umap_mindist)s
                              --outdir=%(outdir)s
                              &> %(log_file)s
                           ''' % dict(PARAMS, **SPEC, **locals())
@@ -1316,7 +1295,7 @@ RDIMS_VIS_COMP_2 = "UMAP_2"
 @active_if(PARAMS["run_velocity"])
 @follows(paga)
 @transform(RDIMS_VIS_TASK,
-           regex(r"(.*)/(.*).dir/(.*).sentinel"),
+           regex(r"(.*)/(.*)/(.*).sentinel"),
            r"\1/velocity.dir/scvelo.sentinel")
 def scvelo(infile, outfile):
     '''
@@ -1330,24 +1309,61 @@ def scvelo(infile, outfile):
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
 
+    id_files = [ os.path.join(spec.component_dir,
+                              "cluster." + r + ".dir",
+                              "cluster_assignments.tsv.gz")
+                 for r in spec.resolutions ]
+
+
+    color_files = [ os.path.join(spec.component_dir,
+                             "cluster." + r + ".dir",
+                              "cluster_colors.tsv")
+                 for r in spec.resolutions ]
+
+
+    cluster_assignment_files = ",".join(id_files)
+
+    cluster_color_files = ",".join(color_files)
+
+    cluster_resolutions = ",".join(spec.resolutions)
+
+
     # if RDIMS_VIS_METHOD == "tsne":
     #     rdims_table = infile.replace(
     #         "sentinel", str(PARAMS["tsne_perplexity"]) + ".tsv")
     # elif RDIMS_VIS_METHOD == "umap":
-    rdims_table = infile.replace(".sentinel", ".tsv")
 
     rdims_vis_method = RDIMS_VIS_METHOD
     rdim1 = RDIMS_VIS_COMP_1
     rdim2 = RDIMS_VIS_COMP_2
 
+    rdims_table = os.path.join(spec.component_dir,
+                               "umap.dir",
+                               "umap.tsv.gz")
+
     sample = infile.split(".seurat.dir")[0]
-    layers_dir = os.path.join("data.velocity.dir",
+
+
+    if PARAMS["velocity_matrix_type"] == "loom":
+
+        loom_file = os.path.join("data.velocity.dir",
+                                 sample + ".loom")
+
+        velocity_data = "--loom=" + loom_file
+
+    elif PARAMS["velocity_matrix_type"] == "dropest":
+
+        layers_dir = os.path.join("data.velocity.dir",
                              sample + ".dir")
 
-    if not os.path.exists(os.path.join(layers_dir,"exons.mtx.gz")):
-        raise ValueError("dropest output not found. Please check that you "
-                         "have symlinked the .layers directory")
+        velocity_data = "--dropest_dir=" + layers_dir
 
+        if not os.path.exists(os.path.join(layers_dir,"exons.mtx.gz")):
+            raise ValueError("dropest output not found. Please check that you "
+                             "have symlinked the .layers directory")
+
+    else:
+        raise ValueError('velocity matrix type must be "loom" or "dropest"')
 
     runs = { "default": { "method": rdims_vis_method,
                           "table": rdims_table,
@@ -1355,24 +1371,26 @@ def scvelo(infile, outfile):
 
     if PARAMS["run_paga"]:
 
-        pagafdg_table = os.path.join(Path(outdir).parents[0],
-                                     "paga.dir",
-                                     "paga_init_fa2.tsv.gz")
+
+        pagafdg_tables = ",".join([os.path.join(
+                spec.component_dir,
+                "cluster." + x + ".dir",
+                "paga.dir",
+                "paga_init_fa2.tsv.gz") for x in spec.resolutions])
 
         runs["pagafdg"] = {"method": "paga_fdg",
-                           "table": pagafdg_table,
+                           "table": pagafdg_tables,
                            "rdim1": "FA1", "rdim2": "FA2"}
 
     if PARAMS["run_phate"]:
 
-        phate_table = os.path.join(Path(outdir).parents[0],
+        phate_table = os.path.join(spec.component_dir,
                                    "phate.dir",
                                    "phate.tsv.gz")
 
         runs["phate"] = {"method": "phate",
                          "table": phate_table,
                          "rdim1": "PHATE1", "rdim2": "PHATE2"}
-
 
     statements = []
 
@@ -1389,10 +1407,11 @@ def scvelo(infile, outfile):
                                               "." + r_method + ".log")
 
         s = '''python %(tenx_dir)s/python/run_scvelo.py
-                   --dropest_dir=%(layers_dir)s
+                   %(velocity_data)s
                    --outdir=%(outdir)s
-                   --cluster_assignments=%(cluster_assignments)s
-                   --cluster_colors=%(cluster_colors)s
+                   --resolution=%(cluster_resolutions)s
+                   --cluster_assignments=%(cluster_assignment_files)s
+                   --cluster_colors=%(cluster_color_files)s
                    --rdim_method=%(r_method)s
                    --rdims=%(r_tab)s
                    --rdim1=%(r_1)s
@@ -3080,7 +3099,7 @@ def latexVars(infile, outfile):
 
     rdimsVisMethod = RDIMS_VIS_METHOD
 
-    velocityDir = os.path.join(clusterDir,
+    velocityDir = os.path.join(compDir,
                                "velocity.dir")
     pagaDir = os.path.join(clusterDir,
                                "paga.dir")
