@@ -65,7 +65,7 @@ args = parser.parse_args()
 
 if not args.loom == "none":
 
-    adata = scv.read(args.loom, cache=True)
+    adata = scv.read(args.loom)
     # get directory with metadata + barcodes
     metadata_dir = args.rdims.split("/")[0]
 
