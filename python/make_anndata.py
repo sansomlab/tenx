@@ -51,18 +51,18 @@ args = parser.parse_args()
 L.info("Running with arguments:")
 print(args)
 
+
 # ########################################################################### #
 # ############## Create outdir and set results file ######################### #
 # ########################################################################### #
 
-
 # write folder
 results_file = args.outdir + "/" + "paga_anndata.h5ad"
 
-# ########################################################################### #
-# ############################### Run PAGA ################################## #
-# ########################################################################### #
 
+# ########################################################################### #
+# ######################### Make the anndata object ######################### #
+# ########################################################################### #
 
 # Read matrix of reduced dimensions, create anndata and add dimensions
 reduced_dims_mat = pd.read_csv(args.reduced_dims_matrix_file, sep="\t")
@@ -85,16 +85,19 @@ L.info("Using comps " + ', '.join(list(reduced_dims_mat.columns)))
 
 adata.obsm['X_rdims'] = reduced_dims_mat.to_numpy(dtype="float32")
 
+
+# ########################################################################### #
+# ####################### Nearest neighbor computation ###################### #
+# ########################################################################### #
+
 # Run neighbors
 L.info( "Using " + str(args.k) + " neighbors")
 
-# L.info("Computing nn using hnswlib as implemented in the pegasus package")
-
-# pg.neighbors(adata,K=args.k, rep="rdim", n_jobs= args.threads,
-#             full_speed=args.full-speed)
-
 if args.method == "scanpy":
-    from scanpy.pp import neighbors
+
+    L.info("Computing neighbors using default scanpy method")
+    from scanpy.preprocessing import neighbors
+
     neighbors(adata,
               n_neighbors = args.k,
               metric = args.metric,
@@ -103,6 +106,7 @@ if args.method == "scanpy":
 
 elif args.method == "hnsw":
 
+    L.info("Computing neighbors using hnswlib (with scvelo a la pegasus!)")
     # we use the neighbors function from scvelo (thanks!)
     # with parameters from pegasus (for a more exact result).
 
