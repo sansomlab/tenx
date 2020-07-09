@@ -38,7 +38,7 @@ sc.logging.print_versions()
 parser = argparse.ArgumentParser()
 parser.add_argument("--loom", default="none", type=str,
                     help="A loom file")
-parser.add_argument("--dropest_dir", default=1, type=str,
+parser.add_argument("--dropest_dir", default="none", type=str,
                     help="File with dropest layers")
 parser.add_argument("--outdir",default=1, type=str,
                     help="path to output directory")
@@ -65,7 +65,9 @@ args = parser.parse_args()
 
 if not args.loom == "none":
 
-    adata = scv.read(args.loom, cache=True)
+    adata = scv.read(args.loom)
+    # get directory with metadata + barcodes
+    metadata_dir = args.rdims.split("/")[0]
 
 elif not args.dropest_dir == "none":
 
@@ -85,17 +87,18 @@ elif not args.dropest_dir == "none":
     adata.obs.index = [x for x in
                        pd.read_csv(os.path.join(args.dropest_dir, "barcodes.tsv.gz"),
                                    header=None)[0].values]
+    metadata_dir = args.dropest_dir
 
 else:
     raise ValueError("either a loom file or dropEst directory must be specified")
 
 # Add the variable and observation information
 
-feat = pd.read_csv(os.path.join(args.dropest_dir,"features.tsv.gz"), header=None)
+feat = pd.read_csv(os.path.join(metadata_dir,"features.tsv.gz"), header=None)
 feat.columns = ["gene_symbol"]
 feat.index = feat["gene_symbol"]
-samples  = pd.read_csv(os.path.join(args.dropest_dir, "barcodes.tsv.gz"),header=None)
-metadata = pd.read_csv(os.path.join(args.dropest_dir,"metadata.tsv.gz"), sep="\t")
+samples  = pd.read_csv(os.path.join(metadata_dir, "barcodes.tsv.gz"),header=None)
+metadata = pd.read_csv(os.path.join(metadata_dir,"metadata.tsv.gz"), sep="\t")
 metadata.index = metadata.barcode.values
 
 adata.vars = feat

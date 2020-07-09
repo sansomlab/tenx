@@ -187,7 +187,7 @@ runspecs:
 neighbors:
 
   # scanpy | hnsw
-  methods: hnsw
+  method: hnsw
 
   # for hnsw
   threads: 4
