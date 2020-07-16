@@ -36,11 +36,9 @@ def get_vars(infile, outfile, PARAMS, make_outdir=True):
 
     SPEC = { "sample_name": parts[0].split(".")[0],
              "sample_dir": parts[0],
-             "seurat_object": os.path.join(parts[0], "begin.rds"),
              "outdir": os.path.dirname(outfile),
              "outname": os.path.basename(outfile),
              }
-
 
     if PARAMS["runspecs_cluster_resolutions"]:
 
@@ -54,6 +52,10 @@ def get_vars(infile, outfile, PARAMS, make_outdir=True):
     if PARAMS["runspecs_predefined_clusters"]:
         SPEC["resolutions"].append("predefined")
 
+    if PARAMS["input_format"] == "rds":
+        SPEC["seurat_object"] = os.path.join(parts[0], "begin.rds")
+    else:
+        SPEC["seurat_object"] = os.path.join(parts[0], "begin.h5seurat")
 
     if not infile is None:
         infile = os.path.relpath(infile)

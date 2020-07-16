@@ -8,6 +8,7 @@ stopifnot(
   require(ggplot2),
   require(reshape2),
   require(Seurat),
+  require(SeuratDisk),
   require(tenxutils)
 )
 
@@ -59,7 +60,13 @@ genes <- read.table(opt$genetable,
 
 
 ## read in the raw count matrix
-s <- readRDS(opt$seuratobject)
+if (endsWith(opt$seuratobject, ".rds")) {
+  message(sprintf("readRDS: %s", opt$seuratobject))
+  s <- readRDS(opt$seuratobject)
+} else {
+  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+  s <- LoadH5Seurat(opt$seuratobject)
+}
 Idents(s) <- readRDS(opt$clusterids)
 
 ## set the default assay

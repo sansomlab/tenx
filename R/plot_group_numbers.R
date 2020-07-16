@@ -179,8 +179,15 @@ if(opt$stat %in% c("total_UMI", "ngenes"))
     {
         require(Seurat)
         # add the statistic from the seurat object
-        s <- readRDS(opt$seuratobject)
-
+        if (endsWith(opt$seuratobject, ".rds")) {
+          message(sprintf("readRDS: %s", opt$seuratobject))
+          s <- readRDS(opt$seuratobject)
+        } else {
+          require(SeuratDisk)
+          message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+          s <- LoadH5Seurat(opt$seuratobject)
+        }
+      
         ## set the default assay
         message("Setting default assay to: ", opt$seuratassay)
         DefaultAssay(s) <- opt$seuratassay

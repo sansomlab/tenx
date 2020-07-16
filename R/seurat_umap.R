@@ -52,7 +52,15 @@ print(opt)
 
 
 message("readRDS")
-s <- readRDS(opt$seuratobject)
+if (endsWith(opt$seuratobject, ".rds")) {
+  message(sprintf("readRDS: %s", opt$seuratobject))
+  s <- readRDS(opt$seuratobject)
+} else {
+  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+  stopifnot(require(SeuratDisk))
+  s <- LoadH5Seurat(opt$seuratobject)
+}
+
 s@graphs <- readRDS(opt$seuratgraphs)
 
 message("seurat_umap.R running with default assay: ", DefaultAssay(s))

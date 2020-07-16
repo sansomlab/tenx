@@ -26,6 +26,15 @@ matrix:
   #
   type: 10X
 
+input:
+  # currently supported are
+  # -----------------------
+  #
+  # "rds", for which the pipeline expects a
+  # file called 'begin.rds'
+  # "h5seurat", for which the pipeline expects
+  # a file called 'begin.h5seurat'
+  format: rds
 
 # compute resource options
 # ------------------------

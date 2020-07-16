@@ -8,6 +8,7 @@
 stopifnot(
   require(optparse),
   require(Seurat),
+  require(SeuratDisk),
   require(future),
   require(dplyr),
   require(Matrix),
@@ -52,7 +53,13 @@ cat("Running with options:\n")
 print(opt)
 
 
-s <- readRDS(opt$seuratobject)
+if (endsWith(opt$seuratobject, ".rds")) {
+  message(sprintf("readRDS: %s", opt$seuratobject))
+  s <- readRDS(opt$seuratobject)
+} else {
+  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+  s <- LoadH5Seurat(opt$seuratobject)
+}
 cluster_ids <- readRDS(opt$clusterids)
 
 xx <- names(cluster_ids)

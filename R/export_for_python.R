@@ -6,6 +6,7 @@
 stopifnot(
   require(optparse),
   require(Seurat),
+  require(SeuratDisk),
   require(tenxutils)
 )
 
@@ -55,8 +56,14 @@ exportMetaData <- function(seurat_object, outdir=NULL) {
 
 
 # Read RDS seurat object
-message("readRDS")
-s <- readRDS(opt$seuratobject)
+if (endsWith(opt$seuratobject, ".rds")) {
+   message(sprintf("readRDS: %s", opt$seuratobject))
+   s <- readRDS(opt$seuratobject)
+} else {
+   message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+   s <- LoadH5Seurat(opt$seuratobject)
+}
+
 message("export_for_python running with default assay: ", DefaultAssay(s))
 
 # Write out the cell and feature names

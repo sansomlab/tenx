@@ -36,8 +36,14 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
-message(sprintf("readRDS: %s", opt$seuratobject))
-s <- readRDS(opt$seuratobject)
+if (endsWith(opt$seuratobject, ".rds")) {
+  message(sprintf("readRDS: %s", opt$seuratobject))
+  s <- readRDS(opt$seuratobject)
+} else {
+  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+  stopifnot(require(SeuratDisk))
+  s <- LoadH5Seurat(opt$seuratobject)
+}
 
 message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
 

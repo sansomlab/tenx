@@ -40,7 +40,14 @@ if(!is.null(opt$subgroup)) { opt$subgroup <- strsplit(opt$subgroup,",")[[1]]}
 cat("Running with options:\n")
 print(opt)
 
-s <- readRDS(opt$seuratobject)
+if (endsWith(opt$seuratobject, ".rds")) {
+  message(sprintf("readRDS: %s", opt$seuratobject))
+  s <- readRDS(opt$seuratobject)
+} else {
+  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+  stopifnot(require(SeuratDisk))
+  s <- LoadH5Seurat(opt$seuratobject)
+}
 cluster_ids <- readRDS(opt$clusterids)
 Idents(s) <- cluster_ids
 

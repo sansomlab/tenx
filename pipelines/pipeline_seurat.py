@@ -544,7 +544,10 @@ def headstart(infile, outfile):
 def genSingleRjobs():
     '''generate the singleR jobs'''
 
-    seurat_objects = glob.glob("*.seurat.dir/begin.rds")
+    if PARAMS["input_format"] == "rds":
+        seurat_objects = glob.glob("*.seurat.dir/begin.rds")
+    else:
+        seurat_objects = glob.glob("*.seurat.dir/begin.h5seurat")
 
     references = [x.strip() for x in PARAMS["singleR_reference"].split(",")]
 
@@ -610,7 +613,6 @@ def singleR(infile, outfile):
 
         spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-
         # set the job threads and memory
         job_threads, job_memory, r_memory = TASK.get_resources(
             memory=PARAMS["resources_memory_extreme"],
@@ -637,6 +639,8 @@ def plotSingleR(infile, outfile):
     '''Make the singleR heatmap'''
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+    print(spec)
+    print(SPEC)
 
     predictions = os.path.join(spec.indir,
                                "predictions.rds")
@@ -693,10 +697,17 @@ def plotExtraSingleR(infile, outfile):
 # ############ Begin per-parameter combination analysis runs ################ #
 # ########################################################################### #
 
+if PARAMS["input_format"] == "rds":
+    SEURAT_OBJECTS = "*.seurat.dir/begin.rds"
+    S_REGEX = regex(r"(.*)/begin.rds")
+else:
+    SEURAT_OBJECTS = "*.seurat.dir/begin.h5seurat"
+    S_REGEX = regex(r"(.*)/begin.h5seurat")
+
 
 @follows(seuratPCA, headstart)
-@transform("*.seurat.dir/begin.rds",
-           regex(r"(.*)/begin.rds"),
+@transform(SEURAT_OBJECTS,
+           S_REGEX,
            r"\1/export_for_python.sentinel")
 def exportForPython(infile, outfile):
     '''
@@ -790,7 +801,10 @@ def genAnndata():
 
     for sample in samples:
 
-        infile = os.path.join(sample, "begin.rds")
+        if PARAMS["input_format"] == "rds":
+            infile = os.path.join(sample, "begin.rds")
+        else:
+            infile = os.path.join(sample, "begin.h5seurat")
 
         for comps in components:
 
@@ -871,7 +885,10 @@ def genScanpyClusterJobs():
 
     for sample in samples:
 
-        infile = os.path.join(sample, "begin.rds")
+        if PARAMS["input_format"] == "rds":
+            infile = os.path.join(sample, "begin.rds")
+        else:
+            infile = os.path.join(sample, "begin.h5seurat")
 
         for comps in components:
 
