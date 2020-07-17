@@ -26,9 +26,9 @@ L.setLevel(logging.INFO)
 L.info("parsing arguments")
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--reduced_dims_matrix_file", default="reduced_dims.tsv.gz", type=str,
+parser.add_argument("--reduced_dims_matrix_file", default="none", type=str,
                     help="File with reduced dimensions")
-parser.add_argument("--anndata_file", default="anndata.h5ad", type=str,
+parser.add_argument("--anndata_file", default="none", type=str,
                     help="h5ad file with anndata")
 parser.add_argument("--reduction_name", default="pca", type=str,
                     help="Name of the dimension reduction")
@@ -70,7 +70,7 @@ results_file = args.outdir + "/" + "paga_anndata.h5ad"
 # select correct PCs
 select_comps = args.comps.split(",")
 
-if "anndata_file" in args:
+if not args.anndata_file == "none":
     L.info("Using converted h5ad from SeuratDisk")
     adata_input = anndata.read(args.anndata_file)
     adata_input.obs['barcode'] = pd.Series(adata_input.obs.index.copy(),
@@ -86,7 +86,7 @@ if "anndata_file" in args:
     L.info("Using comps " + ', '.join(rd_colnames))
 
 
-elif "reduced_dims_matrix_file" in args:
+elif not args.reduced_dims_matrix_file == "none":
     # Read matrix of reduced dimensions, create anndata and add dimensions
     reduced_dims_mat = pd.read_csv(args.reduced_dims_matrix_file, sep="\t")
     reduced_dims_mat.index = [x for x in pd.read_csv(args.barcode_file, header=None)[0]]
