@@ -72,15 +72,15 @@ select_comps = args.comps.split(",")
 
 if "anndata_file" in args:
     L.info("Using converted h5ad from SeuratDisk")
-    adata = anndata.read(args.anndata_file)
-    adata.obs['barcode'] = pd.Series(adata.obs.index.copy(),
-                                     index=adata.obs.index.copy())
+    adata_input = anndata.read(args.anndata_file)
+    adata_input.obs['barcode'] = pd.Series(adata_input.obs.index.copy(),
+                                     index=adata_input.obs.index.copy())
 
     # get name for obsm
     obsm_use = 'X_' + str(args.reduction_name)
     indeces = [int(i)-1 for i in select_comps]
-    L.info(indeces)
-    adata.obsm[obsm_use] = adata.obsm[obsm_use][:,indeces]
+    adata = anndata.AnnData(obs=adata_input.obs.copy())
+    adata.obsm[obsm_use] = adata_input.obsm[obsm_use].copy()[:,indeces]
 
     rd_colnames = [str(args.reduction_name)+"_"+str(i) for i in select_comps]
     L.info("Using comps " + ', '.join(rd_colnames))
@@ -117,6 +117,7 @@ else:
 
 # Run neighbors
 L.info( "Using " + str(args.k) + " neighbors")
+L.info( "Computing neighbors based on obsm: " + str(obsm_use))
 
 if args.method == "scanpy":
 
