@@ -6,7 +6,6 @@
 stopifnot(
   require(optparse),
   require(Seurat),
-  require(SeuratDisk),
   require(tenxutils)
 )
 
@@ -61,6 +60,7 @@ if (endsWith(opt$seuratobject, ".rds")) {
    s <- readRDS(opt$seuratobject)
 } else {
    message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+   stopifnot(require(SeuratDisk))
    s <- LoadH5Seurat(opt$seuratobject)
 }
 

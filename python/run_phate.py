@@ -15,7 +15,7 @@ import logging
 import sys
 import scprep
 import phate
-
+import anndata
 
 
 # ########################################################################### #
@@ -53,7 +53,10 @@ parser.add_argument("--k", default=5, type=int,
                     help="number of neighbors")
 parser.add_argument("--gif", default="No", type=str,
                     help="output a GIF")
-
+parser.add_argument("--reduction_name", default="pca", type=str,
+                    help="Name of the reduced dimseions")
+parser.add_argument("--input_type", default="tsv", type=str,
+                    help="anndata or tsv")
 
 args = parser.parse_args()
 
@@ -68,17 +71,28 @@ args = parser.parse_args()
 # ############################## Run PHATE ################################## #
 # ########################################################################### #
 
-if args.assay == "reduced.dimensions":
-    # Read matrix of reduced dimensions, create anndata and add dimensions
-    data = pd.read_csv(args.data, sep="\t", header=0)
+if args.input_type == "tsv":
+    if args.assay == "reduced.dimensions":
+        # Read matrix of reduced dimensions, create anndata and add dimensions
+        pd.read_csv(args.data, sep="\t", header=0)
 
-if args.assay == "scaled.data":
-    # Read matrix of reduced dimensions, create anndata and add dimensions
-    data = pd.read_csv(args.data, sep="\t", header=None)
+    if args.assay == "scaled.data":
+        # Read matrix of reduced dimensions, create anndata and add dimensions
+        data = pd.read_csv(args.data, sep="\t", header=None)
+        # we need to transpose the data for PHATE
+        data = data.transpose()
 
-    # we need to transpose the data for PHATE
-    data = data.transpose()
-
+if args.input_type == "anndata":
+    # Read in anndata and extract correct data type
+    adata = anndata.read(args.data)
+    if args.assay == "reduced.dimensions":
+        obsm_use = 'X_' + str(args.reduction_name)
+        data = pd.DataFrame(adata.obsm[obsm_use].copy(),
+                            index=adata.obs.index.copy())
+    if args.assay == "scaled.data":
+        data = pd.DataFrame(adata.X.copy(),
+                            index=adata.index.copy())
+        data = data.transpose()
 
 phate_operator = phate.PHATE(n_jobs=-2, knn=args.k)
 x2 = phate_operator.fit_transform(data)
@@ -113,7 +127,11 @@ for resolution, cluster_file in clusterings.items():
 rdims_phate = pd.DataFrame(x2,
                            columns=["PHATE1","PHATE2"])
 
-rdims_phate["barcode"] = pd.read_csv(args.barcode_file, header=None)[0].values
+if args.input_type == "tsv":
+    rdims_phate["barcode"] = pd.read_csv(args.barcode_file, header=None)[0].values
+if args.input_type == "anndata":
+    rdims_phate["barcode"] = adata.obs.index.values
+
 
 rdims_phate.to_csv(os.path.join(args.outdir,"phate.tsv.gz"),
                    sep="\t")
@@ -145,7 +163,10 @@ for resolution, cluster_file in clusterings.items():
 rdims_phate = pd.DataFrame(x3,
                            columns=["PHATE1","PHATE2", "PHATE3"])
 
-rdims_phate["barcode"] = pd.read_csv(args.barcode_file, header=None)[0].values
+if args.input_type == "tsv":
+    rdims_phate["barcode"] = pd.read_csv(args.barcode_file, header=None)[0].values
+if args.input_type == "anndata":
+    rdims_phate["barcode"] = adata.obs.index.values
 
 rdims_phate.to_csv(os.path.join(args.outdir,"phate_3D.tsv.gz"),
                    sep="\t")

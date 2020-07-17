@@ -19,7 +19,6 @@ log_handler.setLevel(logging.INFO)
 L.addHandler(log_handler)
 L.setLevel(logging.INFO)
 
-
 # ########################################################################### #
 # ######################## Parse the arguments ############################## #
 # ########################################################################### #
@@ -29,6 +28,10 @@ L.info("parsing arguments")
 parser = argparse.ArgumentParser()
 parser.add_argument("--reduced_dims_matrix_file", default="reduced_dims.tsv.gz", type=str,
                     help="File with reduced dimensions")
+parser.add_argument("--anndata_file", default="anndata.h5ad", type=str,
+                    help="h5ad file with anndata")
+parser.add_argument("--reduction_name", default="pca", type=str,
+                    help="Name of the dimension reduction")
 parser.add_argument("--barcode_file", default="barcodes.tsv.gz", type=str,
                     help="File with the cell barcodes")
 parser.add_argument("--outdir",default=1, type=str,
@@ -61,29 +64,51 @@ results_file = args.outdir + "/" + "paga_anndata.h5ad"
 
 
 # ########################################################################### #
-# ######################### Make the anndata object ######################### #
+# ######################## Make anndata object ############################## #
 # ########################################################################### #
 
-# Read matrix of reduced dimensions, create anndata and add dimensions
-reduced_dims_mat = pd.read_csv(args.reduced_dims_matrix_file, sep="\t")
-reduced_dims_mat.index = [x for x in pd.read_csv(args.barcode_file, header=None)[0]]
-
-adata = anndata.AnnData(obs=[x for x in reduced_dims_mat.index])
-adata.obs.index = reduced_dims_mat.index
-adata.obs.rename(columns={0:'barcode'}, inplace=True)
-
-# Add dimensions to anndata
-colnames = list(reduced_dims_mat.columns)
-colname_prefix = list(set([re.sub(r'_[0-9]+', '', i) for i in colnames]))[0] + "_"
+# select correct PCs
 select_comps = args.comps.split(",")
-select_comps = [ colname_prefix + item for item in select_comps]
-reduced_dims_mat = reduced_dims_mat[select_comps]
 
-n_pcs = len(select_comps)
+if "anndata_file" in args:
+    L.info("Using converted h5ad from SeuratDisk")
+    adata = anndata.read(args.anndata_file)
+    adata.obs['barcode'] = pd.Series(adata.obs.index.copy(),
+                                     index=adata.obs.index.copy())
 
-L.info("Using comps " + ', '.join(list(reduced_dims_mat.columns)))
+    # get name for obsm
+    obsm_use = 'X_' + str(args.reduction_name)
+    indeces = [int(i)-1 for i in select_comps]
+    L.info(indeces)
+    adata.obsm[obsm_use] = adata.obsm[obsm_use][:,indeces]
 
-adata.obsm['X_rdims'] = reduced_dims_mat.to_numpy(dtype="float32")
+    rd_colnames = [str(args.reduction_name)+"_"+str(i) for i in select_comps]
+    L.info("Using comps " + ', '.join(rd_colnames))
+
+
+elif "reduced_dims_matrix_file" in args:
+    # Read matrix of reduced dimensions, create anndata and add dimensions
+    reduced_dims_mat = pd.read_csv(args.reduced_dims_matrix_file, sep="\t")
+    reduced_dims_mat.index = [x for x in pd.read_csv(args.barcode_file, header=None)[0]]
+
+    adata = anndata.AnnData(obs=[x for x in reduced_dims_mat.index])
+    adata.obs.index = reduced_dims_mat.index
+    adata.obs.rename(columns={0:'barcode'}, inplace=True)
+
+    # Add dimensions to anndata
+    colnames = list(reduced_dims_mat.columns)
+    colname_prefix = list(set([re.sub(r'_[0-9]+', '', i) for i in colnames]))[0] + "_"
+    select_comps = args.comps.split(",")
+    select_comps = [ colname_prefix + item for item in select_comps]
+    reduced_dims_mat = reduced_dims_mat[select_comps]
+
+    L.info("Using comps " + ', '.join(list(reduced_dims_mat.columns)))
+
+    adata.obsm['X_rdims'] = reduced_dims_mat.to_numpy(dtype="float32")
+    obsm_use = 'X_rdims'
+
+else:
+    L.info("No input file present.")
 
 
 # ########################################################################### #
@@ -101,7 +126,7 @@ if args.method == "scanpy":
     neighbors(adata,
               n_neighbors = args.k,
               metric = args.metric,
-              use_rep = 'X_rdims')
+              use_rep = obsm_use)
 
 
 elif args.method == "hnsw":
@@ -117,7 +142,7 @@ elif args.method == "hnsw":
     neighbors(adata,
               n_neighbors = args.k,
               n_pcs = None,
-              use_rep = "X_rdims",
+              use_rep = obsm_use,
               knn = True,
               random_state = 0,
               method = 'hnsw',
@@ -134,5 +159,12 @@ else:
 # compute clusters
 adata.write(os.path.join(args.outdir,
                          "anndata.h5ad"))
+
+if "anndata_file" in args:
+    # write out metadata for other tasks
+    metadata_out = adata.obs.copy()
+    out_folder = os.path.dirname(args.anndata_file)
+    metadata_out.to_csv(os.path.join(out_folder, "metadata.tsv.gz"),
+                        sep="\t", index=False)
 
 L.info("Complete")

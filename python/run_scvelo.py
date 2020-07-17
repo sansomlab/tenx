@@ -56,6 +56,9 @@ parser.add_argument("--rdim1", default="UMAP1", type=str,
                     help="reduced dimension 1")
 parser.add_argument("--rdim2", default="UMAP2", type=str,
                     help="reduced dimension 2")
+parser.add_argument("--input_type", default="tsv", type=str,
+                    help="whether gene and dim reduction information are "
+                         "read from tsv or anndata")
 
 args = parser.parse_args()
 
@@ -92,17 +95,32 @@ elif not args.dropest_dir == "none":
 else:
     raise ValueError("either a loom file or dropEst directory must be specified")
 
-# Add the variable and observation information
 
-feat = pd.read_csv(os.path.join(metadata_dir,"features.tsv.gz"), header=None)
-feat.columns = ["gene_symbol"]
-feat.index = feat["gene_symbol"]
-samples  = pd.read_csv(os.path.join(metadata_dir, "barcodes.tsv.gz"),header=None)
-metadata = pd.read_csv(os.path.join(metadata_dir,"metadata.tsv.gz"), sep="\t")
-metadata.index = metadata.barcode.values
+if args.input_type == "tsv" or not args.dropest_dir == "none":
+    # Add the variable and observation information from flat files
+    # or from dropest input directory
 
-adata.vars = feat
-adata.obs = metadata.loc[adata.obs.index,]
+    feat = pd.read_csv(os.path.join(metadata_dir,"features.tsv.gz"), header=None)
+    feat.columns = ["gene_symbol"]
+    feat.index = feat["gene_symbol"]
+    samples  = pd.read_csv(os.path.join(metadata_dir, "barcodes.tsv.gz"),header=None)
+    metadata = pd.read_csv(os.path.join(metadata_dir,"metadata.tsv.gz"), sep="\t")
+    metadata.index = metadata.barcode.values
+
+    adata.vars = feat
+    adata.obs = metadata.loc[adata.obs.index,]
+
+else:
+    # This is used for loom files + h5ad runs
+    # Need to use .raw slot here to have all genes included!
+    adata_info = ad.read(os.path.join(args.rdims.split("/")[0], "begin.h5ad"))
+    #adata_info.raw.var['gene_symbol'] = adata_info.raw.var.index.values
+    #adata.vars = adata_info.raw.var.copy()
+    #adata.obs = adata_info
+    #adata = scv.utils.merge(adata, adata_meta)
+    ## the merge is causing issues with a corrupted neighbor graph
+    metadata = adata_info.obs.copy()
+    adata.obs = metadata.loc[adata.obs.index,]
 
 L.info("AnnData initialised")
 

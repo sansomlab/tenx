@@ -697,14 +697,19 @@ def plotExtraSingleR(infile, outfile):
 # ############ Begin per-parameter combination analysis runs ################ #
 # ########################################################################### #
 
+USE_RDS = 0
+USE_H5 = 0
+
 if PARAMS["input_format"] == "rds":
     SEURAT_OBJECTS = "*.seurat.dir/begin.rds"
     S_REGEX = regex(r"(.*)/begin.rds")
+    USE_RDS = 1
 else:
     SEURAT_OBJECTS = "*.seurat.dir/begin.h5seurat"
     S_REGEX = regex(r"(.*)/begin.h5seurat")
+    USE_H5 = 1
 
-
+@active_if(USE_RDS)
 @follows(seuratPCA, headstart)
 @transform(SEURAT_OBJECTS,
            S_REGEX,
@@ -790,6 +795,30 @@ def exportForPython(infile, outfile):
         P.run(statement)
         IOTools.touch_file(outfile)
 
+@active_if(USE_H5)
+@follows(seuratPCA, headstart)
+@transform(SEURAT_OBJECTS,
+           S_REGEX,
+           r"\1/export_for_python.sentinel")
+def convertRDStoAnndata(infile, outfile):
+    '''Convert Seurat h5ad to anndata h5ad '''
+
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
+    statement = '''Rscript %(tenx_dir)s/R/convert_rds_to_anndata.R
+                       --seuratobject=%(seurat_object)s
+                       &> %(log_file)s
+                    ''' % dict(PARAMS, **SPEC, **locals())
+
+    P.run(statement)
+    IOTools.touch_file(outfile)
+
+
+if PARAMS["input_format"] == "rds":
+    TASK_EXPORT = exportForPython
+else:
+    TASK_EXPORT = convertRDStoAnndata
+
 
 def genAnndata():
 
@@ -814,8 +843,7 @@ def genAnndata():
             outfile = os.path.join(sample, outdir, subdir, outname)
             yield [infile, outfile]
 
-
-@follows(exportForPython)
+@follows(TASK_EXPORT)
 @files(genAnndata)
 def anndata(infile, outfile):
     '''
@@ -826,8 +854,14 @@ def anndata(infile, outfile):
 
     reductiontype = PARAMS["dimreduction_method"]
 
-    reduced_dims_matrix_file = os.path.join(spec.sample_dir,
-                                            "embedding." + reductiontype + ".tsv.gz")
+    if PARAMS["input_format"] == "rds":
+        reduced_dims_matrix_file = os.path.join(spec.sample_dir,
+                                                "embedding." + reductiontype + ".tsv.gz")
+        input_files = '''--reduced_dims_matrix_file=%(reduced_dims_matrix_file)s '''
+    else:
+        anndata_file = SPEC["seurat_object"].replace(".h5seurat", ".h5ad")
+        input_files = '''--anndata_file=%(anndata_file)s
+                         --reduction_name=%(dimreduction_method)s '''
 
     barcode_file = os.path.join(spec.sample_dir,
                                 "barcodes.tsv.gz")
@@ -855,7 +889,7 @@ def anndata(infile, outfile):
         memory=PARAMS["resources_memory_extreme"])
 
     statement = '''python %(tenx_dir)s/python/make_anndata.py
-                   --reduced_dims_matrix_file=%(reduced_dims_matrix_file)s
+                   %(input_files)s
                    --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
                    --comps=%(comps)s
@@ -1100,7 +1134,7 @@ def paga(infile, outfile):
 
 
 @active_if(PARAMS["run_phate"])
-@follows(exportForPython,cluster)
+@follows(TASK_EXPORT, cluster)
 @transform(anndata,
            regex(r"(.*)/(.*)/anndata.dir/anndata.sentinel"),
            r"\1/\2/phate.dir/phate.sentinel")
@@ -1130,22 +1164,29 @@ def phate(infile, outfile):
 
     cluster_resolutions = ",".join(spec.resolutions)
 
-    barcode_file = os.path.join(spec.sample_dir,
-                                "barcodes.tsv.gz")
 
-    if PARAMS["phate_assay"] == "reduced.dimensions":
-
-        embeddings = ".".join(["embedding",
-                               PARAMS["dimreduction_method"],
-                               "tsv.gz"])
-
-        assay_data = os.path.join(spec.sample_dir, embeddings)
-
-    elif PARAMS["phate_assay"] == "scaled.data":
-        assay_data = os.path.join(spec.sample_dir, "assay.scale.data.tsv.gz")
-
+    if USE_H5:
+        # path to anndata object
+        assay_data = os.path.join(spec.sample_dir, "begin.h5ad")
+        if PARAMS["phate_assay"] == "reduced.dimensions":
+            # add red dimension name to extract from anndata
+            input_phate = '''--reduction_name=%(dimreduction_method)s
+                             --input_type="anndata" '''
     else:
-        raise ValueError("PHATE assay not recognised")
+        barcode_file = os.path.join(spec.sample_dir,
+                                    "barcodes.tsv.gz")
+        input_phate = ''' --barcode_file=%(barcode_file)s
+                          --input_type="tsv" '''
+        if PARAMS["phate_assay"] == "reduced.dimensions":
+            embeddings = ".".join(["embedding",
+                                   PARAMS["dimreduction_method"],
+                                   "tsv.gz"])
+            assay_data = os.path.join(spec.sample_dir, embeddings)
+
+        elif PARAMS["phate_assay"] == "scaled.data":
+            assay_data = os.path.join(spec.sample_dir, "assay.scale.data.tsv.gz")
+        else:
+            raise ValueError("PHATE assay not recognised")
 
 
     k = PARAMS["phate_k"]
@@ -1157,13 +1198,13 @@ def phate(infile, outfile):
     statement = '''python %(tenx_dir)s/python/run_phate.py
                    --data=%(assay_data)s
                    --assay=%(phate_assay)s
-                   --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
                    --resolution=%(cluster_resolutions)s
                    --cluster_assignments=%(cluster_assignment_files)s
                    --cluster_colors=%(cluster_color_files)s
                    --k=%(k)s
                    --gif=%(phate_gif)s
+                   %(input_phate)s
                    &> %(log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 
@@ -1424,6 +1465,10 @@ def scvelo(infile, outfile):
         runs["phate"] = {"method": "phate",
                          "table": phate_table,
                          "rdim1": "PHATE1", "rdim2": "PHATE2"}
+    if USE_H5:
+        input_type = ''' --input_type="anndata" '''
+    else:
+        input_type = ''' --input_type="tsv" '''
 
     statements = []
 
@@ -1449,6 +1494,7 @@ def scvelo(infile, outfile):
                    --rdims=%(r_tab)s
                    --rdim1=%(r_1)s
                    --rdim2=%(r_2)s
+                   %(input_type)s
                 &> %(this_log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 
@@ -1464,7 +1510,7 @@ def scvelo(infile, outfile):
 
 @transform(RDIMS_VIS_TASK,
            regex(r"(.*)/(.*)/(.*)/(.*).sentinel"),
-           add_inputs(exportForPython),
+           add_inputs(TASK_EXPORT),
            r"\1/\2/rdims.visualisation.dir/plot.rdims.factor.sentinel")
 def plotRdimsFactors(infiles, outfile):
     '''
@@ -1882,7 +1928,7 @@ def plotRdimsGenes(infile, outfile):
 # ################# plot per-cluster summary statistics ##################### #
 # ########################################################################### #
 
-@follows(exportForPython)
+@follows(TASK_EXPORT)
 @transform(cluster,
            regex(r"(.*)/cluster.sentinel"),
            r"\1/group.numbers.dir/plot.group.numbers.sentinel")
