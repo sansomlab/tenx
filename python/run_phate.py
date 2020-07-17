@@ -60,11 +60,8 @@ parser.add_argument("--input_type", default="tsv", type=str,
 
 args = parser.parse_args()
 
-# ########################################################################### #
-# ############## Create outdir and set results file ######################### #
-# ########################################################################### #
-
-
+L.info("Running with arguments:")
+print(args)
 
 
 # ########################################################################### #
@@ -74,7 +71,7 @@ args = parser.parse_args()
 if args.input_type == "tsv":
     if args.assay == "reduced.dimensions":
         # Read matrix of reduced dimensions, create anndata and add dimensions
-        pd.read_csv(args.data, sep="\t", header=0)
+        data = pd.read_csv(args.data, sep="\t", header=0)
 
     if args.assay == "scaled.data":
         # Read matrix of reduced dimensions, create anndata and add dimensions
