@@ -42,7 +42,6 @@ option_list <- list(
         c("--matrixtype"), default="10X",
         help="either 10X or rds"
     ),
-
     make_option(
         c("--project"),
         default="SeuratAnalysis",
@@ -53,6 +52,11 @@ option_list <- list(
         default="seurat.out.dir",
         help="Location for outputs files. Must exist."
         ),
+    make_option(
+      c("--file_type"),
+      default="rds",
+      help="Which type of file to use (rds or h5seurat)"
+    ),
     make_option(
         c("--metadata"),
         default="none",
@@ -674,6 +678,16 @@ print(
 message("seurat_begin.R object final default assay: ", DefaultAssay(s))
 
 # Save the R object
-saveRDS(s, file=file.path(opt$outdir, "begin.rds"))
+if (opt$file_type == "rds") {
+  message(sprintf("readRDS: %s", opt$seuratobject))
+  saveRDS(s, file=file.path(opt$outdir, "begin.rds"))
+} else {
+  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+  stopifnot(require(SeuratDisk))
+  SaveH5Seurat(s, file=file.path(opt$outdir, "begin.h5seurat"), overwrite = TRUE)
+  
+}
+
+
 
 message("Completed")

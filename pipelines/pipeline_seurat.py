@@ -296,6 +296,7 @@ def createSeuratObject(infile, outfile):
                    --matrixtype=%(matrix_type)s
                    --project=%(sample_name)s
                    --outdir=%(outdir)s
+                   --file_type=%(input_format)s
                    --groupby=%(qc_groupby)s
                    --mingenes=%(qc_initial_mingenes)s
                    --mincells=%(qc_mincells)s
@@ -512,12 +513,14 @@ def seuratPCA(infile, outfile):
 # ############### Predict cell-types using singleR ################### #
 # #################################################################### #
 
+file_suffix = str(PARAMS["input_format"])
+print(file_suffix)
 
 @active_if(PARAMS["headstart_seurat_object"])
 @transform(os.path.join(str(PARAMS["headstart_path"]),
-                        "*.seurat.dir/begin.rds"),
-           regex(r".*/(.*).seurat.dir/begin.rds"),
-                 r"\1.seurat.dir/begin.rds")
+                        "*.seurat.dir/begin."+file_suffix),
+           regex(r".*/(.*).seurat.dir/begin."+file_suffix),
+                 rf"\1.seurat.dir/begin."+file_suffix)
 def headstart(infile, outfile):
     '''
     link in the begin.rds objects
