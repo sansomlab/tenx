@@ -808,17 +808,41 @@ def convertRDStoAnndata(infile, outfile):
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
-    # set the job threads and memory
-    job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+    if PARAMS["headstart_export_for_python"]:
 
-    statement = '''Rscript %(tenx_dir)s/R/convert_rds_to_anndata.R
+        source_folder = os.path.join(PARAMS["headstart_path"],
+                                     spec.sample_dir)
+
+        source_files = ["begin.h5ad",
+                        "export_for_python.*"]
+
+        source_paths = [ os.path.join(source_folder, x)
+                         for x in source_files ]
+
+        for source in source_paths:
+            if "*" in source:
+                files = glob.glob(source)
+            else:
+                files = [ source ]
+
+            for sf in files:
+                if os.path.exists(sf):
+                    os.symlink(os.path.relpath(sf,
+                                               start=spec.sample_dir),
+                               os.path.join(spec.sample_dir,
+                                            os.path.basename(sf)))
+    else:
+        # set the job threads and memory
+        job_threads, job_memory, r_memory = TASK.get_resources(
+            memory=PARAMS["resources_memory_standard"])
+
+        statement = '''Rscript %(tenx_dir)s/R/convert_rds_to_anndata.R
                        --seuratobject=%(seurat_object)s
                        &> %(log_file)s
                     ''' % dict(PARAMS, **SPEC, **locals())
 
-    P.run(statement)
-    IOTools.touch_file(outfile)
+        P.run(statement)
+        IOTools.touch_file(outfile)
 
 
 if PARAMS["input_format"] == "rds":
