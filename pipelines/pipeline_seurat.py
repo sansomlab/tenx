@@ -808,6 +808,10 @@ def convertRDStoAnndata(infile, outfile):
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
+    # set the job threads and memory
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"])
+
     statement = '''Rscript %(tenx_dir)s/R/convert_rds_to_anndata.R
                        --seuratobject=%(seurat_object)s
                        &> %(log_file)s
