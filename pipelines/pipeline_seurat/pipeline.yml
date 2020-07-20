@@ -53,7 +53,8 @@ resources:
   memory_low: 10G
   # Memory_standard is used if not further specified
   memory_standard: 20G
-  # Memory_high is used for tasks: findMarkers, summariseMarkers,
+  # Memory_high is used for tasks: beginSeurat, compareClusters,
+  # paga, UMAP, topClusterMarkers, findMarkers, summariseMarkers
   # diffusionMap
   memory_high: 50G
   # Memory_extreme is used for the scaleing and PCA tasks
