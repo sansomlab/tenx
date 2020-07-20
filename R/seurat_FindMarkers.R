@@ -92,12 +92,24 @@ have_gene_ids <- "gene_id" %in% colnames(s@misc)
 
 if(!have_gene_ids)
 {
-    cat("Missing ensembl gene_id column in @misc, reading in annotation.\n")
+    cat("Missing ensembl gene_id column in @misc, reading in annotation from other source.\n")
 
-    ann <- read.table(gzfile(opt$annotation), header=T, sep="\t", as.is=T)
+    if(endsWith(opt$seuratobject, ".h5seurat")){
+        message("Using s@assays$RNA@meta.features in Seurat object for gene annotation. This slot contains unique gene names and is produced during conversion from scanpy anndata object.")
+	ann <- s@assays$RNA@meta.features
+	ann$gene_name = rownames(ann)
+	ann <- unique(ann[,c("gene_ids", "gene_name")])
+	colnames(ann) <- c("ensembl_id", "gene_name")
+    }
+    else {
+    	message("Reading in annotation from annotation.dir")
+	message("Please note that only genes with unique gene names will be kept.")
+	message("The other ones will be lost due to Seurat's process of making gene names unique!")
+        ann <- read.table(gzfile(opt$annotation), header=T, sep="\t", as.is=T)
 
-    ## subset to columns of interest
-    ann <- unique(ann[,c("ensembl_id", "gene_name")])
+        ## subset to columns of interest
+        ann <- unique(ann[,c("ensembl_id", "gene_name")])
+    }
 
     ## the gene names have been made unique so we want only 1:1 mappings.
     gn_tab <- table(ann$gene_name)
