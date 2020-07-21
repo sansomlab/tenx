@@ -221,14 +221,7 @@ options(future.globals.maxSize = opt$memory * 1024^2)
 
 # Input data ----
 
-if (endsWith(opt$seuratobject, ".rds")) {
-  message(sprintf("readRDS: %s", opt$seuratobject))
-  s <- readRDS(opt$seuratobject)
-} else {
-  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
-  stopifnot(require(SeuratDisk))
-  s <- LoadH5Seurat(opt$seuratobject)
-}
+s <- loadSeurat(path=opt$seuratobject)
 
 ## ######################################################################### ##
 ## # (i) Initial normalisation, variable gene identification and scaling ## ##
@@ -358,11 +351,6 @@ if(opt$normalizationmethod=="sctransform")
 message("seurat_begin.R object final default assay: ", DefaultAssay(s))
 
 # Save the R object
-if (endsWith(opt$seuratobject, ".rds")) {
-  saveRDS(s, file=file.path(opt$outdir, "begin.rds"))
-} else {
-  stopifnot(require(SeuratDisk))
-  SaveH5Seurat(s, file=file.path(opt$outdir, "begin.h5seurat"), overwrite = TRUE)
-}
+saveSeurat(path=opt$seuratobject)
 
 message("Completed")

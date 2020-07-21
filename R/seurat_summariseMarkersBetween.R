@@ -48,14 +48,7 @@ print(opt)
 # set the run specs
 run_specs <- paste(opt$numpcs,opt$resolution,opt$algorithm,opt$testuse,sep="_")
 
-if (endsWith(opt$seuratobject, ".rds")) {
-  message(sprintf("readRDS: %s", opt$seuratobject))
-  s <- readRDS(opt$seuratobject)
-} else {
-  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
-  stopifnot(require(SeuratDisk))
-  s <- LoadH5Seurat(opt$seuratobject)
-}
+s <- loadSeurat(path=opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 
 message("Setting the default seurat assay to: ", opt$seuratassay)

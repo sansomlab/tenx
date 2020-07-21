@@ -126,3 +126,50 @@ getCellCycleGenes <- function(sgenes_file = NULL,
     list(s.genes = sgenes,
          g2m.genes = g2mgenes)
 }
+
+
+## Function to load seurat object from either rds or h5seurat
+#' This function can load the Seurat object from either rds or 
+#' h5seurat format 
+#'
+#' @param path The path to the stored object
+#' @param format A string indicating whether it is 'rds' or 'h5seurat'. If left empty (defaults to "none"), the ending of the path is used to determine file format.
+loadSeurat <- function(path,
+                       format = "none")
+{
+    if (endsWith(path, ".rds") | format == "rds") {
+        message(sprintf("readRDS: %s", opt$seuratobject))
+        s <- readRDS(path)
+    } else if (endsWith(path, ".h5seurat") | format == "h5seurat") {
+        message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+        stopifnot(require(SeuratDisk))
+        s <- LoadH5Seurat(path)
+    } else {
+        stop("Input format not supported. The format or path ending needs to be rds/.rds or h5seurat/.h5seurat.")
+    }
+}
+
+## Function to save seurat objects to either rds or h5seurat
+#' This function can save the Seurat object to either rds or 
+#' h5seurat format 
+#'
+#' @param path The path where the object should be stored
+#' @param format A string indicating whether it is 'rds' or 'h5seurat'. If left empty (defaults to "none"), the ending of the path is used to determine file format.
+
+saveSeurat <- function(path, 
+                       format = "none")
+{
+    if (endsWith(path, ".rds") | format == "rds") {
+        message(sprintf("readRDS: %s", opt$seuratobject))
+        saveRDS(s, file=file.path(opt$outdir, "begin.rds"))
+    } else if (endsWith(path, ".h5seurat") | format == "h5seurat") {
+        message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
+        stopifnot(require(SeuratDisk))
+        SaveH5Seurat(s, file=file.path(opt$outdir, "begin.h5seurat"), overwrite = TRUE)
+    } else {
+        stop("Output format not supported. The format or path ending needs to be rds/.rds or h5seurat/.h5seurat.") 
+    }
+}
+
+
+

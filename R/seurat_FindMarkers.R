@@ -78,14 +78,7 @@ plan("multiprocess",
      workers = opt$numcores)
 
 
-if (endsWith(opt$seuratobject, ".rds")) {
-  message(sprintf("readRDS: %s", opt$seuratobject))
-  s <- readRDS(opt$seuratobject)
-} else {
-  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
-  stopifnot(require(SeuratDisk))
-  s <- LoadH5Seurat(opt$seuratobject)
-}
+s <- loadSeurat(path=opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 
 have_gene_ids <- "gene_id" %in% colnames(s@misc)

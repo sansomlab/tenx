@@ -120,15 +120,7 @@ if(opt$pointpch != ".") { opt$pointpch <- as.numeric(opt$pointpch) }
 cat("Running with options:\n")
 print(opt)
 
-
-if (endsWith(opt$seuratobject, ".rds")) {
-  message(sprintf("readRDS: %s", opt$seuratobject))
-  s <- readRDS(opt$seuratobject)
-} else {
-  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
-  s <- LoadH5Seurat(opt$seuratobject)
-}
-
+s <- loadSeurat(path=opt$seuratobject)
 
 ## set the default assay
 message("Setting default assay to: ", opt$seuratassay)

@@ -187,14 +187,8 @@ tex <- c(tex, getFigureTex(defn, deCaption,plot_dir_var=opt$plotdirvar))
 ## enforce significance
 
 ## read in the seurat object
-if (endsWith(opt$seuratobject, ".rds")) {
-  message(sprintf("readRDS: %s", opt$seuratobject))
-  s <- readRDS(opt$seuratobject)
-} else {
-  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
-  stopifnot(require(SeuratDisk))
-  s <- LoadH5Seurat(opt$seuratobject)
-}
+s <- loadSeurat(path=opt$seuratobject)
+
 cluster_ids <- readRDS(opt$clusterids)
 Idents(s) <- cluster_ids
 

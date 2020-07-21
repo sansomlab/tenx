@@ -679,15 +679,10 @@ message("seurat_begin.R object final default assay: ", DefaultAssay(s))
 
 # Save the R object
 if (opt$file_type == "rds") {
-  message(sprintf("readRDS: %s", opt$seuratobject))
-  saveRDS(s, file=file.path(opt$outdir, "begin.rds"))
+  outfile = file.path(opt$outdir, "begin.rds")
 } else {
-  message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
-  stopifnot(require(SeuratDisk))
-  SaveH5Seurat(s, file=file.path(opt$outdir, "begin.h5seurat"), overwrite = TRUE)
-  
+  outfile = file.path(opt$outdir, "begin.h5seurat")
 }
-
-
+saveSeurat(path=outfile, format=opt$file_type)
 
 message("Completed")
