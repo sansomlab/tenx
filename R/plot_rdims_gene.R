@@ -23,7 +23,6 @@ stopifnot(
   require(ggplot2),
   require(reshape2),
   require(Seurat),
-  require(SeuratDisk),
   require(tenxutils),
   require(BiocParallel),
   require(Matrix)

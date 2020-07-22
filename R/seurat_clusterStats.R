@@ -8,7 +8,6 @@
 stopifnot(
   require(optparse),
   require(Seurat),
-  require(SeuratDisk),
   require(future),
   require(dplyr),
   require(Matrix),

@@ -53,16 +53,9 @@ exportMetaData <- function(seurat_object, outdir=NULL) {
                 quote=FALSE, sep="\t", row.names = FALSE, col.names = TRUE)
     }
 
-
 # Read RDS seurat object
-if (endsWith(opt$seuratobject, ".rds")) {
-   message(sprintf("readRDS: %s", opt$seuratobject))
-   s <- readRDS(opt$seuratobject)
-} else {
-   message(sprintf("LoadH5Seurat: %s", opt$seuratobject))
-   stopifnot(require(SeuratDisk))
-   s <- LoadH5Seurat(opt$seuratobject)
-}
+message(sprintf("readRDS: %s", opt$seuratobject))
+s <- readRDS(opt$seuratobject)
 
 message("export_for_python running with default assay: ", DefaultAssay(s))
 
