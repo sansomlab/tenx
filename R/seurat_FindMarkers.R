@@ -95,7 +95,7 @@ if(!have_gene_ids)
   if(endsWith(opt$seuratobject, ".h5seurat")){
     message("Using s@assays$RNA@meta.features in Seurat object for gene annotation. This slot contains unique gene names and is produced during conversion from scanpy anndata object.")
     ann <- s@assays$RNA@meta.features
-    ann$gene_name = rownames(ann)
+    ann$seurat_id = rownames(ann)
     ann <- unique(ann[,c("gene_ids", "seurat_id")])
     colnames(ann) <- c("ensembl_id", "gene_name")
   } else {

@@ -161,7 +161,7 @@ else:
 adata.write(os.path.join(args.outdir,
                          "anndata.h5ad"))
 
-if "anndata_file" in args:
+if args.anndata_file != "none":
     # write out metadata for other tasks
     metadata_out = adata.obs.copy()
     out_folder = os.path.dirname(args.anndata_file)
