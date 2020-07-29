@@ -1178,9 +1178,9 @@ def UMAP(infile, outfile):
 # ########################################################################### #
 
 @active_if(PARAMS["run_diffusionmap"])
-@transform(anndata,
-           regex(r"(.*)/(.*)/anndata.dir/anndata.sentinel"),
-           r"\1/\2/diffusionmap.dir/dm.sentinel")
+@transform(cluster,
+           regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
+           r"\1/\2/\3/diffusionmap.dir/dm.sentinel")
 def diffusionMap(infile, outfile):
     '''
     Run the diffusion map analysis on a saved seurat object.
@@ -1189,8 +1189,6 @@ def diffusionMap(infile, outfile):
     ## TODO: fix plotting flow
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
-
-    cluster_ids = infile.replace(".sentinel","_ids.rds")
 
     if(spec.components=="sig"):
         comp="--usesigcomponents=TRUE"
