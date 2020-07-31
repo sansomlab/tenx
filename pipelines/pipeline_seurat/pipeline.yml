@@ -62,6 +62,7 @@ run:
   jackstraw: False
   compare_clusters: True
   characterise_markers: True
+  extra_cluster_marker_plots: True
   diffusionmap: False
   phate: True
   paga: True
@@ -70,6 +71,18 @@ run:
   exprsreport: False
   genesets: False
   cellbrowser: False
+
+
+# Chose how to report the results
+# -------------------------------
+# True | False
+report:
+  # If marker report is True then
+  # (i) violin plots and DE plots are not shown
+  #     in the summary report
+  # (ii) the gene expression report will not be made.
+  marker_report: True
+
 
 
 # Give the pipeline a head start?
@@ -505,7 +518,14 @@ tsne:
 umap:
   # Computed using scanpy
   # and the pre-computed neighbor graph (see above)
+
+
+  # mindists to run (comma separated list).
+  mindists: 0,0.1,0.3,0.5,0.7
+
+  # the selected mindist to use for the plots.
   mindist: 0.5
+
 
 # Diffusion map parameters
 # ------------------------
@@ -596,6 +616,11 @@ findmarkers:
     # Only test genes that are detected in a minimum fraction of min.pct cells
     # (see min.pct=...)
     minpct: 0.1
+
+    # the slot to use for the top marker heatmap.
+    # (if "scale.data" is missing, "data" will be used)
+    # if data is used, row z-scores are plotted.
+    heatmap_slot: scale.data
 
     maxcellsperident: 50000
     #

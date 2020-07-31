@@ -82,7 +82,7 @@ umap["barcode"] = adata.obs["barcode"].values
 
 
 umap.to_csv(os.path.join(args.outdir,
-                      "umap.tsv.gz"), sep="\t",
+                      "umap." + args.mindist + ".tsv.gz"), sep="\t",
          index=False)
 
 

@@ -216,7 +216,7 @@ for(color_var in color_vars)
 
     if(color_var == cluster_col)
     {
-        gp <- gp + geom_text(data=centers, aes(x, y, label=cluster), color="black")
+        gp <- gp + geom_text(data=centers, aes(x, y, label=cluster), color="black", size=3)
     }
 
 
@@ -295,13 +295,12 @@ for(color_var in color_vars)
 
 }
 
-
 print("Writing out latex snippet")
 ## write out latex snippet
 
 tex_file <- file.path(opt$outdir,
-                      paste("plot.rdims",
-                            "factor.tex",
+                      paste(opt$method,
+                            "tex",
                             sep="."))
 
 writeTex(tex_file, tex)
