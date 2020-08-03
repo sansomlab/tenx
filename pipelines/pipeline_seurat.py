@@ -1394,7 +1394,10 @@ def scvelo(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_high"])
+
+    # path to filtered barcodes.tsv.gz for subsetting in velocity_matrix
+    barcodes_filtered_dir = os.path.join(sample + ".seurat.dir")
 
     for run, details in runs.items():
 
@@ -1414,6 +1417,7 @@ def scvelo(infile, outfile):
                    --rdims=%(r_tab)s
                    --rdim1=%(r_1)s
                    --rdim2=%(r_2)s
+		   --barcodes_dir=%(barcodes_filtered_dir)s		
                 &> %(this_log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 

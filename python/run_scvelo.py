@@ -43,7 +43,7 @@ parser.add_argument("--dropest_dir", default="none", type=str,
 parser.add_argument("--outdir",default=1, type=str,
                     help="path to output directory")
 parser.add_argument("--cluster_assignments", default=1, type=str,
-                                        help="gzipped tsv file with cell cluster assignments")
+                    help="gzipped tsv file with cell cluster assignments")
 parser.add_argument("--cluster_colors", default=1, type=str,
                     help="tsv file with the color palette for the clusters")
 parser.add_argument("--resolution", default=1, type=str,
@@ -56,6 +56,8 @@ parser.add_argument("--rdim1", default="UMAP1", type=str,
                     help="reduced dimension 1")
 parser.add_argument("--rdim2", default="UMAP2", type=str,
                     help="reduced dimension 2")
+parser.add_argument("--barcodes_dir", default=1, type=str,
+                    help="gzipped tsv file with barcodes to keep")
 
 args = parser.parse_args()
 
@@ -103,6 +105,16 @@ metadata.index = metadata.barcode.values
 
 adata.vars = feat
 adata.obs = metadata.loc[adata.obs.index,]
+
+# read barcodes_to_keep (from main subsetted matrix)
+barcodes_to_keep = pd.read_csv(os.path.join(args.barcodes_dir, "barcodes.tsv.gz"),header=None)
+
+# convert dataframe to array
+tmp = barcodes_to_keep.to_numpy()
+tmpf = tmp.flatten()
+
+# subset adata
+adata = adata[tmpf]
 
 L.info("AnnData initialised")
 
