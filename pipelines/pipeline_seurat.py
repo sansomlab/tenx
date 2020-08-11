@@ -1231,16 +1231,14 @@ def diffusionMap(infile, outfile):
 
 @active_if(PARAMS["run_knownmarkers"])
 @transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/known.markers.dir/known.markers.sentinel")
+           regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
+           r"\1/\2/\3/known.markers.dir/known.markers.sentinel")
 def knownMarkerViolins(infile, outfile):
     '''
        Make per-cluster violin plots from a given set of known marker genes.
     '''
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
-
-    cluster_ids = os.path.join(spec.indir, "cluster_ids.rds")
 
     if not os.path.exists(PARAMS["knownmarkers_file"]):
         raise ValueError("The specified known markers file does not exist")

@@ -138,8 +138,6 @@ makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
                    strip.background = element_rect(fill="grey94",color="grey94"),
                    panel.spacing.x=unit(2, "mm"),
                    axis.line.y = element_blank())
-  #  axis.title.x = element_blank())
-  gp <- gp + annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf,size=1)
 
   gpGrob <- ggplotGrob(gp)
 
