@@ -139,6 +139,13 @@ makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
                    panel.spacing.x=unit(2, "mm"),
                    axis.line.y = element_blank())
 
+  if (to_add > 0){
+    ggData$gene <- droplevels(ggData$gene)
+    gp <- gp + geom_segment(data=ggData, x=-Inf, xend=-Inf, y=-Inf, yend=Inf,size=1)
+  } else {
+    gp <- gp + annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf,size=1)
+  }
+  
   gpGrob <- ggplotGrob(gp)
 
   if(nl < ncol) {
