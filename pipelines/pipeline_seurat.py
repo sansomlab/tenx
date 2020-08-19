@@ -863,8 +863,9 @@ def genScanpyClusterJobs():
     components = components_str.strip().replace(" ", "").split(",")
     samples = glob.glob("*.seurat.dir")
 
-    resolutions = [ x.strip() for x in
-                    PARAMS["runspecs_cluster_resolutions"].split(",") ]
+    if PARAMS["runspecs_cluster_resolutions"]:
+        resolutions = [ x.strip() for x in
+                        PARAMS["runspecs_cluster_resolutions"].split(",") ]
 
     outname = "scanpy.clusters.sentinel"
 
@@ -882,14 +883,17 @@ def genScanpyClusterJobs():
                 outfile = os.path.join(sample, outdir, subdir, outname)
                 yield [infile, outfile]
 
-            for resolution in resolutions:
+            if PARAMS["runspecs_cluster_resolutions"]:
+                for resolution in resolutions:
 
-                subdir = "cluster." + resolution + ".dir"
-                outfile = os.path.join(sample, outdir, subdir, outname)
-                yield [infile, outfile]
+                    subdir = "cluster." + resolution + ".dir"
+                    outfile = os.path.join(sample, outdir, subdir, outname)
+                    yield [infile, outfile]
+
 
 
 #@active_if(PARAMS["run_paga"])
+#@active_if(PARAMS["cluster_predefined"]==False)
 @follows(anndata)
 @files(genScanpyClusterJobs)
 def scanpyCluster(infile, outfile):
@@ -902,7 +906,9 @@ def scanpyCluster(infile, outfile):
     job_threads, job_memory, r_memory = TASK.get_resources(
         memory=PARAMS["resources_memory_standard"])
 
-    statement = '''python %(tenx_dir)s/python/run_cluster.py
+    if not "cluster.predefined.dir" in spec.outdir:
+
+        statement = '''python %(tenx_dir)s/python/run_cluster.py
                    --anndata=%(anndata)s
                    --algorithm=%(cluster_algorithm)s
                    --resolution=%(resolution)s
@@ -910,7 +916,8 @@ def scanpyCluster(infile, outfile):
                    &> %(log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 
-    P.run(statement)
+        P.run(statement)
+
     IOTools.touch_file(outfile)
 
 
@@ -929,10 +936,16 @@ def cluster(infile, outfile):
 
     scanpy_cluster_tsv = infile.replace(".sentinel",".tsv.gz")
 
+    if "cluster.predefined.dir"  in spec.indir:
+        predefined='--predefined=' + PARAMS["runspecs_predefined_clusters"]
+    else:
+        predefined=""
+
     statement = '''Rscript %(tenx_dir)s/R/scanpy_post_process_clusters.R
                    --seuratobject=%(seurat_object)s
                    --clusters=%(scanpy_cluster_tsv)s
                    --algorithm=%(cluster_algorithm)s
+                   %(predefined)s
                    --mincells=10
                    --outdir=%(outdir)s
                    > %(log_file)s
@@ -966,6 +979,7 @@ def compareClusters(infile, outfile):
 
     if spec.resolution == "predefined":
 
+        # TODO: Fix.
         cluster_file = sample + ".cluster_ids.rds"
 
         if os.path.exists(cluster_file):
@@ -979,8 +993,7 @@ def compareClusters(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_high"],
-        cpu=PARAMS["resources_numcores"])
+        memory=PARAMS["resources_memory_low"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_compare_clusters.R
                    --seuratobject=%(seurat_object)s
@@ -1406,7 +1419,7 @@ def scvelo(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"])
+        memory=PARAMS["resources_memory_high"])
 
     for run, details in runs.items():
 
@@ -2153,6 +2166,7 @@ def summariseMarkers(infile, outfile):
     IOTools.touch_file(outfile)
 
 
+@active_if(PARAMS["run_top_marker_heatmap"])
 @transform(summariseMarkers,
            regex(r"(.*)/summariseMarkers.sentinel"),
            r"\1/topMarkerHeatmap.sentinel")
@@ -3265,6 +3279,7 @@ def latexVars(infile, outfile):
                                "rdims.visualisation.dir")
 
     # rdimsVisMethod = RDIMS_VIS_METHOD
+    rdimsVisMethodShort = "umap"
     rdimsVisMethod = "umap.mindist_" + str(PARAMS["umap_mindist"])
 
     velocityDir = os.path.join(compDir,
@@ -3344,6 +3359,7 @@ def latexVars(infile, outfile):
             "rdimsVisFactorDir": "%(rdimsVisFactorDir)s" % locals(),
             "rdimsVisSingleRDir": "%(rdimsVisSingleRDir)s" % locals(),
             "rdimsVisMethod": "%(rdimsVisMethod)s" % locals() ,
+            "rdimsVisMethodShort": "%(rdimsVisMethodShort)s" % locals() ,
             "velocityDir": "%(velocityDir)s" % locals(),
             "pagaDir": "%(pagaDir)s" % locals(),
             "phateDir": "%(phateDir)s" % locals(),
@@ -3479,10 +3495,14 @@ def markerReport(infile, outfile):
                     width = "1", height= ".9",
                     caption = "UMAP coloured by cluster  (resolution " + spec.resolution + ")")
 
-        _add_figure(os.path.join(spec.cluster_dir, "cluster.markers.dir",
-                                 "markers.summary.heatmap"),
-                    width = "1", height= "0.9",
-                    caption = "Marker summary heatmap (resolution " + spec.resolution + ")")
+
+        tmh = os.path.join(spec.cluster_dir, "cluster.markers.dir",
+                           "markers.summary.heatmap")
+
+        if(os.path.exists(tmh)):
+            _add_figure(tmh,
+                        width = "1", height= "0.9",
+                        caption = "Marker summary heatmap (resolution " + spec.resolution + ")")
 
 
         for clust in clusters_with_markers:
@@ -3690,6 +3710,11 @@ def summaryReport(infile, outfile):
     statement += '''
       \\input %(tenx_dir)s/pipelines/pipeline_seurat/markerGenes.tex
       '''
+
+    if(PARAMS["run_top_marker_heatmap"]):
+        statement += '''
+        \\input %(tenx_dir)s/pipelines/pipeline_seurat/topMarkerHeatmap.tex
+        '''
 
     if(PARAMS["run_characterise_markers"] and not PARAMS["report_marker_report"]):
         statement += '''
