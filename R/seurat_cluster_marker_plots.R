@@ -81,6 +81,9 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list=option_list))
 
+cat("Running with options:\n")
+print(opt)
+
 outprefix = file.path(opt$outdir,paste("cluster",opt$cluster,sep="."))
 
 # rundir <- "/gfs/work/ssansom/combat/fulldepth/29072020/f_others/"
@@ -125,7 +128,7 @@ mch <- markerComplexHeatmap(s,
                             row_names_gp=8,
                             slot="data",
                          #   priority="min_logFC",
-                            sub_group="Source")
+                            sub_group=opt$group)
 
 drawHeatmap <- function() { draw(mch) }
 
@@ -156,7 +159,7 @@ save_ggplots(paste(outprefix,"rdims",sep="."),
              height=9,
              to_pdf=opt$pdf)
 
-message("makeing the violin plots")
+message("making the violin plots")
 # make the violin plots
 gg_grob <- plotHorizontalViolins(s,
                        x$gene,
