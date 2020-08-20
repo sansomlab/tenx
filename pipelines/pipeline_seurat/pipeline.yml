@@ -190,7 +190,7 @@ runspecs:
     # - Manual cluster assignmets should be provided as sample_name.cluster_ids.rds file(s)
     # - one per sample must be present in the run directory
     # - the .rds files should contained a name vector of cell barcodes (names) and clusters (values)
-    predefined_clsters: False
+    predefined_clusters: False
 
     # Runs to skip (comma separated list of subfolders within each sample directory)
     skip:
