@@ -19,6 +19,8 @@ option_list <- list(
                 help="A seurat object after PCA"),
     make_option(c("--clusters"), default="scanpy.clusters.tsv.gz",
                 help="the scanpy cluster assignments"),
+    make_option(c("--predefined"), default="none",
+                help="a file containing a set of predefined clusters"),
     make_option(c("--algorithm"), default="leiden",
                 help="name of the clustering alogorithm"),
     make_option(c("--mincells"), type="integer", default=10,
@@ -35,31 +37,38 @@ print(opt)
 message(sprintf("readRDS: %s", opt$seuratobject))
 s <- readRDS(opt$seuratobject)
 
-
 message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
 
-clusters <- read.table(opt$clusters, sep="\t", header=T, as.is=T)
+if(opt$predefined=="none")
+    {
+        clusters <- read.table(opt$clusters, sep="\t", header=T, as.is=T)
+        cluster_ids <- clusters[[opt$algorithm]]
 
-cluster_ids <- clusters[[opt$algorithm]]
+        if(!all(names(cluster_ids)==Cells(s)))
+        {    stop("barcodes from scanpy do not match cells from seurat") }
 
-if(!all(names(cluster_ids)==Cells(s)))
-{    stop("barcodes from scanpy do not match cells from seurat") }
+        print(table(cluster_ids))
+        x <- table(cluster_ids)
 
-print(table(cluster_ids))
+        rejected_clusters <- names(x[x<opt$mincells])
+        cluster_ids[cluster_ids %in% rejected_clusters] <- "911"
 
-x <- table(cluster_ids)
 
-rejected_clusters <- names(x[x<opt$mincells])
-cluster_ids[cluster_ids %in% rejected_clusters] <- "911"
+        print(head(cluster_ids))
+        print(table(cluster_ids))
+    } else {
+
+        clusters <- read.table(opt$predefined, sep="\t", header=T, as.is=T)
+
+        cluster_ids <- clusters$cluster_id
+
+        }
 
 cluster_ids <- factor(as.numeric(cluster_ids))
 names(cluster_ids) <- clusters$barcode
 
-print(head(cluster_ids))
-print(table(cluster_ids))
 
 unique_cluster_ids <- unique(cluster_ids)
-
 print(unique_cluster_ids)
 
 message(sprintf("saving a unique list ofe cluster ids"))
