@@ -6,6 +6,7 @@ stopifnot(
   require(Seurat),
   require(gridExtra),
   require(openxlsx),
+  require(tidyr),
   require(dplyr),
   require(tidyselect),
   require(reshape2),
@@ -46,9 +47,10 @@ annotation <- seurat_obj@misc
 
 ## Load UMAP coordinates
 cat("Load UMAP coordinates ... \n")
-data_selected = read.table(file.path(opt$seurat_path, opt$runspecs,"umap.dir", "umap.tsv"),
+runspecs = data.frame(all = opt$runspecs) %>% separate(all, c("comp", "res", "mindist"), sep = "_")
+data_selected = read.table(file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
+                                     "umap.dir", paste0("umap", runspecs$mindist,".tsv.gz")),
                            header=TRUE, as.is=TRUE, sep="\t")
-data_selected$cluster = as.character(data_selected$cluster)
 output = data_selected[,c("barcode", "UMAP_1", "UMAP_2")]
 colnames(output) = c("cellId", "x", "y")
 write.table(output,file.path(opt$outdir, "UMAP.tsv"), quote = FALSE, row.names = FALSE,
@@ -56,18 +58,26 @@ write.table(output,file.path(opt$outdir, "UMAP.tsv"), quote = FALSE, row.names =
 
 ## Load Force-directed graph coordinates
 cat("Load Force-directed graph coordinates ... \n")
-infile_gzip = gzfile(file.path(opt$seurat_path, opt$runspecs,"paga.dir", "paga_init_fa2.tsv.gz"))
+infile_gzip = gzfile(file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
+                               paste0("cluster.", runspecs$res, ".dir"),  "paga.dir", "paga_init_fa2.tsv.gz"))
 output = read.table(infile_gzip, header=TRUE, as.is=TRUE, sep="\t")
+output = output[,c("barcode", "FA1", "FA2")]
 colnames(output) = c("cellId", "x", "y")
 write.table(output,file.path(opt$outdir, "FA.tsv"), quote = FALSE, row.names = FALSE,
             sep = "\t")
 
 ## get metadata for cluster name
 cat("Process cluster ids for cells ... \n")
-print(table(data_selected$cluster))
-## write csv for anno
-output = data_selected[,!grepl("UMAP", colnames(data_selected))] %>%
-            dplyr::select(barcode, cluster, everything())
+infile_cluster_assignments = gzfile(file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
+                                               paste0("cluster.", runspecs$res, ".dir"), "cluster_assignments.tsv.gz"))
+output = read.table(infile_cluster_assignments, header=TRUE, as.is=TRUE, sep="\t")
+colnames(output) = c("barcode", "cluster")
+print(table(output$cluster_id))
+
+cat("Process other metadata ... \n")
+meta = read.table(gzfile(file.path(opt$seurat_path, "metadata.tsv.gz"), 
+                           header=TRUE, as.is=TRUE, sep="\t"))
+output = merge(output, meta, on='barcode')
 write.table(output,file.path(opt$outdir, "meta.tsv"), quote = FALSE, row.names = FALSE,
             sep = "\t")
 
@@ -85,9 +95,10 @@ cat("Finished writing expression matrix ... \n")
 ## set the cell colors according to cluster
 cat("Read in the colors to match colors in other visualisations ... \n")
 
-cols = read.csv(file.path(opt$seurat_path, opt$runspecs, "cluster.dir", "cluster_colors.tsv"),
+cols = read.csv(file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
+                          paste0("cluster.", runspecs$res, ".dir"), "cluster.dir", "cluster_colors.tsv"),
                   header = FALSE, stringsAsFactors = FALSE)
-clusters = sort(unique(as.numeric(data_selected$cluster)))
+clusters = sort(unique(as.numeric(output$cluster)))
 out_color = data.frame(name = clusters,
                        color = cols,
                        stringsAsFactors = FALSE)
@@ -98,9 +109,10 @@ write.table(out_color, file.path(opt$outdir,"colors.tsv"), quote = FALSE,
 
 ## add marker genes
 cat("Prepare marker genes to be shown ... \n")
-print(file.path(opt$seurat_path, opt$runspecs,
-                "cluster.markers.dir","markers.summary.table.xlsx"))
-data_selected = openxlsx::read.xlsx(xlsxFile = file.path(opt$seurat_path, opt$runspecs,
+print(file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
+                paste0("cluster.", runspecs$res, ".dir"), "cluster.markers.dir","markers.summary.table.xlsx"))
+data_selected = read.xlsx(xlsxFile = file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
+                                               paste0("cluster.", runspecs$res, ".dir"),
                                               "cluster.markers.dir","markers.summary.table.xlsx"))
 output = data_selected[,c("gene","gene_id", "cluster","avg_logFC","p.adj")]
 output = output %>% group_by(cluster) %>% dplyr::arrange(desc(avg_logFC)) %>% do(head(.,n=20)) %>% ungroup()

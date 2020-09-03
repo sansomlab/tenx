@@ -741,5 +741,7 @@ gmt_celltype_files:
 # (Only one cellbrowser instance is generated according to the specified
 # runspecs for each sample)
 cellbrowser:
-  # Specify the folder name for each sample that should be used for cellbrowser
-  # sample1: 25_0.4_1_wilcox
+  # Specify the parameter for each sample that should be used for cellbrowser
+  # combination should be a combination of number of reduced dimension components, clustering resolution,
+  # mindist to use for umap, separated by '_': components_resolution_mindist, e.g. 50_0.4_0.5
+  # sample1: 50_0.4_0.5
