@@ -3858,8 +3858,8 @@ def cellbrowser(infile, outfile):
         # Rscript to generate input files
 
         # set the job threads and memory
-        locals().update(
-            TASK.get_resources(memory=PARAMS["resources_memory_standard"]))
+        job_threads, job_memory, r_memory = TASK.get_resources(
+            memory=PARAMS["resources_memory_standard"])
 
 
         statement = '''Rscript %(tenx_dir)s/R/cellbrowser_prep.R
@@ -3867,7 +3867,7 @@ def cellbrowser(infile, outfile):
                          --seurat_path=%(seurat_path)s
                          --runspecs=%(settings_use)s
                        &> %(log_file)s
-                      '''
+                      '''  % dict(PARAMS, **locals())
         P.run(statement)
 
         # python code to make configuration file
@@ -3919,7 +3919,7 @@ def cellbrowser(infile, outfile):
                         echo "# following command to open it on a port of your choice: "
                         >> %(readme_file)s ;
                         echo "cbBuild -i cellbrowser.init -o outfiles/ -p 8888"
-                        >> %(readme_file)s  '''
+                        >> %(readme_file)s  '''  % dict(PARAMS, **locals())
         P.run(statement)
 
     IOTools.touch_file(outfile)
@@ -3960,8 +3960,8 @@ def aggregateUMIsPseudobulks(infile, outfile):
 
     log_file = os.path.join(outdir, 'aggregated_clusters.log')
 
-    locals().update(
-        TASK.get_resources(memory=PARAMS["resources_memory_low"]))
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_low"])
 
     statement = '''Rscript %(tenx_dir)s/R/aggregate_umis_pseudobulks.R
                            --tenxdir=%(tenxdir)s
