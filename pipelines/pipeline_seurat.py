@@ -3859,7 +3859,7 @@ def cellbrowser(infile, outfile):
 
         # set the job threads and memory
         job_threads, job_memory, r_memory = TASK.get_resources(
-            memory=PARAMS["resources_memory_standard"])
+            memory=PARAMS["resources_memory_high"])
 
 
         statement = '''Rscript %(tenx_dir)s/R/cellbrowser_prep.R
@@ -3914,7 +3914,7 @@ def cellbrowser(infile, outfile):
     if not os.path.exists(readme_file):
         statement = ''' echo "# to run cellbrowser, go to the chosen sample "
                         >> %(readme_file)s ;
-                        echo "# folder (e.g. wildtype/30_0.8_1_wilcox) and use the "
+                        echo "# folder (e.g. wildtype/30_0.8_0.5) and use the "
                         >> %(readme_file)s ;
                         echo "# following command to open it on a port of your choice: "
                         >> %(readme_file)s ;
