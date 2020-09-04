@@ -3916,7 +3916,13 @@ def cellbrowser(infile, outfile):
                         >> %(readme_file)s ;
                         echo "# folder (e.g. wildtype/30_0.8_0.5) and use the "
                         >> %(readme_file)s ;
-                        echo "# following command to open it on a port of your choice: "
+                        echo "# below command to open it on a port of your choice. "
+                        >> %(readme_file)s ;
+                        echo "# For larger datasets, the point size chosen by default "
+                        >> %(readme_file)s ;
+                        echo "# might be too small, add the option e.g. 'radius = 2' "
+                        >> %(readme_file)s ;
+                        echo "# at the end of the cellbrowser.conf file to adjust the point size."
                         >> %(readme_file)s ;
                         echo "cbBuild -i cellbrowser.conf -o outfiles/ -p 8888"
                         >> %(readme_file)s  '''  % dict(PARAMS, **locals())
