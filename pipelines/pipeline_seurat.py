@@ -3861,11 +3861,18 @@ def cellbrowser(infile, outfile):
         job_threads, job_memory, r_memory = TASK.get_resources(
             memory=PARAMS["resources_memory_high"])
 
+        # optionally add FDG or PHATE coordinates to cellbrowser
+        dim_add = ''' '''
+        if PARAMS["cellbrowser_add_fdg"]:
+            dim_add = dim_add + '''--add_fdg=TRUE'''
+        if PARAMS["cellbrowser_add_phate"]:
+            dim_add = dim_add + '''--add_phate=TRUE'''
 
         statement = '''Rscript %(tenx_dir)s/R/cellbrowser_prep.R
                          --outdir=%(outdir_folder)s
                          --seurat_path=%(seurat_path)s
                          --runspecs=%(settings_use)s
+                         %(dim_add)s
                        &> %(log_file)s
                       '''  % dict(PARAMS, **locals())
         P.run(statement)
@@ -3876,9 +3883,13 @@ def cellbrowser(infile, outfile):
         # cannot use projectname from pipeline.yml here as only letters/digits
         # allowed in name
         conf += 'name = "seuratPipeline"\n'
-        conf += '''coords = [{"file":"infiles/UMAP.tsv","shortLabel":"UMAP"},
-                             {"file":"infiles/FA.tsv","shortLabel":
-                              "PAGA initiated force-directed graph"}]\n'''
+        conf += '''coords = [{"file":"infiles/UMAP.tsv","shortLabel":"UMAP"}'''
+        if PARAMS["cellbrowser_add_fdg"]:
+            conf += ''', {"file":"infiles/FA.tsv","shortLabel":
+                              "PAGA initiated force-directed graph"}'''
+        if PARAMS["cellbrowser_add_phate"]:
+            conf += ''', {"file":"infiles/PHATE.tsv","shortLabel":"PHATE map"}'''
+        conf += ''']\n'''
         conf += 'shortLabel = "%s"\n' %PARAMS["projectname"]
         conf += 'exprMatrix = "infiles/exprMatrix.tsv.gz"\n'
         conf += 'meta = "infiles/meta.tsv"\n'

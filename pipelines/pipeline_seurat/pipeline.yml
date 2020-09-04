@@ -773,3 +773,7 @@ cellbrowser:
   # combination should be a combination of number of reduced dimension components, clustering resolution,
   # mindist to use for umap, separated by '_': components_resolution_mindist, e.g. 50_0.4_0.5
   # sample1: 50_0.4_0.5
+  # UMAP coordinates are added by default (using mindist defined above). Set below to True to add either
+  # paga-initialised Force-directed graph or PHATE coordinates to the cellbrowser.
+  add_fdg: False
+  add_phate: False

@@ -28,6 +28,16 @@ option_list <- list(
     c("--outdir"),
     default="seurat.out.dir",
     help="Location for outputs files. Must exist."
+  ),
+  make_option(
+    c("--add_fdg"),
+    default=NULL,
+    help="Whether to add FDG coordinates to the cellbrowser"
+  ),
+  make_option(
+    c("--add_phate"),
+    default=NULL,
+    help="Whether to add PHATE coordinates to the cellbrowser"
   )
 )
 
@@ -56,15 +66,29 @@ colnames(output) = c("cellId", "x", "y")
 write.table(output,file.path(opt$outdir, "UMAP.tsv"), quote = FALSE, row.names = FALSE,
             sep = "\t")
 
-## Load Force-directed graph coordinates
-cat("Load Force-directed graph coordinates ... \n")
-infile_gzip = gzfile(file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
-                               paste0("cluster.", runspecs$res, ".dir"),  "paga.dir", "paga_init_fa2.tsv.gz"))
-output = read.table(infile_gzip, header=TRUE, as.is=TRUE, sep="\t")
-output = output[,c("barcode", "FA1", "FA2")]
-colnames(output) = c("cellId", "x", "y")
-write.table(output,file.path(opt$outdir, "FA.tsv"), quote = FALSE, row.names = FALSE,
-            sep = "\t")
+if (!is.null(opt$add_fdg)){
+  ## Load Force-directed graph coordinates
+  cat("Load Force-directed graph coordinates ... \n")
+  infile_gzip = gzfile(file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
+                                 paste0("cluster.", runspecs$res, ".dir"),  "paga.dir", "paga_init_fa2.tsv.gz"))
+  output = read.table(infile_gzip, header=TRUE, as.is=TRUE, sep="\t")
+  output = output[,c("barcode", "FA1", "FA2")]
+  colnames(output) = c("cellId", "x", "y")
+  write.table(output,file.path(opt$outdir, "FA.tsv"), quote = FALSE, row.names = FALSE,
+              sep = "\t")
+}
+
+if (!is.null(opt$add_phate)){
+  cat("Load PHATE coordinates ... \n")
+  infile_gzip = gzfile(file.path(opt$seurat_path, paste0("components.", runspecs$comp, ".dir"), 
+                                 "phate.dir", "phate.tsv.gz"))
+  output = read.table(infile_gzip, header=TRUE, as.is=TRUE, sep="\t")
+  output = output[,c("barcode", "PHATE1", "PHATE2")]
+  colnames(output) = c("cellId", "x", "y")
+  write.table(output,file.path(opt$outdir, "PHATE.tsv"), quote = FALSE, row.names = FALSE,
+              sep = "\t")
+}
+
 
 ## get metadata for cluster name
 cat("Process cluster ids for cells ... \n")
