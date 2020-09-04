@@ -3918,7 +3918,7 @@ def cellbrowser(infile, outfile):
                         >> %(readme_file)s ;
                         echo "# following command to open it on a port of your choice: "
                         >> %(readme_file)s ;
-                        echo "cbBuild -i cellbrowser.init -o outfiles/ -p 8888"
+                        echo "cbBuild -i cellbrowser.conf -o outfiles/ -p 8888"
                         >> %(readme_file)s  '''  % dict(PARAMS, **locals())
         P.run(statement)
 
