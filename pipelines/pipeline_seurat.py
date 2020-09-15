@@ -718,7 +718,7 @@ def exportForPython(infile, outfile):
         source_files = ["embedding.*.tsv.gz",
                         "export_for_python.*",
                         "metadata.tsv.gz",
-                        "feaatures.tsv.gz",
+                        "features.tsv.gz",
                         "barcodes.tsv.gz",
                         "assay.*.data.tsv.gz",
                         "sig_comps.tsv"]
