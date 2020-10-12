@@ -17,10 +17,18 @@ stopifnot(
 # Options ----
 
 option_list <- list(
+    make_option(c("--seuratobject"), default="begin.Robj",
+                help="A seurat object after PCA"),
+    make_option(c("--seuratassay"), default="RNA",
+                help="The seurat assay to use"),
     make_option(c("--statstable"), default="none",
                 help="The table of per-cluster statistics"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
+    make_option(c("--subgroup"), default=NULL,
+                help="Optional. Name of a column in metadata to add annotation for in the heatmap"),
+    make_option(c("--pdf"), default = FALSE,
+                help="Create a pdf version of the top marker heatmap"),
     make_option(c("--outdir"), default="seurat.out.dir",
                 help="outdir")
     )
@@ -28,18 +36,18 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list=option_list))
 
 outPrefix <- file.path(opt$outdir,"markers.summary")
-
+if(!is.null(opt$subgroup)) { opt$subgroup <- strsplit(opt$subgroup,",")[[1]]}
 cat("Running with options:\n")
 print(opt)
 
-## s <- readRDS(opt$seuratobject)
+s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-## Idents(s) <- cluster_ids
+Idents(s) <- cluster_ids
 
-## message("Setting default assay to: ", opt$seuratassay)
-## DefaultAssay(s) <- opt$seuratassay
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
 
-## message("seurat_summariseMarkers.R running with default assay: ", DefaultAssay(s))
+message("seurat_summariseMarkers.R running with default assay: ", DefaultAssay(s))
 
 idents.all = sort(unique(cluster_ids))
 
@@ -126,6 +134,13 @@ for(x in cluster_levels)
     clust_cells <- names(cluster_ids[cluster_ids==x])
     other_cells <- names(cluster_ids[cluster_ids!=x])
 
+    # xmean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]),1,mean)
+    # omean <- apply(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]),1,mean)
+    # xfreq <- apply(GetAssayData(object = s, slot="data")[fgenes,clust_cells],1,function(x) length(x[x>0])/length(x))
+    ## xmean <- Matrix::rowMeans(expm1(GetAssayData(object = s, slot="data")[fgenes,clust_cells]))
+    ## omean <- Matrix::rowMeans(expm1(GetAssayData(object = s, slot="data")[fgenes,other_cells]))
+    ## xfreq <- Matrix::rowSums(GetAssayData(object = s, slot="data")[fgenes,clust_cells]>0)/length(clust_cells)
+
     xmean <- expm1(stats[fgenes, paste0("x",x,"_cluster_mean")])
     omean <- expm1(stats[fgenes, paste0("x",x,"_other_mean")])
     xfreq <- stats[fgenes,paste0("x",x,"_cluster_freq")]
@@ -207,6 +222,7 @@ write.table(markers,
 message("Saving marker.summary.table.xlsx")
 wb <- createWorkbook()
 
+
 addWorksheet(wb,"filtered_markers")
 setColWidths(wb,"filtered_markers",cols=1:ncol(filtered_markers),widths=10)
 hs <- createStyle(textDecoration = "BOLD")
@@ -215,6 +231,55 @@ writeData(wb, "filtered_markers", tidyNumbers(filtered_markers),
 saveWorkbook(wb, file=paste(outPrefix,"table","xlsx",
                             sep="."),
              overwrite=T)
+
+message("Making a heatmap of the top marker genes from each cluster")
+
+## make a heatmap of the top DE genes.
+filtered_markers %>% group_by(cluster) %>% top_n(20, avg_logFC) -> top20
+
+if(!is.null(opt$subgroup))
+{
+    if(!opt$subgroup %in% colnames(s@meta.data))
+    {
+        opt$subgroup <- NULL
+    }
+}
+
+y <- x[x$cluster==0,]
+
+## only draw the plot if scale.data is populated.
+
+if(max(dim(GetAssayData(s, slot="scale.data"))) > 0 )
+{
+    mch <- markerComplexHeatmap(s,
+                                marker_table=filtered_markers,
+                                n_markers=20,
+                                cells_use=NULL,
+                                row_names_gp=11,
+                                sub_group=opt$subgroup)
+
+    drawHeatmap <- function()
+    {
+        draw(mch)
+    }
+
+} else {
+
+    drawHeatmap <- function()
+    {
+    plot.new()
+    text(0.5,0.5,"scale.data slot not present")
+    }
+}
+
+
+
+save_plots(paste(outPrefix,"heatmap", sep="."),
+           plot_fn=drawHeatmap,
+           width = 7,
+           to_pdf = opt$pdf,
+           height = 9)
+
 
 
 ## summarise the number of marker genes identified for each cluster
@@ -237,6 +302,7 @@ write.table(sumdf,
                   sep="."),
             quote=F,sep="\t",row.names=F)
 
-# message("seurat_summariseMarkers.R final default assay: ", DefaultAssay(s))
+
+message("seurat_summariseMarkers.R final default assay: ", DefaultAssay(s))
 
 message("completed")
