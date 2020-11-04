@@ -10,7 +10,7 @@
 ##
 ## Details ----
 ##
-## Cells may also be excluded by providing a blacklist of barcodes.
+## Cells may also be excluded by providing a excludelist of barcodes.
 ## This should be a file of a single column.
 ##
 ## The script expects a tab delimited sample table with the following coloumns:
@@ -95,9 +95,9 @@ option_list <- list(
         )
     ),
     make_option(
-        c("--blacklist"),
+        c("--excludelist"),
         default="none",
-        dest = "blacklist",
+        dest = "excludelist",
         help=paste(
             "A file of cell barcodes to exclude (one per line).",
             "Useful if other 10x samples were sequenced on the same lane."
@@ -193,12 +193,12 @@ barcodes <- scan(gzfile(barcodeFile), "character")
 
 
 ## Blacklist
-if (!identical(opt$blacklist, "none")){
-    stopifnot(file.exists(opt$blacklist))
-    cat("Importing blacklisted barcodes from:", opt$blacklist, " ... ")
-    blacklist <- scan(opt$blacklist, "character")
+if (!identical(opt$excludelist, "none")){
+    stopifnot(file.exists(opt$excludelist))
+    cat("Importing excludelisted barcodes from:", opt$excludelist, " ... ")
+    excludelist <- scan(opt$excludelist, "character")
     cat("... Done.\n")
-    blacklistTable <- barcode2table(blacklist)
+    excludelistTable <- barcode2table(excludelist)
 }
 
 
@@ -263,9 +263,9 @@ if (opt$hopping & !opt$usebarcodewhitelist){
         cat(sprintf("- Total cell barcodes: %i\n", length(batchBarcodes)))
         cat(sprintf("- Unique cell barcodes: %i\n", length(uniqueBarcodes)))
 
-        if (opt$blacklist != "none") {
-            uniqueBarcodes <- uniqueBarcodes[!uniqueBarcodes %in% blacklistTable$code]
-            cat(sprintf("- Unique cell barcodes after blacklist: %i\n", length(uniqueBarcodes)))
+        if (opt$excludelist != "none") {
+            uniqueBarcodes <- uniqueBarcodes[!uniqueBarcodes %in% excludelistTable$code]
+            cat(sprintf("- Unique cell barcodes after excludelist: %i\n", length(uniqueBarcodes)))
         }
 
         goodBarcodes <- c(

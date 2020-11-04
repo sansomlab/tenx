@@ -55,6 +55,14 @@ print(opt)
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 
+xx <- names(cluster_ids)
+yy <- colnames(x=s)
+if(!all.equal(xx[order(xx)], yy[order(yy)])) {
+    stop("cluster_ids and seurat object have different cells")
+}
+
+cluster_ids <- cluster_ids[colnames(x = s)]
+
 if(!identical(colnames(x = s),names(cluster_ids)))
 {   stop("Cluster cell names do not match Seurat object cell names")
 }

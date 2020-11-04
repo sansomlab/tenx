@@ -25,7 +25,9 @@ if(!is.null(opt$subgroup)) { opt$subgroup <- strsplit(opt$subgroup,",")[[1]]}
 cat("Running with options:\n")
 print(opt)
 cluster_ids <- readRDS(opt$clusterids)
-idents.all = sort(unique(cluster_ids))
+idents.all = as.vector(sort(unique(cluster_ids)))
+
+print(idents.all)
 
 if(!length(idents.all) > 1)
 {
@@ -34,11 +36,10 @@ if(!length(idents.all) > 1)
 
 ## Construct a data frame containing the findMarkers results for all clusters
 begin <- TRUE
-for (i in 1:length(idents.all)) {
+for (id in idents.all) {
 
-    print(paste("Reading in cluster:",i))
 
-    id <- idents.all[i]
+    print(paste("Reading in cluster:",id))
 
     tableName = paste("cluster.stats",id,"tsv","gz",
                       sep=".")
@@ -70,8 +71,8 @@ for (i in 1:length(idents.all)) {
 
             }
 
-        } else {
-            print(paste("No marker file found for cluster",i,sep=" "))
+        }  else {
+            print(paste("No marker file found for cluster",id,sep=" "))
         }
 
 }

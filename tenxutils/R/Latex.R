@@ -43,13 +43,19 @@ getFigureTex <- function(image_file, caption, plot_dir_var="plotDir", height=0.9
 #' @param image_file The image file to show in the figure.
 #' @param caption The figure caption.
 #' @param plot_dir_var The directory containing the image_file
-getSubFigureTex <- function(image_file, caption, plot_dir_var="plotDir")
+getSubFigureTex <- function(image_file, caption, plot_dir_var="plotDir",
+                            height=NULL)
 {
     caption <- gsub("_","\\\\_", caption)
     ## pdf_file  <- gsub(".pdf","", pdf_file)
 
+    if(!is.null(height))
+    {
+        height = paste0(",height=",height,"\\textheight,keepaspectratio")
+    } else { height = "" }
+
     paste0("\\begin{subfigure}[b]{1.0\\textwidth}
-            \\includegraphics[width=1.0\\textwidth]{{{\\",
+            \\includegraphics[width=1.0\\textwidth", height, "]{{{\\",
            plot_dir_var,
            "/",
            image_file,

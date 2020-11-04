@@ -121,6 +121,9 @@ clusters <- as.numeric(unique(as.vector(cluster_ids)))
 cluster_levels <- clusters[order(clusters)]
 for(x in cluster_levels)
 {
+    # skip the catch-all 911 cluster.
+    if(as.character(x) == "911") { next }
+
     print(paste("Adding expression information to the marker table for cluster:", x))
     fgenes <- filtered_markers$gene
     if(!all(fgenes %in% rownames(stats)))
@@ -161,6 +164,9 @@ cluster_levels <- unique(filtered_markers$cluster)
 
 for(cluster in cluster_levels)
 {
+    ## skip the catch-all 911 cluster.
+    if(as.character(cluster) == "911") { next }
+
     message("computing min fold changes for cluster:", cluster)
     xrows = filtered_markers$cluster==cluster
     tmp <- data.frame(filtered_markers[xrows])
@@ -239,23 +245,42 @@ if(!is.null(opt$subgroup))
     }
 }
 
-mch <- markerComplexHeatmap(s,
-                            marker_table=filtered_markers,
-                            n_markers=20,
-                            cells_use=NULL,
-                            row_names_gp=11,
-                            sub_group=opt$subgroup)
+## y <- x[x$cluster==0,]
 
-drawHeatmap <- function()
+## only draw the plot if scale.data is populated.
+
+if(max(dim(GetAssayData(s, slot="scale.data"))) > 0 )
 {
-    draw(mch)
+    mch <- markerComplexHeatmap(s,
+                                marker_table=filtered_markers,
+                                n_markers=20,
+                                cells_use=NULL,
+                                row_names_gp=11,
+                                sub_group=opt$subgroup)
+
+    drawHeatmap <- function()
+    {
+        draw(mch)
+    }
+
+} else {
+
+    drawHeatmap <- function()
+    {
+    plot.new()
+    text(0.5,0.5,"scale.data slot not present")
+    }
 }
+
+
 
 save_plots(paste(outPrefix,"heatmap", sep="."),
            plot_fn=drawHeatmap,
            width = 7,
            to_pdf = opt$pdf,
            height = 9)
+
+
 
 ## summarise the number of marker genes identified for each cluster
 summary <- c()

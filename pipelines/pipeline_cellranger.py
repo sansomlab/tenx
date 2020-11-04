@@ -825,7 +825,7 @@ def postprocessAggrMatrix(infiles, outfile):
 
     job_memory = PARAMS["postprocess_memory"]
 
-    blacklist = PARAMS["postprocess_blacklist"]
+    excludelist = PARAMS["postprocess_excludelist"]
 
     log_file = outfile.replace(".sentinel", ".log")
 
@@ -835,7 +835,7 @@ def postprocessAggrMatrix(infiles, outfile):
                    --samplenamefields=%(name_field_titles)s
                    --downsample=no
                    %(hopping)s
-                   --blacklist=%(blacklist)s
+                   --excludelist=%(excludelist)s
                    %(options)s
                    --outdir=%(out_dir)s
                    &> %(log_file)s

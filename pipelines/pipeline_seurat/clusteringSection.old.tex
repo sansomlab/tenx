@@ -1,0 +1,25 @@
+\section{Cluster dissimilarity}
+
+\subsection{Dissimilarity by gene expression}
+
+The distances between the clusters was assessed using the ``BuildClusterTree'' function in the Seurat package, which ``constructs a phylogenetic tree relating the ``average'' cell from each identity class''.
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/cluster.dendrogram}}}
+\caption{Visualisation of inter-cluster distances (cluster average, gene-based)}
+\end{figure}
+
+\subsection{Dissimilarity by cell pair-wise correlation (in reduced dimensions)}
+
+An alternative distance metric is the median pairwise pearson correlation between the cells of each cluster in reduced dimension space (e.g. PCA).
+
+\begin{figure}[H]
+\includegraphics[width=1.0\textwidth,height=0.9\textheight,keepaspectratio]{{{\clusterDir/cluster.correlation.dendrogram}}}
+\caption{Visualisation of inter-cluster distances (median pairwise pearson correlation in reduced dimension space)}
+\end{figure}
+
+The median pairwise pearson correlations between the cells of each cluster (reduced dimension space) are shown in the table below.
+
+\input{\clusterDir/cluster.pairwise.correlations.tex}
+
+\clearpage
