@@ -212,7 +212,6 @@ def taskSummary(infile, outfile):
             run.append(str(v))
 
     tab = pd.DataFrame(list(zip(tasks,run)),columns=["task","run"])
-    print(tab)
 
     tab.to_latex(buf=outfile, index=False)
 
@@ -514,7 +513,6 @@ def seuratPCA(infile, outfile):
 # #################################################################### #
 
 file_suffix = str(PARAMS["input_format"])
-print(file_suffix)
 
 @active_if(PARAMS["headstart_seurat_object"])
 @transform(os.path.join(str(PARAMS["headstart_path"]),
@@ -642,8 +640,6 @@ def plotSingleR(infile, outfile):
     '''Make the singleR heatmap'''
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
-    print(spec)
-    print(SPEC)
 
     predictions = os.path.join(spec.indir,
                                "predictions.rds")
@@ -3722,8 +3718,6 @@ def markerReport(infile, outfile):
        \\input %(tex_file)s
        \\input %(tenx_dir)s/latex/endmatter.tex'
        '''
-
-    print(statement)
 
     # Deliberately run twice - necessary for LaTeX compilation..
     draft_mode = "-draftmode"
