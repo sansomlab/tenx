@@ -46,7 +46,7 @@ def get_vars(infile, outfile, PARAMS, make_outdir=True):
 
         SPEC["resolutions"] = [x.strip()
                                for x in
-                               PARAMS["runspecs_cluster_resolutions"].split(",")]
+                               str(PARAMS["runspecs_cluster_resolutions"]).split(",")]
 
     else:
         SPEC["resolutions"] = []

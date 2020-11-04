@@ -245,7 +245,7 @@ if(!is.null(opt$subgroup))
     }
 }
 
-y <- x[x$cluster==0,]
+## y <- x[x$cluster==0,]
 
 ## only draw the plot if scale.data is populated.
 

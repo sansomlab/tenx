@@ -234,7 +234,7 @@ option_list <- list(
         default="none",
         help="The desired level of the sub-setting factor"),
     make_option(
-        c("--blacklist"),
+        c("--excludelist"),
         default=NULL,
         help=paste(
             "A file containing a list of barcode ids to remove (if present)",
@@ -510,14 +510,14 @@ if (opt$subsetcells!="use.all") {
     }
 }
 
-# Remove blacklisted cells.
-if(!is.null(opt$blacklist))
+# Remove excludelisted cells.
+if(!is.null(opt$excludelist))
 {
-    message("removing blacklisted cells")
+    message("removing excludelisted cells")
 
-    blacklist <- scan(opt$blacklist, "character")
+    excludelist <- scan(opt$excludelist, "character")
 
-    cells_to_retain <- colnames(x = s)[!colnames(x = s) %in% blacklist]
+    cells_to_retain <- colnames(x = s)[!colnames(x = s) %in% excludelist]
 
     s <- getSubset(s, cells_to_retain)
     }

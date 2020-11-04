@@ -39,7 +39,7 @@ option_list <- list(
   ),
   make_option(
     c("--group"),
-    default="none",
+    default=NULL,
     help="A column in the cell metadata used to define the groups"
   ),
   make_option(
@@ -96,6 +96,10 @@ outprefix = file.path(opt$outdir,paste("cluster",opt$cluster,sep="."))
 s <- readRDS(opt$seuratobject)
 Idents(s) <- readRDS(opt$clusterids)
 
+message("Setting default assay to: ", opt$seuratassay)
+DefaultAssay(s) <- opt$seuratassay
+
+
 # read in the markers
 x <- read.table(opt$markers, sep="\t", header=T, as.is=T)
 
@@ -120,6 +124,7 @@ x <- x[x$gene %in% c(top_by_avg_logFC$gene,
 # marker gene heatmap.
 
 if(nrow(x) > 0) {
+
 message("making the heatmap")
 mch <- markerComplexHeatmap(s,
                             marker_table=x,
@@ -127,7 +132,7 @@ mch <- markerComplexHeatmap(s,
                             cells_use=NULL,
                             row_names_gp=8,
                             slot="data",
-                         #   priority="min_logFC",
+                        #   priority="min_logFC",
                             sub_group=opt$group)
 
 drawHeatmap <- function() { draw(mch) }
@@ -137,7 +142,6 @@ save_plots(paste(outprefix,"heatmap", sep="."),
            width = 7,
            to_pdf = FALSE, #opt$pdf,
            height = 2)
-
 
 message("making the expression dotplots")
 # expression plots
@@ -196,9 +200,15 @@ s <- subset(s, cells=names(Idents(s)[Idents(s)==opt$cluster]))
 # sort out colors.
 
 ## sort out the colors
-fvar <- opt$group
+if(!is.null(opt$group))
+{
+    fvar <- opt$group
+    ngroups <- length(unique(s[[fvar]][[fvar]]))
+} else {
+    fvar <- NULL
+    ngroups <- 1
+}
 
-ngroups <- length(unique(s[[fvar]][[fvar]]))
 cm_palette <- colormap(colormap = colormaps$portland,
                        nshade = ngroups, alpha=0.6)
 
@@ -223,5 +233,7 @@ save_ggplots(paste(outprefix,"dotplot",sep="."),
              height=3,
              to_pdf=opt$pdf)
 
+
 }
-message("complete")
+message("seurat_summariseMarkers.R final default assay: ", DefaultAssay(s))
+message("completed")

@@ -329,7 +329,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
         caption <- paste0("Top ", type, analysis_title,
                           " ordered by p-value, cluster: ",cluster)
 
-        tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var))
+        tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var, height=0.45))
 
         if(violin_plots$gpb_exists)
         {
@@ -347,7 +347,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
                          height=h)
 
             caption <- paste0("Additional ", type, analysis_title, " ordered by ", fc_type, ", cluster: ",cluster)
-            tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var))
+            tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var, height=0.45))
         }
 
     } else {
@@ -588,8 +588,8 @@ markerComplexHeatmap <- function(seurat_object,
       group_by(cluster) %>%
       top_n(n=n_markers,wt=min_logFC)
 } else { stop("ranking statistic not supported")}
-    
-    
+
+
   if(is.null(cells_use)) {cell_use <- colnames(
     GetAssayData(s, slot=slot)) }
 
@@ -616,7 +616,7 @@ markerComplexHeatmap <- function(seurat_object,
 
   # compute row z-scores if not using scale.data.
   if(slot!="scale.data") {  x <- t(scale(t(x))) }
-  
+
   x <- MinMax(x, min = disp_min, max = disp_max)
 
   clusters <- Idents(seurat_object)[cells_use]
@@ -742,6 +742,7 @@ expressionPlots <- function(seurat_object,
   require(ggplot2)
   cells <- rdims$barcode
 
+  DefaultAssay(seurat_object) <- "RNA"
   checkFeatures(seurat_object, features)
   checkCells(seurat_object, cells)
 
@@ -762,9 +763,9 @@ expressionPlots <- function(seurat_object,
 
 
   gp <- ggplot(fill_df, aes_string(x, y, color="value"))
-  gp <- gp + geom_point(size=point_size, 
-                        alpha=1, 
-                        stroke = 0, 
+  gp <- gp + geom_point(size=point_size,
+                        alpha=1,
+                        stroke = 0,
                         shape = pch)
   gp <- gp + scale_color_gradientn(colours=c("grey","yellow","red"))
   gp <- gp + facet_wrap(~variable, ncol= ncol)
