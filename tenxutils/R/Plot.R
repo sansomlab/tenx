@@ -329,7 +329,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
         caption <- paste0("Top ", type, analysis_title,
                           " ordered by p-value, cluster: ",cluster)
 
-        tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var))
+        tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var, height=0.45))
 
         if(violin_plots$gpb_exists)
         {
@@ -347,7 +347,7 @@ violinPlotSection <- function(data, seurat_object, cluster_ids, type="positive",
                          height=h)
 
             caption <- paste0("Additional ", type, analysis_title, " ordered by ", fc_type, ", cluster: ",cluster)
-            tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var))
+            tex <- c(tex, getSubFigureTex(violin_fn, caption, plot_dir_var=plot_dir_var, height=0.45))
         }
 
     } else {
@@ -548,19 +548,22 @@ plotDownsampling <- function(matrixUMI, metadata, basename) {
 
 
 #' A function to draw a heatmap of top cluster marker genes with
-#' subgroup labels. The function uses the "scale.data" slot to make the heatmap.
+#' subgroup labels. The function uses the "scale.data" slot by default to make the heatmap.
 #' @param seurat_object A seurat objected with scaled data and cluster information
 #' @param marker_table A dataframe containing the marker information. Must contain "cluster", "gene" and "avg_logFC" columns
 #' @param n_markers The number of markers to plot
 #' @param cells_use The names of the cells to use. If NULL all cells will be used
 #' @param row_names_gp The font size for the gene names
 #' @param sub_group If given, the name of a variable in the metadata of the seurat object
+#' @param slot scale.data|data. If data, the rows will be scaled.
 #' @param disp_min Disp floor, used to truncate the scaled data
 #' @param disp_max Disp ceiling, used to truncate the scaled data
 markerComplexHeatmap <- function(seurat_object,
                                  marker_table=NULL,
                                  n_markers=20,
                                  cells_use=NULL,
+                                 slot="scale.data",
+                                 priority="avg_logFC",
                                  row_names_gp=10,
                                  sub_group=NULL,
                                  disp_min=-2.5,
@@ -576,16 +579,23 @@ markerComplexHeatmap <- function(seurat_object,
                "it is avaliable via devtools here: https://github.com/jokergoo/ComplexHeatmap"))
   }
 
-  top_markers <- marker_table %>%
+  if(priority=="avg_logFC") {
+    top_markers <- marker_table %>%
     group_by(cluster) %>%
     top_n(n=n_markers,wt=avg_logFC)
+  } else if (priority=="min_logFC") {
+    top_markers <- marker_table %>%
+      group_by(cluster) %>%
+      top_n(n=n_markers,wt=min_logFC)
+} else { stop("ranking statistic not supported")}
+
 
   if(is.null(cells_use)) {cell_use <- colnames(
-    GetAssayData(s, slot="scale.data")) }
+    GetAssayData(s, slot=slot)) }
 
   genes_use <- top_markers$gene[top_markers$gene %in%
                                   rownames(GetAssayData(seurat_object,
-                                                        slot="scale.data"))]
+                                                        slot=slot))]
 
   print(length(genes_use))
 
@@ -593,16 +603,19 @@ markerComplexHeatmap <- function(seurat_object,
     stop("None of the marker genes are present in the scaled data...")
   } else if(length(genes_use) <  length(top_markers$gene)) {
      message("Warning: not all identified marker genes are present in the ",
-             "scale.data slot. Only markers present in the scale.data slot ",
-             "will be plotted. You should consider re-scaling your object ",
-             "to include all genes in the scale.data slot")
+             "selected slot. Only markers present in the selected slot ",
+             "will be plotted. If using scale.data you should consider re-scaling",
+             "your object to include all genes in the scale.data slot")
 
     top_markers <- top_markers %>% filter(gene %in% genes_use)
   }
 
-  cells_use <- cell_use %in% colnames(GetAssayData(seurat_object, slot="scale.data"))
+  cells_use <- cell_use %in% colnames(GetAssayData(seurat_object, slot=slot))
 
-  x <- as.matrix(GetAssayData(seurat_object, slot="scale.data")[genes_use, cells_use])
+  x <- as.matrix(GetAssayData(seurat_object, slot=slot)[genes_use, cells_use])
+
+  # compute row z-scores if not using scale.data.
+  if(slot!="scale.data") {  x <- t(scale(t(x))) }
 
   x <- MinMax(x, min = disp_min, max = disp_max)
 
@@ -657,7 +670,9 @@ markerComplexHeatmap <- function(seurat_object,
 
     subgroupAnnotation = HeatmapAnnotation(df=data.frame(subgroup=cell_sub_groups[cell_order]),
                                            col = list(subgroup=sub_group_cols),
-                                           show_annotation_name = FALSE)
+                                           show_annotation_name = FALSE,
+                                           annotation_legend_param = list(labels_gp = gpar(fontsize = 4),
+                                                                          title_gp = gpar(fontsize = 6)))
   } else {
     cell_order <- order(cell_clusters)
     subgroupAnnotation <- NULL
@@ -679,6 +694,7 @@ markerComplexHeatmap <- function(seurat_object,
           col = exprs_cols,
           row_names_gp = gpar(fontsize = row_names_gp,
                               cex = row.cex),
+          column_title_gp = gpar(fontsize = 5),
           cluster_columns = FALSE,
           show_column_names = FALSE,
           row_title = NULL,
@@ -696,7 +712,7 @@ markerComplexHeatmap <- function(seurat_object,
   )
 }
 
-
+#labels_gp = gpar(col = "red", fontsize = 14))
 
 
 library(reshape2)
@@ -719,12 +735,14 @@ expressionPlots <- function(seurat_object,
                             x="UMAP_1",
                             y="UMAP_2",
                             ncol = 6,
+                            pch=16,
                             point_size = 2.5,
                             max_quantile = 0.9) {
 
   require(ggplot2)
   cells <- rdims$barcode
 
+  DefaultAssay(seurat_object) <- "RNA"
   checkFeatures(seurat_object, features)
   checkCells(seurat_object, cells)
 
@@ -745,10 +763,13 @@ expressionPlots <- function(seurat_object,
 
 
   gp <- ggplot(fill_df, aes_string(x, y, color="value"))
-  gp <- gp + geom_point(size=point_size, alpha=1, stroke = 0, shape = 16)
+  gp <- gp + geom_point(size=point_size,
+                        alpha=1,
+                        stroke = 0,
+                        shape = pch)
   gp <- gp + scale_color_gradientn(colours=c("grey","yellow","red"))
   gp <- gp + facet_wrap(~variable, ncol= ncol)
-  gp <- gp + theme_minimal()
+  gp <- gp + theme_minimal(base_size=6)
   gp
 
 }

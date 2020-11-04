@@ -62,15 +62,21 @@ run:
   jackstraw: False
   compare_clusters: True
   characterise_markers: True
+  top_marker_heatmap: True
+  extra_cluster_marker_plots: True
   diffusionmap: False
   phate: True
   paga: True
   velocity: False
   knownmarkers: False
+  # If marker report is True then
+  # (i) violin plots and DE plots are not shown
+  #     in the summary report
+  # (ii) the gene expression report will not be made.
+  marker_report: True
   exprsreport: False
   genesets: False
   cellbrowser: False
-
 
 # Give the pipeline a head start?
 # --------------------------------
@@ -140,9 +146,9 @@ subsetcells:
     sample_two: use.all
     sample_three: stimulated
 
-blacklist:
-    # If active, cells present in the blacklist will be removed
-    # per-sample blacklisting is not  supported.
+excludelist:
+    # If active, cells present in the excludelist will be removed
+    # per-sample excludelisting is not  supported.
     active: False
     # path specifies location of a header-less text file of cells to remove (1 per line).
     path: /path/to/cells_to_remove.txt
@@ -210,6 +216,8 @@ cluster:
   # "leiden" | "louvain"
   algorithm: leiden
 
+  # if set a cluster_assignments.tsv file with barcode and cluster_id
+  predefined: False
 
 # QC parameters
 # -------------
@@ -415,14 +423,28 @@ jackstraw:
 # R/plot_group_numbers.R script
 #
 
-# Note: (i) in titles and labels % symbols must be escaped as %%
-#       (ii) use of underscores in titles is not supported.
+# Note: (i) in labels % symbols must be escaped as %%
+#       (ii) use of "_" and "%" in titles is not supported (even if escaped!).
 #
 
 summaries:
 
   cells_by_cluster:
-    title: Cells by cluster
+    title: Number of cells by cluster
+    group: cluster
+    subgroup: None
+    replicate: None
+    stat: count
+    geom: bar
+    facet: False
+    freey: False
+    xlab: cluster
+    ylab: number of cells
+    width: 8
+    height: 4
+
+  pct_cells_by_cluster:
+    title: Percentate of cells by cluster
     group: cluster
     subgroup: None
     replicate: None
@@ -434,6 +456,41 @@ summaries:
     ylab: cells (%%)
     width: 8
     height: 4
+
+
+  ngenes_by_cluster:
+    title: Number of genes per cell per cluster
+    group: cluster
+    subgroup: None
+    # subgroup: stim
+    # subgrouplevels: CTRL,STIM
+    stat: ngenes
+    replicate: barcode
+    geom: boxplot
+    facet: True
+    freey: False
+    xlab: Source
+    ylab: Number of genes
+    trans: sqrt
+    width: 8
+    height: 10
+    ncol: 5
+
+  numi_by_cluster:
+    title: Number of umi per cell per cluster
+    group: cluster
+    subgroup: None
+    stat: total_UMI
+    replicate: barcode
+    geom: boxplot
+    facet: True
+    freey: False
+    xlab: Source
+    ylab: Number of genes
+    trans: sqrt
+    width: 8
+    height: 10
+    ncol: 5
 
 
 
@@ -469,6 +526,8 @@ plot:
   pointsize: 0.5
 
   # set the point shape:
+  # for the smallest shapes and
+  # fast plotting of large datasets use '.'
   pointpch: 16
 
   # maximum number of cells to draw (for gene expression plots)
@@ -505,7 +564,14 @@ tsne:
 umap:
   # Computed using scanpy
   # and the pre-computed neighbor graph (see above)
+
+
+  # mindists to run (comma separated list).
+  mindists: 0,0.1,0.3,0.5,0.7
+
+  # the selected mindist to use for the plots.
   mindist: 0.5
+
 
 # Diffusion map parameters
 # ------------------------
@@ -542,23 +608,6 @@ velocity:
   # "loom" | "dropest"
   matrix_type: dropest
 
-  # ncores: 8
-  # minmaxclustavemat: 0.2
-  # minmaxclustavnmat: 0.05
-  # deltat: 1
-  # kcells: 15
-  # fitquantile: 0.02
-  # neighbourhoodsize: 100
-  # velocityscale: log
-  # arrowscale: 3
-  # arrowlwd: 1.3
-  # gridflow: TRUE
-  # mingridcellmass: 0.5
-  # gridn: 40
-  # cellalpha: 1
-  # cellborderalpha: 0.5
-  # showaxes: TRUE
-  # plotcex: 1
 
 # PAGA parameters
 # ---------------
@@ -596,6 +645,11 @@ findmarkers:
     # Only test genes that are detected in a minimum fraction of min.pct cells
     # (see min.pct=...)
     minpct: 0.1
+
+    # the slot to use for the top marker heatmap.
+    # (if "scale.data" is missing, "data" will be used)
+    # if data is used, row z-scores are plotted.
+    heatmap_slot: scale.data
 
     maxcellsperident: 50000
     #

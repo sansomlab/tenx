@@ -105,7 +105,7 @@ postprocess:
     # AAACCTGGTTCTGTTT-1
     # AAACCTGTCGATCCCT-1
     # 'none' disables this function
-    blacklist: none
+    excludelist: none
 
     # Path to the matrix subdirectory, relative to each sample directory.
     mexdir: outs/filtered_feature_bc_matrix

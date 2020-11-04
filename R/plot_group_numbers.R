@@ -189,11 +189,12 @@ if(opt$stat %in% c("total_UMI", "ngenes"))
 
         cdata <- GetAssayData(object = s, slot = "counts")
 
-        if(opt$stat=="ngenes")
+        if( opt$stat=="ngenes")
         {
             ngenes <- Matrix::colSums(cdata>0)
             data$ngenes <- ngenes[rownames(data)]
         }
+
         else if(opt$stat=="total_UMI")
         {
             total_UMI <- Matrix::colSums(cdata)

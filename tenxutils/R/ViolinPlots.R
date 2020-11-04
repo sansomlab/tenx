@@ -136,6 +136,7 @@ makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
   gp <- gp + xlab(xlab)
   gp <- gp + theme(legend.position = "none",
                    strip.background = element_rect(fill="grey94",color="grey94"),
+                   strip.text = element_text(size=8),
                    panel.spacing.x=unit(2, "mm"),
                    axis.line.y = element_blank())
 

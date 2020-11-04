@@ -39,10 +39,21 @@ def get_vars(infile, outfile, PARAMS, make_outdir=True):
              "seurat_object": os.path.join(parts[0], "begin.rds"),
              "outdir": os.path.dirname(outfile),
              "outname": os.path.basename(outfile),
-             "resolutions" : [x.strip()
-                              for x in
-                              PARAMS["runspecs_cluster_resolutions"].split(",")]
              }
+
+
+    if PARAMS["runspecs_cluster_resolutions"]:
+
+        SPEC["resolutions"] = [x.strip()
+                               for x in
+                               str(PARAMS["runspecs_cluster_resolutions"]).split(",")]
+
+    else:
+        SPEC["resolutions"] = []
+
+    if PARAMS["runspecs_predefined_clusters"]:
+        SPEC["resolutions"].append("predefined")
+
 
     if not infile is None:
         infile = os.path.relpath(infile)

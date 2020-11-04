@@ -23,6 +23,8 @@ option_list <- list(
                 help="use significant principle component"),
     make_option(c("--components"), type="integer", default=10,
                 help="if usesigcomponents is FALSE, the number of principle components to use"),
+    make_option(c("--cordist"), action="store_true", default=FALSE,
+                help="make a plot based on correlation distance"),
     make_option(c("--outdir"), default="seurat.out.dir",
                 help="outdir"),
     make_option(c("--reductiontype"), default="pca",
@@ -64,7 +66,11 @@ if(DefaultAssay(s) != "SCT" && length(VariableFeatures(s)) > 0)
 {
     ## see: https://github.com/satijalab/seurat/issues/1677
 
-    draw_tree <- function() { plot(Tool(BuildClusterTree(s),slot='BuildClusterTree')) }
+    draw_tree <- function() {
+        plot(Tool(BuildClusterTree(s),
+                  slot='BuildClusterTree'),
+             cex=0.5)
+    }
 
 } else {
     ## draw an empty plot with an error message
@@ -79,8 +85,11 @@ if(DefaultAssay(s) != "SCT" && length(VariableFeatures(s)) > 0)
 save_plots(
     file.path(opt$outdir, "cluster.dendrogram"),
     plot_fn=draw_tree,
-    width=8, height=5)
+    width=6, height=8)
 
+
+if(opt$cordist)
+{
 
 ## 2. By the median pair-wise pearson correlation
 ## of cells in the clusters.
@@ -107,6 +116,8 @@ print(
     xtable(sprintfResults(as.data.frame(cluster_cor)), caption="Pairwise correlations between clusters"),
     file=file.path(opt$outdir, "cluster.pairwise.correlations.tex")
     )
+
+}
 
 message("seurat_cluster.R final default assay: ", DefaultAssay(s))
 
