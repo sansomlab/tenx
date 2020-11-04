@@ -1,0 +1,10 @@
+matrixpath: all-datasets.dir/sample2
+outdir: qc.dir
+qc_initial_mingenes: 200
+qc_inputqc: sample2
+qc_maxpercentmito: 0.05
+qc_memory: 40000M
+qc_mingenes: 500
+qc_minpercentmito: 0
+tenx_dir: /gfs/devel/lkoneva/tenx
+transcriptome: /gfs/mirror/genomes/10x/refdata-cellranger-GRCh38-1.2.0
