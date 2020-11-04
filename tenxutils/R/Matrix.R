@@ -188,25 +188,11 @@ getHVG <- function(seurat_object,
     require(scater)
     sce_object <- as.SingleCellExperiment(seurat_object)
 
-    var.fit.nospike <- trendVar(sce_object,
-                                parametric=TRUE,
-                                use.spikes=FALSE,
-                                loess.args=list(span=0.2))
-
-    var.out.nospike <- decomposeVar(sce_object,
-                                    var.fit.nospike,
-                                    subset.row=rowMeans(
-                                        as.matrix(logcounts(sce_object))) > min_mean)
-
-    ## TODO: some plots should be made.
-    ## plot(var.out.nospike$mean, var.out.nospike$total, pch=16, cex=0.6,
-    ##     xlab="Mean log-expression", ylab="Variance of log-expression")
-    ## curve(var.fit.nospike$trend(x), col="dodgerblue", lwd=2, add=TRUE)
-    ## points(var.out.nospike$mean[cur.spike], var.out.nospike$total[cur.spike], col="red", pch=16)
-    hvg.out <- var.out.nospike[which(var.out.nospike$FDR <= p_adjust_threshold),]
-
-    hvg.out <- hvg.out[order(hvg.out$bio,
-                             decreasing=TRUE),]
+    allf <- modelGeneVar(sce_object, parametric=TRUE, subset.row = rowMeans(as.matrix(logcounts(sce_object))) > min_mean)
+    
+    hvg.out <- allf[which(allf$FDR <= p_adjust_threshold),]
+    
+    hvg.out <- hvg.out[order(hvg.out$bio, decreasing=TRUE),]
 
     hvg.out
 }
