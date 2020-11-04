@@ -718,7 +718,7 @@ def exportForPython(infile, outfile):
         source_files = ["embedding.*.tsv.gz",
                         "export_for_python.*",
                         "metadata.tsv.gz",
-                        "feaatures.tsv.gz",
+                        "features.tsv.gz",
                         "barcodes.tsv.gz",
                         "assay.*.data.tsv.gz",
                         "sig_comps.tsv"]
@@ -1201,9 +1201,9 @@ def UMAP(infile, outfile):
 # ########################################################################### #
 
 @active_if(PARAMS["run_diffusionmap"])
-@transform(anndata,
-           regex(r"(.*)/(.*)/anndata.dir/anndata.sentinel"),
-           r"\1/\2/diffusionmap.dir/dm.sentinel")
+@transform(cluster,
+           regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
+           r"\1/\2/\3/diffusionmap.dir/dm.sentinel")
 def diffusionMap(infile, outfile):
     '''
     Run the diffusion map analysis on a saved seurat object.
@@ -1212,8 +1212,6 @@ def diffusionMap(infile, outfile):
     ## TODO: fix plotting flow
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
-
-    #cluster_ids = infile.replace(".sentinel","_ids.rds")
 
     if(spec.components=="sig"):
         comp="--usesigcomponents=TRUE"
@@ -1251,16 +1249,14 @@ def diffusionMap(infile, outfile):
 
 @active_if(PARAMS["run_knownmarkers"])
 @transform(cluster,
-           regex(r"(.*)/cluster.dir/cluster.sentinel"),
-           r"\1/known.markers.dir/known.markers.sentinel")
+           regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
+           r"\1/\2/\3/known.markers.dir/known.markers.sentinel")
 def knownMarkerViolins(infile, outfile):
     '''
        Make per-cluster violin plots from a given set of known marker genes.
     '''
 
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
-
-    cluster_ids = os.path.join(spec.indir, "cluster_ids.rds")
 
     if not os.path.exists(PARAMS["knownmarkers_file"]):
         raise ValueError("The specified known markers file does not exist")

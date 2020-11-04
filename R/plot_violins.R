@@ -102,9 +102,9 @@ for(group in unique(genes$group))
 
     if("plot_name" %in% colnames(genes))
     {
-        plot_names <- make.unique(paste(tmp$plot_name," (",tmp$gene_name,")",sep=""))
+        plot_names <- make.unique(paste(tmp$plot_name," (",tmp$gene,")",sep=""))
     } else {
-        plot_names <- make.unique(tmp$gene_name)
+        plot_names <- make.unique(tmp$gene)
     }
     tmp$plot_name <- plot_names
 
