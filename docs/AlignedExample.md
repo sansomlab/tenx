@@ -67,7 +67,7 @@ emacs -nw pipeline.yml
 python $tenx_path/pipelines/pipeline_scxl.py make report -v5 -p200
 ```
 
-The configuration file is available here: [pipeline.yml](https://dl.dropbox.com/s/njp7bpzzep3ddsu/pipeline.yml)
+The configuration file is available here: [pipeline.yml](https://dl.dropbox.com/s/jvsrjoltjpi7t5h/pipeline.yml)
 
 
 # Full outputs
