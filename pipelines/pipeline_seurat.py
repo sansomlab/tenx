@@ -1286,9 +1286,9 @@ def UMAP(infile, outfile):
 # ########################################################################### #
 
 @active_if(PARAMS["run_diffusionmap"])
-@transform(cluster,
-           regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
-           r"\1/\2/\3/diffusionmap.dir/dm.sentinel")
+@transform(anndata,
+           regex(r"(.*)/(.*)/anndata.dir/anndata.sentinel"),
+           r"\1/\2/diffusionmap.dir/dm.sentinel")
 def diffusionMap(infile, outfile):
     '''
     Run the diffusion map analysis on a saved seurat object.
@@ -1692,7 +1692,6 @@ def plotRdimsClusters(infile, outfile):
 
 
 @active_if(PARAMS["run_diffusionmap"])
-@follows(diffusionMap)
 @transform(cluster,
            regex(r"(.*)/(.*).dir/(.*).dir/(.*).sentinel"),
            add_inputs(diffusionMap),
