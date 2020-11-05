@@ -63,8 +63,7 @@ cat("Running with options:\n")
 print(opt)
 
 
-## read in the raw count matrix
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
 
 ## set the default assay
 message("Setting default assay to: ", opt$seuratassay)

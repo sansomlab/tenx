@@ -11,13 +11,16 @@ def get(infile, outfile, PARAMS):
     nparts = len(parts)
 
     spec = { "sample_name": parts[0].split(".")[0],
-             "seurat_object": os.path.join(parts[0], "begin.rds"),
              "outdir": os.path.dirname(outfile),
              "indir": os.path.dirname(infile),
              "resolutions" : [x.strip()
                               for x in
                               PARAMS["runspecs_cluster_resolutions"].split(",")]
              }
+    if PARAMS["input_format"] == "rds":
+        spec["seurat_object"] = os.path.join(parts[0], "begin.rds")
+    else:
+        spec["seurat_object"] = os.path.join(parts[0], "begin.h5seurat")
 
     # take care of making the output directory.
     if not os.path.exists(spec["outdir"]):

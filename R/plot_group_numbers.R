@@ -179,8 +179,8 @@ if(opt$stat %in% c("total_UMI", "ngenes"))
     {
         require(Seurat)
         # add the statistic from the seurat object
-        s <- readRDS(opt$seuratobject)
-
+        s <- loadSeurat(path=opt$seuratobject)
+      
         ## set the default assay
         message("Setting default assay to: ", opt$seuratassay)
         DefaultAssay(s) <- opt$seuratassay

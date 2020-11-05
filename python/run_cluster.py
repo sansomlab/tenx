@@ -84,7 +84,9 @@ elif args.algorithm == "louvain":
 else:
     raise ValueError("Clustering algorithm not recognised")
 
-adata.obs.to_csv(os.path.join(args.outdir,
-                          "scanpy.clusters.tsv.gz"), sep="\t", index=False)
+select_cols = ['barcode', args.algorithm]
+adata.obs[select_cols].to_csv(os.path.join(args.outdir,
+                                           "scanpy.clusters.tsv.gz"),
+                              sep="\t", index=False)
 
 L.info("Complete")

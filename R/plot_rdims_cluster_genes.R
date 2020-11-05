@@ -117,7 +117,7 @@ print(opt)
 ## read in the assay data
 #data <- read.table(opt$assaydata, sep="\t", header=T, as.is=T, check.names=F)
 message("reading in assay data")
-data <- readRDS(opt$assaydata)
+data <- loadSeurat(opt$assaydata)
 
 message("reading in the coordinates")
 plot_data <- read.table(opt$table,sep="\t",header=TRUE)

@@ -34,8 +34,7 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
-message(sprintf("readRDS: %s", opt$seuratobject))
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
 
 message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
 
@@ -71,16 +70,16 @@ names(cluster_ids) <- clusters$barcode
 unique_cluster_ids <- unique(cluster_ids)
 print(unique_cluster_ids)
 
-message(sprintf("saving a unique list ofe cluster ids"))
+print(sprintf("saving a unique list of cluster ids"))
 write.table(unique_cluster_ids, file=file.path(opt$outdir,"cluster_ids.tsv"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
 
 cluster_colors <- gg_color_hue(length(unique_cluster_ids))
-message(sprintf("saving the cluster colors (ggplot)"))
+print(sprintf("saving the cluster colors (ggplot)"))
 write.table(cluster_colors, file=file.path(opt$outdir,"cluster_colors.tsv"),
             quote=FALSE, col.names = FALSE, row.names = FALSE)
 
-message(sprintf("saveRDS"))
+print(sprintf("saveRDS of cluster ids"))
 saveRDS(cluster_ids, file=file.path(opt$outdir,"cluster_ids.rds"))
 
 cluster_assignments <- data.frame(barcode=as.character(names(cluster_ids)),
@@ -91,6 +90,6 @@ write.table(cluster_assignments,
             sep="\t", col.names=T, row.names=F, quote=F)
 
 
-message("seurat_cluster.R final default assay: ", DefaultAssay(s))
+print(sprintf("seurat_cluster.R final default assay: %s", DefaultAssay(s)))
 
-message("Completed")
+print("Completed")

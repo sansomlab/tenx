@@ -59,7 +59,8 @@ genes <- read.table(opt$genetable,
 
 
 ## read in the raw count matrix
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
+
 Idents(s) <- readRDS(opt$clusterids)
 
 ## set the default assay

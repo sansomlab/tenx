@@ -78,27 +78,43 @@ plan("multiprocess",
      workers = opt$numcores)
 
 
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
+
+if (class(s@misc) == "list"){
+  cat("Convert the s@misc to dataframe")
+  s@misc <- as.data.frame(s@misc, stringsAsFactors=FALSE)
+}
 
 have_gene_ids <- "gene_id" %in% colnames(s@misc)
 
 if(!have_gene_ids)
 {
-    cat("Missing ensembl gene_id column in @misc, reading in annotation.\n")
+  cat("Missing ensembl gene_id column in @misc, reading in annotation from other source.\n")
 
+  if(endsWith(opt$seuratobject, ".h5seurat")){
+    message("Using s@assays$RNA@meta.features in Seurat object for gene annotation. This slot contains unique gene names and is produced during conversion from scanpy anndata object.")
+    ann <- s@assays$RNA@meta.features
+    ann$seurat_id = rownames(ann)
+    ann <- unique(ann[,c("gene_ids", "seurat_id")])
+    colnames(ann) <- c("ensembl_id", "gene_name")
+  } else {
+    message("Reading in annotation from annotation.dir")
+    message("Please note that only genes with unique gene names will be kept.")
+    message("The other ones will be lost due to Seurat's process of making gene names unique!")
     ann <- read.table(gzfile(opt$annotation), header=T, sep="\t", as.is=T)
 
     ## subset to columns of interest
     ann <- unique(ann[,c("ensembl_id", "gene_name")])
+  }
 
-    ## the gene names have been made unique so we want only 1:1 mappings.
-    gn_tab <- table(ann$gene_name)
+  ## the gene names have been made unique so we want only 1:1 mappings.
+  gn_tab <- table(ann$gene_name)
 
-    unique_gn <- names(gn_tab)[gn_tab == 1]
-    ann <- ann[ann$gene_name %in% unique_gn,]
+  unique_gn <- names(gn_tab)[gn_tab == 1]
+  ann <- ann[ann$gene_name %in% unique_gn,]
 
-    rownames(ann) <- ann$gene_name
+  rownames(ann) <- ann$gene_name
 }
 
 xx <- names(cluster_ids)

@@ -200,7 +200,7 @@ options(future.globals.maxSize = opt$memory * 1024^2)
 
 # Input data ----
 
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
 
 ## ######################################################################### ##
 ## # (i) Initial normalisation, variable gene identification and scaling ### ##

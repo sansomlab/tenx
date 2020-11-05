@@ -187,7 +187,8 @@ tex <- c(tex, getFigureTex(defn, deCaption,plot_dir_var=opt$plotdirvar))
 ## enforce significance
 
 ## read in the seurat object
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
+
 cluster_ids <- readRDS(opt$clusterids)
 Idents(s) <- cluster_ids
 

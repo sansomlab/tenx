@@ -52,7 +52,7 @@ cat("Running with options:\n")
 print(opt)
 
 
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 
 xx <- names(cluster_ids)

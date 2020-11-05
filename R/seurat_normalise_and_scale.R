@@ -221,7 +221,7 @@ options(future.globals.maxSize = opt$memory * 1024^2)
 
 # Input data ----
 
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
 
 ## ######################################################################### ##
 ## # (i) Initial normalisation, variable gene identification and scaling ## ##
@@ -351,6 +351,6 @@ if(opt$normalizationmethod=="sctransform")
 message("seurat_begin.R object final default assay: ", DefaultAssay(s))
 
 # Save the R object
-saveRDS(s, file=file.path(opt$outdir, "begin.rds"))
+saveSeurat(path=opt$seuratobject)
 
 message("Completed")

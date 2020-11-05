@@ -53,10 +53,10 @@ exportMetaData <- function(seurat_object, outdir=NULL) {
                 quote=FALSE, sep="\t", row.names = FALSE, col.names = TRUE)
     }
 
-
 # Read RDS seurat object
-message("readRDS")
+message(sprintf("readRDS: %s", opt$seuratobject))
 s <- readRDS(opt$seuratobject)
+
 message("export_for_python running with default assay: ", DefaultAssay(s))
 
 # Write out the cell and feature names

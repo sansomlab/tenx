@@ -40,7 +40,8 @@ if(!is.null(opt$subgroup)) { opt$subgroup <- strsplit(opt$subgroup,",")[[1]]}
 cat("Running with options:\n")
 print(opt)
 
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
+
 cluster_ids <- readRDS(opt$clusterids)
 Idents(s) <- cluster_ids
 

@@ -35,8 +35,8 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
-message(sprintf("readRDS: %s", opt$seuratobject))
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
+
 a <- ifelse("SCT" %in% names(s), yes = "SCT", no = "RNA")
 
 sce <- as.SingleCellExperiment(s, assay = a) # Seems to be using SCT assay (so does it take the defualt?)

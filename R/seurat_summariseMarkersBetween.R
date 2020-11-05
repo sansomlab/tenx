@@ -48,7 +48,7 @@ print(opt)
 # set the run specs
 run_specs <- paste(opt$numpcs,opt$resolution,opt$algorithm,opt$testuse,sep="_")
 
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
 
 message("Setting the default seurat assay to: ", opt$seuratassay)

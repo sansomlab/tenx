@@ -212,7 +212,6 @@ def taskSummary(infile, outfile):
             run.append(str(v))
 
     tab = pd.DataFrame(list(zip(tasks,run)),columns=["task","run"])
-    print(tab)
 
     tab.to_latex(buf=outfile, index=False)
 
@@ -296,6 +295,7 @@ def createSeuratObject(infile, outfile):
                    --matrixtype=%(matrix_type)s
                    --project=%(sample_name)s
                    --outdir=%(outdir)s
+                   --file_type=%(input_format)s
                    --groupby=%(qc_groupby)s
                    --mingenes=%(qc_initial_mingenes)s
                    --mincells=%(qc_mincells)s
@@ -512,12 +512,13 @@ def seuratPCA(infile, outfile):
 # ############### Predict cell-types using singleR ################### #
 # #################################################################### #
 
+file_suffix = str(PARAMS["input_format"])
 
 @active_if(PARAMS["headstart_seurat_object"])
 @transform(os.path.join(str(PARAMS["headstart_path"]),
-                        "*.seurat.dir/begin.rds"),
-           regex(r".*/(.*).seurat.dir/begin.rds"),
-                 r"\1.seurat.dir/begin.rds")
+                        "*.seurat.dir/begin."+file_suffix),
+           regex(r".*/(.*).seurat.dir/begin."+file_suffix),
+                 rf"\1.seurat.dir/begin."+file_suffix)
 def headstart(infile, outfile):
     '''
     link in the begin.rds objects
@@ -544,7 +545,10 @@ def headstart(infile, outfile):
 def genSingleRjobs():
     '''generate the singleR jobs'''
 
-    seurat_objects = glob.glob("*.seurat.dir/begin.rds")
+    if PARAMS["input_format"] == "rds":
+        seurat_objects = glob.glob("*.seurat.dir/begin.rds")
+    else:
+        seurat_objects = glob.glob("*.seurat.dir/begin.h5seurat")
 
     references = [x.strip() for x in PARAMS["singleR_reference"].split(",")]
 
@@ -609,7 +613,6 @@ def singleR(infile, outfile):
     else:
 
         spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
-
 
         # set the job threads and memory
         job_threads, job_memory, r_memory = TASK.get_resources(
@@ -693,10 +696,22 @@ def plotExtraSingleR(infile, outfile):
 # ############ Begin per-parameter combination analysis runs ################ #
 # ########################################################################### #
 
+USE_RDS = 0
+USE_H5 = 0
 
+if PARAMS["input_format"] == "rds":
+    SEURAT_OBJECTS = "*.seurat.dir/begin.rds"
+    S_REGEX = regex(r"(.*)/begin.rds")
+    USE_RDS = 1
+else:
+    SEURAT_OBJECTS = "*.seurat.dir/begin.h5seurat"
+    S_REGEX = regex(r"(.*)/begin.h5seurat")
+    USE_H5 = 1
+
+@active_if(USE_RDS)
 @follows(seuratPCA, headstart)
-@transform("*.seurat.dir/begin.rds",
-           regex(r"(.*)/begin.rds"),
+@transform(SEURAT_OBJECTS,
+           S_REGEX,
            r"\1/export_for_python.sentinel")
 def exportForPython(infile, outfile):
     '''
@@ -779,6 +794,58 @@ def exportForPython(infile, outfile):
         P.run(statement)
         IOTools.touch_file(outfile)
 
+@active_if(USE_H5)
+@follows(seuratPCA, headstart)
+@transform(SEURAT_OBJECTS,
+           S_REGEX,
+           r"\1/export_for_python.sentinel")
+def convertRDStoAnndata(infile, outfile):
+    '''Convert Seurat h5ad to anndata h5ad '''
+
+    spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
+
+    if PARAMS["headstart_export_for_python"]:
+
+        source_folder = os.path.join(PARAMS["headstart_path"],
+                                     spec.sample_dir)
+
+        source_files = ["begin.h5ad",
+                        "export_for_python.*"]
+
+        source_paths = [ os.path.join(source_folder, x)
+                         for x in source_files ]
+
+        for source in source_paths:
+            if "*" in source:
+                files = glob.glob(source)
+            else:
+                files = [ source ]
+
+            for sf in files:
+                if os.path.exists(sf):
+                    os.symlink(os.path.relpath(sf,
+                                               start=spec.sample_dir),
+                               os.path.join(spec.sample_dir,
+                                            os.path.basename(sf)))
+    else:
+        # set the job threads and memory
+        job_threads, job_memory, r_memory = TASK.get_resources(
+            memory=PARAMS["resources_memory_standard"])
+
+        statement = '''Rscript %(tenx_dir)s/R/convert_rds_to_anndata.R
+                       --seuratobject=%(seurat_object)s
+                       &> %(log_file)s
+                    ''' % dict(PARAMS, **SPEC, **locals())
+
+        P.run(statement)
+        IOTools.touch_file(outfile)
+
+
+if PARAMS["input_format"] == "rds":
+    TASK_EXPORT = exportForPython
+else:
+    TASK_EXPORT = convertRDStoAnndata
+
 
 def genAnndata():
 
@@ -790,7 +857,10 @@ def genAnndata():
 
     for sample in samples:
 
-        infile = os.path.join(sample, "begin.rds")
+        if PARAMS["input_format"] == "rds":
+            infile = os.path.join(sample, "begin.rds")
+        else:
+            infile = os.path.join(sample, "begin.h5seurat")
 
         for comps in components:
 
@@ -800,8 +870,7 @@ def genAnndata():
             outfile = os.path.join(sample, outdir, subdir, outname)
             yield [infile, outfile]
 
-
-@follows(exportForPython)
+@follows(TASK_EXPORT)
 @files(genAnndata)
 def anndata(infile, outfile):
     '''
@@ -812,8 +881,14 @@ def anndata(infile, outfile):
 
     reductiontype = PARAMS["dimreduction_method"]
 
-    reduced_dims_matrix_file = os.path.join(spec.sample_dir,
-                                            "embedding." + reductiontype + ".tsv.gz")
+    if PARAMS["input_format"] == "rds":
+        reduced_dims_matrix_file = os.path.join(spec.sample_dir,
+                                                "embedding." + reductiontype + ".tsv.gz")
+        input_files = '''--reduced_dims_matrix_file=%(reduced_dims_matrix_file)s '''
+    else:
+        anndata_file = SPEC["seurat_object"].replace(".h5seurat", ".h5ad")
+        input_files = '''--anndata_file=%(anndata_file)s
+                         --reduction_name=%(dimreduction_method)s '''
 
     barcode_file = os.path.join(spec.sample_dir,
                                 "barcodes.tsv.gz")
@@ -841,7 +916,7 @@ def anndata(infile, outfile):
         memory=PARAMS["resources_memory_extreme"])
 
     statement = '''python %(tenx_dir)s/python/make_anndata.py
-                   --reduced_dims_matrix_file=%(reduced_dims_matrix_file)s
+                   %(input_files)s
                    --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
                    --comps=%(comps)s
@@ -871,7 +946,10 @@ def genScanpyClusterJobs():
 
     for sample in samples:
 
-        infile = os.path.join(sample, "begin.rds")
+        if PARAMS["input_format"] == "rds":
+            infile = os.path.join(sample, "begin.rds")
+        else:
+            infile = os.path.join(sample, "begin.h5seurat")
 
         for comps in components:
 
@@ -932,7 +1010,7 @@ def cluster(infile, outfile):
     spec, SPEC = TASK.get_vars(infile, outfile, PARAMS)
 
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_low"])
+        memory=PARAMS["resources_memory_standard"])
 
     scanpy_cluster_tsv = infile.replace(".sentinel",".tsv.gz")
 
@@ -1083,7 +1161,7 @@ def paga(infile, outfile):
 
 
 @active_if(PARAMS["run_phate"])
-@follows(exportForPython,cluster)
+@follows(TASK_EXPORT, cluster)
 @transform(anndata,
            regex(r"(.*)/(.*)/anndata.dir/anndata.sentinel"),
            r"\1/\2/phate.dir/phate.sentinel")
@@ -1113,22 +1191,29 @@ def phate(infile, outfile):
 
     cluster_resolutions = ",".join(spec.resolutions)
 
-    barcode_file = os.path.join(spec.sample_dir,
-                                "barcodes.tsv.gz")
 
-    if PARAMS["phate_assay"] == "reduced.dimensions":
-
-        embeddings = ".".join(["embedding",
-                               PARAMS["dimreduction_method"],
-                               "tsv.gz"])
-
-        assay_data = os.path.join(spec.sample_dir, embeddings)
-
-    elif PARAMS["phate_assay"] == "scaled.data":
-        assay_data = os.path.join(spec.sample_dir, "assay.scale.data.tsv.gz")
-
+    if USE_H5:
+        # path to anndata object
+        assay_data = os.path.join(spec.sample_dir, "begin.h5ad")
+        if PARAMS["phate_assay"] == "reduced.dimensions":
+            # add red dimension name to extract from anndata
+            input_phate = '''--reduction_name=%(dimreduction_method)s
+                             --input_type="anndata" '''
     else:
-        raise ValueError("PHATE assay not recognised")
+        barcode_file = os.path.join(spec.sample_dir,
+                                    "barcodes.tsv.gz")
+        input_phate = ''' --barcode_file=%(barcode_file)s
+                          --input_type="tsv" '''
+        if PARAMS["phate_assay"] == "reduced.dimensions":
+            embeddings = ".".join(["embedding",
+                                   PARAMS["dimreduction_method"],
+                                   "tsv.gz"])
+            assay_data = os.path.join(spec.sample_dir, embeddings)
+
+        elif PARAMS["phate_assay"] == "scaled.data":
+            assay_data = os.path.join(spec.sample_dir, "assay.scale.data.tsv.gz")
+        else:
+            raise ValueError("PHATE assay not recognised")
 
 
     k = PARAMS["phate_k"]
@@ -1140,13 +1225,13 @@ def phate(infile, outfile):
     statement = '''python %(tenx_dir)s/python/run_phate.py
                    --data=%(assay_data)s
                    --assay=%(phate_assay)s
-                   --barcode_file=%(barcode_file)s
                    --outdir=%(outdir)s
                    --resolution=%(cluster_resolutions)s
                    --cluster_assignments=%(cluster_assignment_files)s
                    --cluster_colors=%(cluster_color_files)s
                    --k=%(k)s
                    --gif=%(phate_gif)s
+                   %(input_phate)s
                    &> %(log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 
@@ -1201,9 +1286,9 @@ def UMAP(infile, outfile):
 # ########################################################################### #
 
 @active_if(PARAMS["run_diffusionmap"])
-@transform(cluster,
-           regex(r"(.*)/(.*)/(.*)/cluster.sentinel"),
-           r"\1/\2/\3/diffusionmap.dir/dm.sentinel")
+@transform(anndata,
+           regex(r"(.*)/(.*)/anndata.dir/anndata.sentinel"),
+           r"\1/\2/diffusionmap.dir/dm.sentinel")
 def diffusionMap(infile, outfile):
     '''
     Run the diffusion map analysis on a saved seurat object.
@@ -1309,7 +1394,7 @@ RDIMS_VIS_COMP_2 = "UMAP_2"
 # ########################################################################### #
 
 @active_if(PARAMS["run_velocity"])
-@follows(paga)
+@follows(paga, phate)
 @transform(RDIMS_VIS_TASK,
            regex(r"(.*)/(.*)/(.*).sentinel"),
            r"\1/velocity.dir/scvelo.sentinel")
@@ -1407,6 +1492,10 @@ def scvelo(infile, outfile):
         runs["phate"] = {"method": "phate",
                          "table": phate_table,
                          "rdim1": "PHATE1", "rdim2": "PHATE2"}
+    if USE_H5:
+        input_type = ''' --input_type="anndata" '''
+    else:
+        input_type = ''' --input_type="tsv" '''
 
     statements = []
 
@@ -1432,6 +1521,7 @@ def scvelo(infile, outfile):
                    --rdims=%(r_tab)s
                    --rdim1=%(r_1)s
                    --rdim2=%(r_2)s
+                   %(input_type)s
                 &> %(this_log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 
@@ -1447,7 +1537,7 @@ def scvelo(infile, outfile):
 
 @transform(RDIMS_VIS_TASK,
            regex(r"(.*)/(.*)/(.*)/(.*).sentinel"),
-           add_inputs(exportForPython),
+           add_inputs(TASK_EXPORT),
            r"\1/\2/rdims.visualisation.dir/plot.rdims.factor.sentinel")
 def plotRdimsFactors(infiles, outfile):
     '''
@@ -1602,7 +1692,6 @@ def plotRdimsClusters(infile, outfile):
 
 
 @active_if(PARAMS["run_diffusionmap"])
-@follows(diffusionMap)
 @transform(cluster,
            regex(r"(.*)/(.*).dir/(.*).dir/(.*).sentinel"),
            add_inputs(diffusionMap),
@@ -1865,7 +1954,7 @@ def plotRdimsGenes(infile, outfile):
 # ################# plot per-cluster summary statistics ##################### #
 # ########################################################################### #
 
-@follows(exportForPython)
+@follows(TASK_EXPORT)
 @transform(cluster,
            regex(r"(.*)/cluster.sentinel"),
            r"\1/group.numbers.dir/plot.group.numbers.sentinel")
@@ -2056,7 +2145,7 @@ def findMarkers(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"],
+        memory=PARAMS["resources_memory_high"],
         cpu=PARAMS["findmarkers_numcores"])
 
     for i in spec.clusters:
@@ -2181,7 +2270,7 @@ def summariseMarkers(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_low"],
+        memory=PARAMS["resources_memory_high"],
         cpu=1)
 
     # make sumamary tables and plots of the differentially expressed genes
@@ -3628,8 +3717,6 @@ def markerReport(infile, outfile):
        \\input %(tex_file)s
        \\input %(tenx_dir)s/latex/endmatter.tex'
        '''
-
-    print(statement)
 
     # Deliberately run twice - necessary for LaTeX compilation..
     draft_mode = "-draftmode"

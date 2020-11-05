@@ -50,9 +50,8 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
+s <- loadSeurat(path=opt$seuratobject)
 
-message("readRDS")
-s <- readRDS(opt$seuratobject)
 s@graphs <- readRDS(opt$seuratgraphs)
 
 message("seurat_umap.R running with default assay: ", DefaultAssay(s))

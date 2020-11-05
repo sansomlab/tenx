@@ -30,7 +30,7 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
-s <- readRDS(opt$seuratobject)
+s <- loadSeurat(path=opt$seuratobject)
 
 ## In Macosko et al, we implemented a resampling test inspired by the jackStraw procedure.
 ## We randomly permute a subset of the data (1% by default) and rerun PCA,
