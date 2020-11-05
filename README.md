@@ -27,7 +27,7 @@ This example shows how the [Seurat stimulated and control vignette](https://sati
 
 This is the [scvelo Bastidas-Ponce et al. dataset](https://scvelo.readthedocs.io/scvelo.datasets.pancreas.html)
 
-* [Summary Report](https://www.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf?dl=0)
+* [Summary Report](https://dl.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf)
 * Full details to follow.
 
 ### Microwell-seq Mouse Atlas (240k cells)
