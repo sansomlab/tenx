@@ -21,9 +21,9 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ###############################################################################
 
-"""===========================
-Pipeline Seurat
-===========================
+"""============
+Pipeline scxl
+===============
 
 :Author: Sansom lab
 :Release: $Id$
@@ -33,15 +33,27 @@ Pipeline Seurat
 Overview
 ========
 
-This pipeline wraps the Satija lab's Seurat (http://satijalab.org/seurat/)
-package using a set of Rscripts.
+A pipeline for highthroughput analysis of scRNA-seq datasets.
+
+The pipeline has been used to analyse datasets with up to 800,000 cells.
+
+This pipeline relies on both the R Seurat library and Python Scanpy package,
+and makes use of many excellent tools from the community including Scran,
+DropletUtils, SingleR, Clustree, Destiny (for diffusion maps), PHATE, PAGA
+and Scvelo) for downstream analysis. Automatic export of UCSC cell browser
+instances is also supported.
+
+For geneset over representation analysis the pipelines use a bespoke R
+package called gsfisher (http://github/sansomlab/gsfisher), which can
+also be used interactively to analyse single-cell data.
+
+The pipelines are in active development, and should be considered "beta"
+software - please use at your own risk!
 
 For key parameters a range of choices can be specified. The pipeline will
 generate one report for each parameter combination, dispatching analyses
 from multiple samples in parallel for execution on a HPC cluster.
 
-The pipeline also performs cluster geneset enrichment analysis using the
-"gsfisher" R package (http://github/sansomlab/gsfisher).
 
 Usage
 =====
