@@ -1,10 +1,10 @@
-# pipeline_seurat.py: aligned example
+# pipeline_scxl.py: aligned example
 
 Prior to running the pipeline the [Satija lab vignette](https://satijalab.org/seurat/v3.1/immune_alignment.html) was followed to perform [CCA alignment](https://doi.org/10.1038/nbt.4096) as below. Note that we also scale the data in the RNA assay.
 
 ```
 # (in R)
-# 
+#
 library(Seurat) # Version 3.1.1
 
 # devtools::install_github('satijalab/seurat-data')
@@ -12,7 +12,7 @@ library(SeuratData)
 
 library(cowplot)
 
-# Work around issue with InstallData("ifnb") 
+# Work around issue with InstallData("ifnb")
 # (see: https://github.com/satijalab/seurat-data/issues/15)
 install.packages("https://seurat.nygenome.org/src/contrib/ifnb.SeuratData_3.0.0.tar.gz", repos = NULL, type = "source")
 library(ifnb.SeuratData)
@@ -46,7 +46,7 @@ DefaultAssay(immune.combined) <- "integrated"
 saveRDS(immune.combined, "immune.combined.rds")
 ```
 
-pipeline_seurat.py was then configured and run as follows:
+pipeline_scxl.py was then configured and run as follows:
 
 ```
 # (from a bash shell)
@@ -57,14 +57,14 @@ mkdir aligned.seurat.dir
 ln -s $align_path/immune.aligned.rds aligned.seurat.dir/begin.rds
 
 # generate the configuration file
-python $tenx_path/pipelines/pipeline_seurat.py config
+python $tenx_path/pipelines/pipeline_scxl.py config
 
 # edit the file appropriately, e.g.
 emacs -nw pipeline.yml
 
 # run the pipeline
 # $tenx_path is the directory containing your clone of the tenx code.
-python $tenx_path/pipelines/pipeline_seurat.py make report -v5 -p200
+python $tenx_path/pipelines/pipeline_scxl.py make report -v5 -p200
 ```
 
 The configuration file is available here: [pipeline.yml](https://dl.dropbox.com/s/njp7bpzzep3ddsu/pipeline.yml)
