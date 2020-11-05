@@ -19,7 +19,7 @@ Please note that "pipeline_seurat.py" has been renamed to "pipeline_scxl.py" to 
 
 This example shows how the [Seurat stimulated and control vignette](https://satijalab.org/seurat/v3.1/immune_alignment.html) can be reproduced by the pipeline.
 
-* [Summary Report](https://dl.dropbox.com/s/84x0m9sjdsah8b3/summaryReport.pdf)
+* [Summary Report](https://dl.dropbox.com/s/xzptcbcdmy2frnd/summaryReport.pdf)
 
 * [Aligned example vignette](docs/AlignedExample.md).
 
@@ -27,7 +27,7 @@ This example shows how the [Seurat stimulated and control vignette](https://sati
 
 This is the [scvelo Bastidas-Ponce et al. dataset](https://scvelo.readthedocs.io/scvelo.datasets.pancreas.html)
 
-* [Summary Report](https://dl.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf)
+* [Summary Report](https://www.dropbox.com/s/n355kakx6d2jbqp/summaryReport.pdf?dl=0)
 * Full details to follow.
 
 ### Microwell-seq Mouse Atlas (240k cells)
