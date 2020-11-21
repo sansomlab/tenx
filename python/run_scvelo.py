@@ -144,39 +144,38 @@ rdims_tables = dict(zip(resolutions, rdims_files * len(resolutions)))
 
 for resolution, cluster_file in clusterings.items():
 
-    print(rdims_tables.keys())
-    print(colorings.keys())
+    # read in the rdims file
     rdims = pd.read_csv(rdims_tables[resolution],
                         sep="\t")
-
     rdims.index = rdims["barcode"]
 
-    # adata.obs["clusters"] = rdims["cluster"].values
-    adata.obsm["X_" + args.rdim_method] = rdims.loc[adata.obs.index,
-                                                [args.rdim1, args.rdim2]].values
+    # read in the cluster assignments
+    clusters = pd.read_csv(cluster_file, sep="\t")
+    clusters.index = [x for x in clusters.barcode.values]
+
+    # subset the adata object to the barcodes that were
+    # retained by the pipeline for clustering
+    adata_x = adata[clusters.index]
+
+    # Add the reduced dimensions to a copy of the anndata object
+    adata_x.obsm["X_" + args.rdim_method] = rdims.loc[adata_x.obs.index,
+                                                      [args.rdim1, args.rdim2]].values
 
     L.info("Rdims info added")
 
+    # Add the cluster assignments
+    adata_x.obs['cluster'] = clusters.loc[adata_x.obs.index,
+                                        "cluster_id"].astype("category").values
 
-    clusters = pd.read_csv(cluster_file,sep="\t")
+    L.info("Cluster assignments added")
 
     # Get the color palette
     ggplot_palette = [x for x in pd.read_csv(colorings[resolution],
                       header=None, sep="\t")[0].values]
 
-    # ggplot_cmap = ListedColormap(sns.color_palette(ggplot_palette).as_hex())
-
-    clusters = pd.read_csv(cluster_file, sep="\t")
-    clusters.index = [x for x in clusters.barcode.values]
-
-    adata = adata[clusters.index]
-
-    adata.obs['cluster'] = clusters.loc[adata.obs.index,
-                                        "cluster_id"].astype("category").values
-
     # make the plots
     fname = args.rdim_method + "_stream." + resolution + ".png"
-    scv.pl.velocity_embedding_stream(adata,
+    scv.pl.velocity_embedding_stream(adata_x,
                                      basis=args.rdim_method,
                                      dpi=300,
                                      color="cluster",
@@ -185,7 +184,7 @@ for resolution, cluster_file in clusterings.items():
                                      show=False)
 
     fname = args.rdim_method + "_velocity." + str(resolution) + ".png"
-    scv.pl.velocity_embedding(adata, basis=args.rdim_method,
+    scv.pl.velocity_embedding(adata_x, basis=args.rdim_method,
                               arrow_length=2, arrow_size=1.5,
                               dpi=300,
                               color="cluster", palette=ggplot_palette,
@@ -193,11 +192,10 @@ for resolution, cluster_file in clusterings.items():
                               show=False)
 
     fname = args.rdim_method + "_grid." + str(resolution) + ".png"
-    scv.pl.velocity_embedding_grid(adata, basis=args.rdim_method,
+    scv.pl.velocity_embedding_grid(adata_x, basis=args.rdim_method,
                                    dpi=300,
                                    color="cluster", palette=ggplot_palette,
                                    save=fname,
                                    show=False)
-
 
 L.info("Plotting finished")

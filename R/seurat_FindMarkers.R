@@ -103,7 +103,7 @@ if(!have_gene_ids)
 
 xx <- names(cluster_ids)
 yy <- colnames(x=s)
-if(!all.equal(xx[order(xx)], yy[order(yy)])) {
+if(!isTRUE(all.equal(xx[order(xx)], yy[order(yy)]))) {
     stop("cluster_ids and seurat object have different cells")
 }
 
