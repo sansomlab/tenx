@@ -1,0 +1,16 @@
+numpy
+matplotlib
+seaborn
+scanpy
+pandas
+scipy
+scvelo
+python-igraph
+leidenalg
+umap-learn
+louvain
+scprep
+sklearn
+phate
+pyreadr
+cellbrowser

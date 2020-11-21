@@ -52,10 +52,6 @@ Read10X <- function(data.dir = NULL){
 #' @param codes A chracter vector of cell barcodes.
 #'
 #' @return A data.frame of two columns:
-#' \described{
-#'   \item{code}{The sequenced cell barcode.}
-#'   \item{agg_id}{The sample aggregation identifier.}
-#' }
 barcode2table <- function(codes){
   barcodeTable <- read.table(text=codes, sep="-", as.is = TRUE)
   colnames(barcodeTable) <- c("code","agg_id")
@@ -189,9 +185,9 @@ getHVG <- function(seurat_object,
     sce_object <- as.SingleCellExperiment(seurat_object)
 
     allf <- modelGeneVar(sce_object, parametric=TRUE, subset.row = rowMeans(as.matrix(logcounts(sce_object))) > min_mean)
-    
+
     hvg.out <- allf[which(allf$FDR <= p_adjust_threshold),]
-    
+
     hvg.out <- hvg.out[order(hvg.out$bio, decreasing=TRUE),]
 
     hvg.out
@@ -202,22 +198,21 @@ getHVG <- function(seurat_object,
 #' @param x a matrix
 #' @param nrows number of rows per chunk
 
-FastExpMeanChunked <- function(x, 
+FastExpMeanChunked <- function(x,
                                rows_per_chunk=2000
-                               ) 
+                               )
 {
-  
+
   result <- c()
-  
+
   nrows_x <- nrow(x)
-  
+
   for(i in seq(1, nrows_x, rows_per_chunk)){
-    
+
     j <- min(i + rows_per_chunk - 1, nrows_x)
-    
-    result <- c(result, 
+
+    result <- c(result,
                 Seurat:::FastExpMean(x[i:j,], display_progress = FALSE))
   }
   result
 }
-
