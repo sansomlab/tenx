@@ -11,11 +11,14 @@ violinPlotSection(
   type = "positive",
   group.by = opt$testfactor,
   ident.include = opt$identinclude,
-  ncol = ncol,
+  vncol = 4,
+  vnrow = 3,
+  pt_size = 0.1,
   outdir = opt$outdir,
   analysis_title = "violin plots",
   fc_type = "fold change",
   plot_dir_var = "plotsDir",
+  to_pdf = TRUE,
   use.minfc = FALSE
 )
 }
@@ -32,8 +35,6 @@ violinPlotSection(
 
 \item{ident.include}{Identity to include}
 
-\item{ncol}{Number of columns in the figure}
-
 \item{outdir}{The directory for the output}
 
 \item{analysis_title}{Title for this section}
@@ -41,6 +42,8 @@ violinPlotSection(
 \item{fc_type}{The metric by which the violin plots are ordered}
 
 \item{use.minfc}{Use minimum foldchange}
+
+\item{ncol}{Number of columns in the figure}
 }
 \description{
 Make a latex section containing a set of violin plots

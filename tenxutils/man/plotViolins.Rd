@@ -11,13 +11,15 @@ plotViolins(
   type = "positive",
   group.by = NULL,
   ident.include = NULL,
-  ncol = ncol,
+  vncol = 4,
+  vnrow = 3,
   use.minfc = FALSE,
   minfc_col = "min_logFC",
   maxfc_col = "max_logFC",
   avgfc_col = "avg_logFC",
   m_col = "avg_logFC",
   p_col = "p.adj",
+  pt_size = 0.1,
   id_col = "gene"
 )
 }
@@ -34,8 +36,6 @@ plotViolins(
 
 \item{ident.include}{Identity to include}
 
-\item{ncol}{Number of columns in the figure}
-
 \item{use.minfc}{Use minimum foldchange}
 
 \item{minfc_col}{Column containing the minimum foldchange}
@@ -49,6 +49,8 @@ plotViolins(
 \item{p_col}{The column containing the p-value}
 
 \item{id_col}{The column containing unique gene identifiers}
+
+\item{ncol}{Number of columns in the figure}
 }
 \description{
 Function to make sets of violin plots.

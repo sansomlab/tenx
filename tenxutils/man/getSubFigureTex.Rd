@@ -4,7 +4,7 @@
 \alias{getSubFigureTex}
 \title{Write latex for a subfigure}
 \usage{
-getSubFigureTex(image_file, caption, plot_dir_var = "plotDir")
+getSubFigureTex(image_file, caption, plot_dir_var = "plotDir", height = NULL)
 }
 \arguments{
 \item{image_file}{The image file to show in the figure.}
