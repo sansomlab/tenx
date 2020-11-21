@@ -3,13 +3,15 @@
 \name{markerComplexHeatmap}
 \alias{markerComplexHeatmap}
 \title{A function to draw a heatmap of top cluster marker genes with
-subgroup labels. The function uses the "scale.data" slot to make the heatmap.}
+subgroup labels. The function uses the "scale.data" slot by default to make the heatmap.}
 \usage{
 markerComplexHeatmap(
   seurat_object,
   marker_table = NULL,
   n_markers = 20,
   cells_use = NULL,
+  slot = "scale.data",
+  priority = "avg_logFC",
   row_names_gp = 10,
   sub_group = NULL,
   disp_min = -2.5,
@@ -25,6 +27,8 @@ markerComplexHeatmap(
 
 \item{cells_use}{The names of the cells to use. If NULL all cells will be used}
 
+\item{slot}{scale.data|data. If data, the rows will be scaled.}
+
 \item{row_names_gp}{The font size for the gene names}
 
 \item{sub_group}{If given, the name of a variable in the metadata of the seurat object}
@@ -35,5 +39,5 @@ markerComplexHeatmap(
 }
 \description{
 A function to draw a heatmap of top cluster marker genes with
-subgroup labels. The function uses the "scale.data" slot to make the heatmap.
+subgroup labels. The function uses the "scale.data" slot by default to make the heatmap.
 }
