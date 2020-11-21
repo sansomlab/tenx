@@ -12,7 +12,8 @@ stopifnot(
   require(tidyr),
   require(ggforce),
   require(MASS),
-  require(viridis)
+  require(viridis),
+  require(BiocParallel)
 )
 
 # Options ----
