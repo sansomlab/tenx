@@ -66,13 +66,15 @@ cran_packages <- c("devtools",
                    "ggalluvial")
 
 
-bioconductor_packages <- c("ComplexHeatmap",
+bioconductor_packages <- c("celldex",
+                           "ComplexHeatmap",
                            "DESeq2",
                            "destiny",
                            "DropletUtils",
                            "rtracklayer",
                            "scran",
-                           "scater")
+                           "scater",
+                           "SingleR")
 
 
 github_packages <- c("sansomlab/gsfisher",

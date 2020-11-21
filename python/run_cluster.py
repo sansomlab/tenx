@@ -31,7 +31,7 @@ L.setLevel(logging.INFO)
 
 
 sc.settings.verbosity = 3  # verbosity: errors (0), warnings (1), info (2), hints (3)
-sc.logging.print_versions()
+# sc.logging.print_versions()
 
 
 # ########################################################################### #

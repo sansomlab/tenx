@@ -14,3 +14,5 @@ sklearn
 phate
 pyreadr
 cellbrowser
+hnswlib
+fa2
