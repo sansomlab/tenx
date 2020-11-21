@@ -14,7 +14,7 @@ Check the list of [dependencies](DEPENDENCIES.md) for more information.
    $> pip install -r tenx/python/requirements.txt
 ```
 
-4. To install the required R packages (R>4.0.0, bioconductor and devtools are prerequiste):
+4. To install the required R packages (R>4.0.0, bioconductor and devtools are prerequisite):
 ```
    $> Rscript tenx/R/install.packages.R
 ```
