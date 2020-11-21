@@ -1,28 +1,20 @@
 # Installation
 
-Check the list of [dependencies](DEPENDENCIES.md)
+Check the list of [dependencies](DEPENDENCIES.md) for more information.
 
 1. Install the cgat-core pipeline system following the instructions here: https://github.com/cgat-developers/cgat-core/
-2. Install the [gsfisher R library](https://github.com/sansomlab/gsfisher), e.g.
-```
-   R> library(devtools)
-   R> install_github("sansomlab/gsfisher")
-```
-3. Clone the tenx repository, e.g.
+
+2. Clone the tenx repository, e.g.
 ```
    $> git clone https://github.com/sansomlab/tenx.git
 ```
-4. Install the tenxutils R library e.g.
+
+3. In the same virtual or conda environment as cgat-core install the required python packages:
 ```
-   $> cd tenx
-   $> R CMD INSTALL --no-multiarch --with-keep.source tenxutils
+   $> pip install -r tenx/python/requirements.txt
 ```
-5. Install velocyto using e.g.
+
+4. To install the required R packages (R>4.0.0, bioconductor and devtools are prerequiste):
 ```
-   R> library(devtools)
-   R> install_github("velocyto-team/velocyto.R")
-```
-6. Install umap using
-```
-   $> pip install umap-learn
+   $> Rscript tenx/R/install.packages.R
 ```
