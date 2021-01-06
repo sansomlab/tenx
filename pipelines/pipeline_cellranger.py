@@ -337,7 +337,7 @@ def reformatCellrangerCountMetrics(infile, outfile):
     # deal with percentages
     new_col_names = []
     for col in data.columns:
-        tmp = data.ix[0][col]
+        tmp = data.loc[0][col]
         if isinstance(tmp, str):
             if tmp.endswith("%"):
                 new_col_names.append(col + "_pct")
@@ -1012,7 +1012,7 @@ def qcScatterPlots(infile, outfile):
 
     job_memory = PARAMS["qc_memory"]
 
-    sample_info = pd.read_table("sample.information.txt")
+    sample_info = pd.read_table("sample.information.tsv")
     samples = sample_info[sample_info.columns[6]].tolist()
     print(samples)
 
