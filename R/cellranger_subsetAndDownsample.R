@@ -83,7 +83,7 @@ print(opt)
 
 downsample <- function(matrixUMI)
 {
-  print(head(metadata))
+
   message("making pre-downsampling diagnostic plot")
   plotDownsampling(matrixUMI, metadata, "UMI_input")
 
