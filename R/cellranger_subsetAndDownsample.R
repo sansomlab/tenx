@@ -83,16 +83,18 @@ print(opt)
 
 downsample <- function(matrixUMI)
 {
-  # Diagnostic plot
+
+  message("making pre-downsampling diagnostic plot")
   plotDownsampling(matrixUMI, metadata, "UMI_input")
 
   agg_ids <- barcode2table(colnames(matrixUMI))$agg_id
 
+  message("downsampling the matrix")
   matrixUMI <- downsampleMatrix(matrixUMI,
                                 downsample_method=opt$downsample,
                                 library_ids=agg_ids)
 
-  # Diagnostic plot
+  message("making post-downsampling diagnostic plot")
   plotDownsampling(matrixUMI, metadata, "UMI_downsampled")
   matrixUMI
 }

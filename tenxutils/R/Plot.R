@@ -480,34 +480,30 @@ plotDownsampling <- function(matrixUMI, metadata, basename) {
 
     # Collate total UMI and cell rank for each cell of each sample
     inputStats <- do.call("rbind", lapply(
-        levels(metadata$sample_id),
+        unique(metadata$sample_id),
         function(id){
             codes_id <- subset(metadata, sample_id == id, "barcode", drop=TRUE)
             nUMIs_id <- nUMIs[codes_id]
             data.frame(
                 nUMIs=sort(nUMIs_id, decreasing=TRUE),
                 CellRank=seq_along(nUMIs_id),
-                sample=id
+                Sample=id
             )
         }))
 
     # UMI vs Rank ----
-
     gg <- ggplot(inputStats) +
-        geom_line(aes(CellRank, nUMIs, colour=sample), size=0.25) +
+        geom_line(aes(CellRank, nUMIs, colour=Sample), size=0.25) +
         scale_x_log10(
-            limits=c(1, max(inputStats$CellRank)) #, breaks=c(1,10,1E2,1E3,1E4,1E5,1E6)
+            limits=c(1, max(inputStats$CellRank))
         ) +
         scale_y_log10(
-            limits=c(1, 10^ceiling(log10(max(nUMIs)))) #, breaks=c(1,2,5,10,20,50,1E2,2E2,5E2,1E3,2E3,5E3,1E4,2E4,5E4,1E5,2E5,5E5,1E6)
+            limits=c(1, 10^ceiling(log10(max(nUMIs))))
         ) +
         annotation_logticks() +
         labs(y="UMI count", x="Cell rank") +
         theme_bw() +
         theme(
-            # axis.text=element_text(size=rel(0.5)),
-            # legend.title=element_text(size=rel(0.75)),
-            # legend.text=element_text(size=rel(0.75)),
             panel.grid.major=element_line(size=0.1, color="grey"),
             panel.grid.minor=element_blank()
         )
@@ -518,13 +514,12 @@ plotDownsampling <- function(matrixUMI, metadata, basename) {
     )
 
     # UMI violion plot ----
-
     gg <- ggplot(inputStats) +
         geom_violin(
-            aes(sample, nUMIs, colour=sample),
+            aes(Sample, nUMIs, colour=Sample),
             draw_quantiles=c(0.5), size=0.25) +
         scale_y_log10(
-            limits=c(1, 10^ceiling(log10(max(nUMIs)))) #, breaks=c(1,2,5,10,20,50,1E2,2E2,5E2,1E3,2E3,5E3,1E4,2E4,5E4,1E5,2E5,5E5,1E6)
+            limits=c(1, 10^ceiling(log10(max(nUMIs))))
         ) +
         annotation_logticks(sides="l") +
         labs(y="UMI count", x="Sample") +
