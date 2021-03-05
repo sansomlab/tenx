@@ -492,10 +492,12 @@ plotDownsampling <- function(matrixUMI, metadata, basename) {
         }))
 
     # UMI vs Rank ----
+    maxRank <-  max(inputStats$CellRank)
+
     gg <- ggplot(inputStats) +
-        geom_line(aes(CellRank, nUMIs, colour=Sample), size=0.25) +
+        geom_line(aes(x = `CellRank`, y = nUMIs, colour=Sample), size=0.25) +
         scale_x_log10(
-            limits=c(1, max(inputStats$CellRank))
+            limits=c(1, maxRank)
         ) +
         scale_y_log10(
             limits=c(1, 10^ceiling(log10(max(nUMIs))))

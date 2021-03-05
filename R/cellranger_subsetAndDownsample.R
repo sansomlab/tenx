@@ -32,6 +32,7 @@ stopifnot(
   require(Matrix),
   require(S4Vectors),
   require(ggplot2),
+  require(R.utils),
   require(tenxutils)
 )
 

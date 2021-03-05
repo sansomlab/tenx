@@ -148,8 +148,10 @@ getMetaData <- function(barcodes=barcodes,
                         samples=samples,
                         fields=opt$samplenamefields)
 {
+  message("getMetaData ...")
   ## Add the sample to barcodes to allow easy regressing out of batch in seurat
   metadata <- data.frame(barcode2table(barcodes))
+  message(head(metadata, 2))
 
   metadata$barcode <- rownames(metadata)
 
@@ -311,9 +313,11 @@ featureFile <- file.path(opt$tenxdir,"features.tsv.gz")
 
 if (opt$writeaggmat) {
     aggpath <- file.path(opt$outdir, "agg.processed.dir")
-    cat("Writing aggregated matrix to:", aggpath, " ... ")
+    
+    cat("Setting-up metadata format to save ... \n")
     metadata <- getMetaData(barcodes, samples, opt$samplenamefields)
 
+    cat("Writing aggregated matrix to:", aggpath, " ... \n")
     writeMatrix(aggpath, matrixUMI, barcodes,featureFile, metadata)
 
     cat("Done\n")
