@@ -341,7 +341,7 @@ def reformatCellrangerCountMetrics(infile, outfile):
         if isinstance(tmp, str):
             if tmp.endswith("%"):
                 new_col_names.append(col + "_pct")
-                data.iat[0, col] = tmp[:-1]
+                data.at[0, col] = tmp[:-1]
         else:
             new_col_names.append(col)
 
