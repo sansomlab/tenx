@@ -296,14 +296,21 @@ for (conserved.level in levels(ident.conserved)){
         ## keep everything, adjust later
         return.thresh = 1
 
+	if("avg_log2FC" %in% colnames(markers)) {
+		colnames(markers)[which(colnames(markers) == "avg_log2FC")] <- "avg_logFC"
+	} 
+
         if (nrow(markers) > 0) {
-            markers = markers[order(markers$p_val, -markers$avg_logFC), ]
-            markers = subset(markers, p_val < return.thresh)
+
+		markers = markers[order(markers$p_val, -markers$avg_logFC), ]
+            	markers = subset(markers, p_val < return.thresh)
 
             if (nrow(markers) > 0){
                 markers$cluster = opt$cluster
             }
+
             markers$gene = rownames(markers)
+
         }
 
         print("FindMarkers complete")
@@ -314,7 +321,8 @@ for (conserved.level in levels(ident.conserved)){
         markers$p.adj <- p.adjust(markers$p_val, method="BH")
 
         message("selecting columns of interest")
-        markers <- markers[,c("cluster","gene","p.adj","p_val","avg_logFC","pct.1","pct.2")]
+
+	markers <- markers[,c("cluster","gene","p.adj","p_val","avg_logFC","pct.1","pct.2")]
         markers <- markers[order(markers$cluster, markers$p_val),]
 
         print(head(markers))
