@@ -127,6 +127,28 @@ elif args.method == "hnsw":
                              "ef_construction":200},
               num_threads=num_threads)
 
+elif args.method == "bbknn":
+
+    L.info("Reading neighbors from bbknn integration")
+    cwd = os.getcwd()
+    L.info("Working directory:"+cwd)
+    #read anndata from integration
+    adata_path = "./integrated.seurat.dir/bbknn_adata.h5ad"
+    adata_bbknn = anndata.read_h5ad(adata_path)
+    #add knn to adata
+    adata.uns["neighbors"] = adata_bbknn.uns["neighbors"]
+    adata.obsp = adata_bbknn.obsp
+    #change rep_use
+    from scanpy._utils import NeighborsView
+    neighbors = NeighborsView(adata, "neighbors")
+    
+    print(neighbors["params"])
+    
+    neighbors["params"]["use_rep"]="X_rdims"
+    
+    print(neighbors["params"])
+    
+    adata.uns["neighbors"]["params"]=neighbors["params"]
 
 else:
     raise ValueError("nn method not recognised")

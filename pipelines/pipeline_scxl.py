@@ -475,6 +475,7 @@ def normaliseAndScale(infile, outfile):
 @transform(normaliseAndScale,
            regex(r"(.*).dir/normalise.and.scale.sentinel"),
            r"\1.dir/seurat.pca.sentinel")
+           
 def seuratPCA(infile, outfile):
     '''
        Perform the PCA task
