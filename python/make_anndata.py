@@ -143,8 +143,6 @@ elif args.method == "precomputed":
     from scanpy._utils import NeighborsView
     neighbors = NeighborsView(adata, "neighbors")
 
-    print(neighbors["params"])
-
     neighbors["params"]["use_rep"]="X_rdims"
 
     adata.uns["neighbors"]["params"]=neighbors["params"]
