@@ -192,8 +192,13 @@ runspecs:
 # --------------------------
 neighbors:
 
-  # scanpy | hnsw
+  # compute neighbors
+  # scanpy | hnsw | precomputed
   method: hnsw
+
+  # if 'precomputed'
+  # add here path to h5ad object containing knn graph
+  knn_path: none
 
   # for hnsw
   threads: 4
@@ -347,7 +352,7 @@ regress:
     #    nCount_RNA is unnessecary (see e.g.
     #    https://github.com/satijalab/seurat/issues/1739)
     # use "none" for no regression.
-    latentvars: percent.mito
+    latentvars: pct_mitochondrial
     # Model used to regress out latent variables
     # Choices: 'linear'|'poisson'|'negbinom'
     modeluse: linear
@@ -372,7 +377,7 @@ regress:
 dimreduction:
     # Type of dimensionality reduction to use for clustering and t-SNE
     # (see Seurat::FindClusters, Seurat::RunTSNE)
-    # Choices: 'pca'|'ica'
+    # Choices: 'pca'|'ica'|'harmony'
     method: pca
     # Projection method used for visualisation (umap is recommended)
     # Choices: 'umap' (tSNE is no longer supported)
@@ -517,7 +522,7 @@ plot:
   # Note that it also visualised in t-SNE plots and marker heatmaps
   subgroup:
   # QC variable to be visualised on the tSNE plot
-  qcvars: nCount_RNA,percent.mito
+  qcvars: nCount_RNA,pct_mitochondrial
   # Column in metadata.tsv represented by the shape of data points
   shape:
   # Opacity of data points
