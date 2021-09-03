@@ -36,7 +36,9 @@ parser.add_argument("--outdir",default=1, type=str,
 parser.add_argument("--comps", default="1", type=str,
                     help="Number of dimensions to include in the knn computation")
 parser.add_argument("--method", default="scanpy", type=str,
-                    help="scanpy|hnsw (scanpy uses pynndescent)")
+                    help="scanpy|hnsw|precomputed (scanpy uses pynndescent)")
+parser.add_argument("--knn", default="none", type=str,
+		    help="path to anndata with precomputed knn")
 parser.add_argument("--k", default=20, type=int,
                     help="number of neighbors")
 parser.add_argument("--metric", default="euclidean", type=str,
@@ -127,28 +129,26 @@ elif args.method == "hnsw":
                              "ef_construction":200},
               num_threads=num_threads)
 
-elif args.method == "bbknn":
+elif args.method == "precomputed":
 
-    L.info("Reading neighbors from bbknn integration")
-    cwd = os.getcwd()
-    L.info("Working directory:"+cwd)
-    #read anndata from integration
-    adata_path = "./integrated.seurat.dir/bbknn_adata.h5ad"
-    adata_bbknn = anndata.read_h5ad(adata_path)
+    L.info("Reading neighbors from precomputed anndata object")  
+    #read anndata object with knn graph
+    adata_path = args.knn
+    L.info("Anndata object:"+ adata_path)
+    adata_knn = anndata.read_h5ad(adata_path)
     #add knn to adata
-    adata.uns["neighbors"] = adata_bbknn.uns["neighbors"]
-    adata.obsp = adata_bbknn.obsp
-    #change rep_use
+    adata.uns["neighbors"] = adata_knn.uns["neighbors"]
+    adata.obsp = adata_knn.obsp
+    #rename rep_use to 'X_rdims'
     from scanpy._utils import NeighborsView
     neighbors = NeighborsView(adata, "neighbors")
-    
+
     print(neighbors["params"])
-    
+
     neighbors["params"]["use_rep"]="X_rdims"
-    
-    print(neighbors["params"])
-    
+
     adata.uns["neighbors"]["params"]=neighbors["params"]
+
 
 else:
     raise ValueError("nn method not recognised")

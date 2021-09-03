@@ -192,10 +192,13 @@ runspecs:
 # --------------------------
 neighbors:
 
-  # scanpy | hnsw | bbknn 
-  # for bbknn integrated.seurat.dir needs the anndata object from bbknn integration with knn graph 
-  # named bbknn_adata.h5ad
+  # compute neighbors
+  # scanpy | hnsw | precomputed
   method: hnsw
+
+  # if 'precomputed'
+  # add here path to h5ad object containing knn graph
+  knn_path: none
 
   # for hnsw
   threads: 4
@@ -374,7 +377,7 @@ regress:
 dimreduction:
     # Type of dimensionality reduction to use for clustering and t-SNE
     # (see Seurat::FindClusters, Seurat::RunTSNE)
-    # Choices: 'pca'|'ica'
+    # Choices: 'pca'|'ica'|'harmony'
     method: pca
     # Projection method used for visualisation (umap is recommended)
     # Choices: 'umap' (tSNE is no longer supported)
@@ -434,7 +437,7 @@ summaries:
   cells_by_cluster:
     title: Number of cells by cluster
     group: cluster
-    subgroup: sample_id
+    subgroup: None
     replicate: None
     stat: count
     geom: bar
@@ -448,7 +451,7 @@ summaries:
   pct_cells_by_cluster:
     title: Percentate of cells by cluster
     group: cluster
-    subgroup: sample_id
+    subgroup: None
     replicate: None
     stat: pct
     geom: bar
@@ -463,7 +466,7 @@ summaries:
   ngenes_by_cluster:
     title: Number of genes per cell per cluster
     group: cluster
-    subgroup: sample_id
+    subgroup: None
     # subgroup: stim
     # subgrouplevels: CTRL,STIM
     stat: ngenes
@@ -481,7 +484,7 @@ summaries:
   numi_by_cluster:
     title: Number of umi per cell per cluster
     group: cluster
-    subgroup: sample_id
+    subgroup: None
     stat: total_UMI
     replicate: barcode
     geom: boxplot
@@ -517,7 +520,7 @@ plot:
   groups: cluster
   # Subgroup used to break down the bar plots and cell counts.
   # Note that it also visualised in t-SNE plots and marker heatmaps
-  subgroup: sample_id
+  subgroup:
   # QC variable to be visualised on the tSNE plot
   qcvars: nCount_RNA,pct_mitochondrial
   # Column in metadata.tsv represented by the shape of data points
