@@ -14,7 +14,7 @@ import pandas as pd
 from scipy import sparse
 import logging
 import sys
-
+import igraph
 
 
 # ########################################################################### #

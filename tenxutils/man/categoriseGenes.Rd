@@ -6,7 +6,7 @@
 \usage{
 categoriseGenes(
   data,
-  m_col = "avg_logFC",
+  m_col = "avg_log2FC",
   use_fc = TRUE,
   p_col = "p.adj",
   p_threshold = 0.05,

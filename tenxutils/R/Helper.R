@@ -52,7 +52,7 @@ sprintfResults <- function(results_table,
 #' @param m_col The column containing the log2 ratio
 #' @param id_col A column containing unique identifiers
 #' @param ngenes The number of genes to demarcate
-topGenes <- function(data, m_col = "avg_logFC",
+topGenes <- function(data, m_col = "avg_log2FC",
                      use_fc = TRUE,
                      id_col="gene", ngenes=7)
 {
@@ -76,7 +76,7 @@ topGenes <- function(data, m_col = "avg_logFC",
 #' @param m_col The column containing the log2 ratio
 #' @param ngenes The number of genes to demarcate
 #' @param id_col A column containing a unique identifier
-categoriseGenes <- function(data,m_col="avg_logFC", use_fc=TRUE,
+categoriseGenes <- function(data,m_col="avg_log2FC", use_fc=TRUE,
                             p_col="p.adj", p_threshold=0.05,
                             ngenes=7,
                             id_col="gene")

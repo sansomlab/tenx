@@ -64,10 +64,10 @@ cluster_de <- de[de$cluster==opt$cluster & de$p.adj<=opt$adjpthreshold,]
 ## only positive markers considered
 if(opt$direction=="positive")
 {
-    foreground <- unique(cluster_de$gene_id[cluster_de$avg_logFC>0])
+    foreground <- unique(cluster_de$gene_id[cluster_de$avg_log2FC>0])
 } else if (opt$direction=="negative")
 {
-    foreground <- unique(cluster_de$gene_id[cluster_de$avg_logFC<0])
+    foreground <- unique(cluster_de$gene_id[cluster_de$avg_log2FC<0])
 } else if (opt$direction=="both")
 {
     foreground <- unique(cluster_de$gene_id)

@@ -126,7 +126,7 @@ for(cluster in clusters)
        }
 }
 
-res <- res[,c("cluster","gene","p.adj","p_val","avg_logFC",
+res <- res[,c("cluster","gene","p.adj","p_val","avg_log2FC",
               "pct.1","pct.2",aName,bName,"gene_id")]
 
 out_fn <- file.path(
@@ -222,7 +222,7 @@ save_ggplots(gsub(".tex",".nde",tex_fn),
              height=5)
 
 ## Make a heatmap
-diffMat <- dcast(res, gene~cluster, value.var="avg_logFC")
+diffMat <- dcast(res, gene~cluster, value.var="avg_log2FC")
 diffMat[is.na(diffMat)] <- 0
 
 rownames(diffMat) <- diffMat$gene
@@ -258,7 +258,7 @@ plot_fn <- function()
                   density.info=c("none"),
                   lwid = c(1,5),
                   lhei = c(1,8),
-                  key.xlab = "avg_logFC",
+                  key.xlab = "avg_log2FC",
                   key.ylab = "",
                   xlab="cluster",
                   cexRow = 0.4,

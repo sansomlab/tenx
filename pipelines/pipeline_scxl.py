@@ -2443,7 +2443,7 @@ def topClusterMarkers(infile, outfile):
     def _filterAndScore(data):
         # filter for strong cluster markers
         data = data[(data["p.adj"] < 0.01) &
-                    (data["avg_logFC"].abs() > np.log(2)) &
+                    (data["avg_log2FC"].abs() > np.log(2)) &
                     (data["cluster_mean"] > 2) &
                     (data["pct.1"] > 0.25)]
 
@@ -2452,7 +2452,7 @@ def topClusterMarkers(infile, outfile):
         # for fold change, expression level and adjusted p-value.
         # the aim is to give "better" markers higher scores.
         pscore = [1 - x for x in data["p.adj"].values]
-        fscore = [np.exp(np.abs(x)) for x in data["avg_logFC"].values]
+        fscore = [np.exp(np.abs(x)) for x in data["avg_log2FC"].values]
         escore = [np.log2(x) for x in data["cluster_mean"].values]
 
         # construct a matrix of the scores and take the geometric mean.
@@ -2535,7 +2535,7 @@ def topClusterMarkers(infile, outfile):
 
     # keep up to n entries per cluster
     # note that groupby preserves the ordering.
-    positive_markers = data[data["avg_logFC"] > 0]
+    positive_markers = data[data["avg_log2FC"] > 0]
     positive_markers = _filterAndScore(positive_markers)
     positive_markers = _skimMarkers(positive_markers,
                                     PARAMS["exprsreport_n_positive"])
@@ -2547,7 +2547,7 @@ def topClusterMarkers(infile, outfile):
     if stat:
         statements.append(stat)
 
-    negative_markers = data[data["avg_logFC"] < 0]
+    negative_markers = data[data["avg_log2FC"] < 0]
     negative_markers = _filterAndScore(negative_markers)
     negative_markers = _skimMarkers(negative_markers,
                                     PARAMS["exprsreport_n_negative"])

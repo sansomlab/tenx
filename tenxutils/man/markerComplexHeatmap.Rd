@@ -11,7 +11,7 @@ markerComplexHeatmap(
   n_markers = 20,
   cells_use = NULL,
   slot = "scale.data",
-  priority = "avg_logFC",
+  priority = "avg_log2FC",
   row_names_gp = 10,
   sub_group = NULL,
   disp_min = -2.5,
@@ -21,7 +21,7 @@ markerComplexHeatmap(
 \arguments{
 \item{seurat_object}{A seurat objected with scaled data and cluster information}
 
-\item{marker_table}{A dataframe containing the marker information. Must contain "cluster", "gene" and "avg_logFC" columns}
+\item{marker_table}{A dataframe containing the marker information. Must contain "cluster", "gene" and "avg_log2FC" columns}
 
 \item{n_markers}{The number of markers to plot}
 
