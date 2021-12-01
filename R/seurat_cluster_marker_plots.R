@@ -115,7 +115,7 @@ n_select = 16
 x %>% top_n(n_select, avg_log2FC) -> top_by_avg_log2FC
 
 n_select = 8
-x[!x$gene %in% top_by_avg_log22FC$gene,] %>%
+x[!x$gene %in% top_by_avg_log2FC$gene,] %>%
   top_n(n_select, min_logFC) -> top_by_min_logFC
 
 x <- x[x$gene %in% c(top_by_avg_log2FC$gene,
