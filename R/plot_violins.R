@@ -60,7 +60,7 @@ genes <- read.table(opt$genetable,
 
 ## read in the raw count matrix
 s <- readRDS(opt$seuratobject)
-Idents(s) <- readRDS(opt$clusterids)
+Idents(s) <- readRDS(opt$clusterids)[Cells(s)]
 
 ## set the default assay
 message("Setting default assay to: ", opt$seuratassay)

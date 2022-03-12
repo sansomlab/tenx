@@ -94,7 +94,7 @@ outprefix = file.path(opt$outdir,paste("cluster",opt$cluster,sep="."))
 
 # read in the Seurat object
 s <- readRDS(opt$seuratobject)
-Idents(s) <- readRDS(opt$clusterids)
+Idents(s) <- readRDS(opt$clusterids)[Cells(s)]
 
 message("Setting default assay to: ", opt$seuratassay)
 DefaultAssay(s) <- opt$seuratassay

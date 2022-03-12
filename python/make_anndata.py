@@ -36,7 +36,7 @@ parser.add_argument("--outdir",default=1, type=str,
 parser.add_argument("--comps", default="1", type=str,
                     help="Number of dimensions to include in the knn computation")
 parser.add_argument("--method", default="scanpy", type=str,
-                    help="scanpy|hnsw (scanpy uses pynndescent)")
+                    help="scanpy|hnsw|sklearn (scanpy uses pynndescent)")
 parser.add_argument("--k", default=20, type=int,
                     help="number of neighbors")
 parser.add_argument("--metric", default="euclidean", type=str,
@@ -126,6 +126,25 @@ elif args.method == "hnsw":
                              "ef":200,
                              "ef_construction":200},
               num_threads=num_threads)
+
+
+elif args.method == "sklearn":
+
+    L.info("Computing neighbors using sklearn")
+    # we use the neighbors function from scvelo
+
+    from scvelo.pp import neighbors
+
+    neighbors(adata,
+              n_neighbors = args.k,
+              n_pcs = None,
+              use_rep = "X_rdims",
+              knn = True,
+              random_state = 0,
+              method = 'sklearn',
+              metric = args.metric,
+              # metric_kwds = {}
+              num_threads=args.threads)
 
 
 else:

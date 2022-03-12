@@ -41,7 +41,7 @@ cat("Running with options:\n")
 print(opt)
 
 s <- readRDS(opt$seuratobject)
-cluster_ids <- readRDS(opt$clusterids)
+cluster_ids <- readRDS(opt$clusterids)[Cells(s)]
 Idents(s) <- cluster_ids
 
 message("Setting default assay to: ", opt$seuratassay)
