@@ -61,7 +61,7 @@ if(!isTRUE(all.equal(xx[order(xx)], yy[order(yy)]))) {
     stop("cluster_ids and seurat object have different cells")
 }
 
-cluster_ids <- cluster_ids[colnames(x = s)]
+cluster_ids <- cluster_ids[Cells(s)]
 
 if(!identical(colnames(x = s),names(cluster_ids)))
 {   stop("Cluster cell names do not match Seurat object cell names")
@@ -109,7 +109,7 @@ if(opt$conservedfactor != "none"){
 message("Setting default assay to: ", opt$seuratassay)
 DefaultAssay(s) <- opt$seuratassay
 
-message("seurat_FindMarkers.R running with default assay: ", DefaultAssay(s))
+message("seurat_clusterStats.R running with default assay: ", DefaultAssay(s))
 
 stats.list <- list()
 

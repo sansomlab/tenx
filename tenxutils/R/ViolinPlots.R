@@ -74,6 +74,7 @@ removeGrobs <- function(gpGrob, ncol, nmissing)
 #' @param colors A vector of (fill) colors, one per cluster.
 #' @param alpha Alpha value for the fill color
 #' @param clusters Optional list of clusters to plot
+#' @param cluster_labels Optional named vector containing cluster labels
 #' @param xlab The label for the x axis.
 #'
 #' @export
@@ -81,7 +82,7 @@ removeGrobs <- function(gpGrob, ncol, nmissing)
 makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
                         colors=NULL,
                         alpha=1,
-                        clusters=NULL,
+                        clusters=NULL, cluster_labels=NULL,
                         xlab=NULL)
 {
   require(ggplot2)
@@ -98,8 +99,6 @@ makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
     cluster_levels <- unique(clusters)
   }
 
-  ggData$cluster <- factor(ggData$cluster,
-                           levels=cluster_levels)
 
 
   nl  <- length(levels(ggData$gene))
@@ -107,6 +106,16 @@ makeViolins <- function(ggData, title=NULL, ncol=8, group=NULL,
 
   if(nl < ncol) { to_add <- (ncol - nl) } else { to_add <- 0 }
 
+  if(!is.null(cluster_labels))
+  {
+    ggData$cluster <- factor(cluster_labels[as.character(ggData$cluster)],
+                             levels=rev(as.character(cluster_labels)))
+  } else {
+    
+    ggData$cluster <- factor(ggData$cluster,
+                             levels=cluster_levels)
+  }
+  
   if(to_add > 0)
   {
     ggData$gene <- factor(ggData$gene,
@@ -175,6 +184,7 @@ plotGrob <- function(ggGrob)
 #' @param xlab The label for the x axis.
 #' @param group A column in the seurat "meta.data" slot on which to group plots by.
 #' @param colors A vector of (fill) colors, one per cluster.
+#' @param cluster_labels A named vector of cluster labels
 #' @param alpha Alpha level for the fill color.
 #' @param plot If set to FALSE the grob is returned instead.
 #'
@@ -183,6 +193,7 @@ plotGrob <- function(ggGrob)
 plotHorizontalViolins <- function(seurat_object,
                                   genes,
                                   clusters=NULL,
+                                  cluster_labels=NULL,
                                   title=NULL,
                                   ncol=8,
                                   xlab="normalised expression level",
@@ -207,6 +218,7 @@ plotHorizontalViolins <- function(seurat_object,
                         ncol=ncol,
                         xlab=xlab,
                         clusters=clusters,
+                        cluster_labels=cluster_labels,
                         group=group,
                         colors=colors,
                         alpha=alpha)

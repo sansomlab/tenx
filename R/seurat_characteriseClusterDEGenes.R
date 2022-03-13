@@ -189,7 +189,7 @@ tex <- c(tex, getFigureTex(defn, deCaption,plot_dir_var=opt$plotdirvar))
 ## read in the seurat object
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-Idents(s) <- cluster_ids
+Idents(s) <- cluster_ids[Cells(s)]
 
 ## set the default assay
 message("Setting default assay to: ", opt$seuratassay)

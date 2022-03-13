@@ -79,7 +79,7 @@ plan("multiprocess",
 
 
 s <- readRDS(opt$seuratobject)
-cluster_ids <- readRDS(opt$clusterids)
+cluster_ids <- readRDS(opt$clusterids)[Cells(s)]
 
 have_gene_ids <- "gene_id" %in% colnames(s@misc)
 
@@ -281,16 +281,17 @@ for (conserved.level in levels(ident.conserved)){
         markers <- FindMarkers(s,
                                ident.1 = "a",
                                ident.2 = "b",
-                                        # genes.use = NULL,
+
                                logfc.threshold = opt$threshuse,
                                test.use = opt$testuse,
                                min.pct = opt$minpct,
                                min.diff.pct = opt$mindiffpct,
-                                        # print.bar = F,
+
                                min.cells.feature = min.cells,
                                min.cells.group = min.cells,
 
-                               max.cells.per.ident=opt$maxcellsperident)
+                               max.cells.per.ident=opt$maxcellsperident,
+                               base = exp(1))
 
         print(head(markers))
         ## keep everything, adjust later

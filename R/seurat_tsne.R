@@ -48,7 +48,7 @@ print(opt)
 message("readRDS")
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)
-Idents(s) <- cluster_ids
+Idents(s) <- cluster_ids[Cells(s)]
 print(head(Idents(s)))
 
 message("seurat_tsne.R running with default assay: ", DefaultAssay(s))

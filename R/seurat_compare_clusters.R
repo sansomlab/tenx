@@ -41,7 +41,7 @@ s <- readRDS(opt$seuratobject)
 
 message("seurat_cluster.R running with default assay: ", DefaultAssay(s))
 
-Idents(s) <- readRDS(opt$clusterids)
+Idents(s) <- readRDS(opt$clusterids)[Cells(s)]
 
 print(Idents(s))
 
