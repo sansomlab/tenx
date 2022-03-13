@@ -5,7 +5,7 @@ import anndata
 import pandas as pd
 import logging
 import sys
-
+import hnswlib
 
 
 # ########################################################################### #

@@ -475,9 +475,11 @@ getSubset <- function(seurat_object, cells_to_retain)
         message("Number of cells before subsetting:")
         print(length(colnames(x = s)))
 
-        s <- SubsetData(s,
-                        cells=cells_to_retain)
+        #s <- SubsetData(s,
+        #                cells=cells_to_retain)
 
+        s <- subset(s, cells=cells_to_retain)
+        
         message("Number of cells after subsetting:")
         print(length(colnames(x = s)))
 
