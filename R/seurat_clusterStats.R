@@ -51,6 +51,7 @@ opt <- parse_args(OptionParser(option_list=option_list))
 cat("Running with options:\n")
 print(opt)
 
+options(future.globals.maxSize=100000000000000000)
 
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)

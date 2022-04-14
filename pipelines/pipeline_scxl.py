@@ -2068,7 +2068,7 @@ def findMarkers(infile, outfile):
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
         memory=PARAMS["resources_memory_standard"],
-        cpu=PARAMS["findmarkers_numcores"])
+        cpu=PARAMS["findmarkers_clustnumcores"])
 
     for i in spec.clusters:
 
@@ -2122,7 +2122,7 @@ def clusterStats(infile, outfile):
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
         memory=PARAMS["resources_memory_standard"],
-        cpu=1)
+        cpu=PARAMS["findmarkers_clustnumcores"])
 
     for i in spec.clusters:
 
@@ -2159,7 +2159,7 @@ def summariseClusterStats(infile, outfile):
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
         memory=PARAMS["resources_memory_min"],
-        cpu=1)
+        cpu=PARAMS["findmarkers_clustnumcores"])
 
     # make sumamary tables and plots of the differentially expressed genes
     statement = '''Rscript %(tenx_dir)s/R/summarise_clusterStats.R
@@ -2193,7 +2193,7 @@ def summariseMarkers(infile, outfile):
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
         memory=PARAMS["resources_memory_low"],
-        cpu=1)
+        cpu=PARAMS["findmarkers_clustnumcores"])
 
     # make sumamary tables and plots of the differentially expressed genes
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkers.R
@@ -2228,15 +2228,14 @@ def topMarkerHeatmap(infile, outfile):
     marker_table = os.path.join(os.path.dirname(infile),
                                 "markers.summary.table.tsv.gz")
 
-
-    job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_standard"],
-        cpu=1)
-
     if PARAMS["plot_subgroup"] is not None:
         subgroup = '''--subgroup=%(plot_subgroup)s''' % PARAMS
     else:
         subgroup = ""
+        
+    job_threads, job_memory, r_memory = TASK.get_resources(
+        memory=PARAMS["resources_memory_standard"],
+        cpu=PARAMS["findmarkers_clustnumcores"])
 
     statement = '''
     Rscript %(tenx_dir)s/R/seurat_topMarkerHeatmap.R
@@ -2279,7 +2278,7 @@ def characteriseClusterMarkers(infile, outfile):
 
     job_threads, job_memory, r_memory = TASK.get_resources(
         memory=PARAMS["resources_memory_low"],
-        cpu=1)
+        cpu=PARAMS["findmarkers_clustnumcores"])
 
     statements = []
     tex = []
@@ -2363,6 +2362,10 @@ def extraClusterMarkerPlots(infile, outfile):
             continue
 
         SPEC["log_file"] = outfile[:-len(".sentinel")] + "." + str(i) + ".log"
+        
+        job_threads, job_memory, r_memory = TASK.get_resources(
+          memory=PARAMS["resources_memory_standard"],
+          cpu=PARAMS["findmarkers_clustnumcores"])
 
         statement = '''
                     Rscript %(tenx_dir)s/R/seurat_cluster_marker_plots.R
@@ -2403,7 +2406,8 @@ def plotMarkerNumbers(infile, outfile):
 
     # set the job threads and memory
     job_threads, job_memory, r_memory = TASK.get_resources(
-        memory=PARAMS["resources_memory_min"])
+        memory=PARAMS["resources_memory_min"],
+        cpu=PARAMS["findmarkers_clustnumcores"])
 
     statement = '''Rscript %(tenx_dir)s/R/seurat_summariseMarkerNumbers.R
                    --degenes=%(marker_table)s
@@ -2743,7 +2747,7 @@ def findMarkersBetweenConditions(infile, outfile):
 
     job_threads, job_memory, r_memory = TASK.get_resources(
         memory=PARAMS["resources_memory_standard"],
-        cpu=PARAMS["findmarkers_numcores"])
+        cpu=PARAMS["findmarkers_clustnumcores"])
 
     for i in spec.clusters:
 
@@ -2842,6 +2846,10 @@ def characteriseClusterMarkersBetweenConditions(infile, outfile):
 
     statements = []
     tex = []
+    
+    job_threads, job_memory, r_memory = TASK.get_resources(
+      memory=PARAMS["resources_memory_standard"],
+      cpu=PARAMS["findmarkers_clustnumcores"])
 
     for i in declusters:
 

@@ -77,6 +77,7 @@ print(opt)
 plan("multiprocess",
      workers = opt$numcores)
 
+options(future.globals.maxSize=100000000000000000)
 
 s <- readRDS(opt$seuratobject)
 cluster_ids <- readRDS(opt$clusterids)[Cells(s)]

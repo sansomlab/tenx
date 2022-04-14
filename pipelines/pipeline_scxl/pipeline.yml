@@ -633,6 +633,9 @@ knownmarkers:
 # ----------------------
 
 findmarkers:
+    # Number of cluster cores:
+    clustnumcores: 1
+    # Number of cores for R job:
     numcores: 1
     # Differential expression testing method(s)
     # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
