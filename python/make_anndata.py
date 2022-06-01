@@ -130,8 +130,7 @@ elif args.method == "hnsw":
               num_threads=num_threads)
 
 elif args.method == "precomputed":
-
-    L.info("Reading neighbors from precomputed anndata object")  
+    L.info("Reading neighbors from precomputed anndata object")
     #read anndata object with knn graph
     adata_path = args.knn
     L.info("Anndata object:"+ adata_path)
