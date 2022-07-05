@@ -212,7 +212,7 @@ FastExpMeanChunked <- function(x,
     j <- min(i + rows_per_chunk - 1, nrows_x)
 
     result <- c(result,
-                Seurat:::FastExpMean(x[i:j,], display_progress = FALSE))
+                Seurat:::FastExpMean(Matrix(x[i:j,],sparse=TRUE), display_progress = FALSE))
   }
   result
 }
