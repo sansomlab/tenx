@@ -216,3 +216,29 @@ FastExpMeanChunked <- function(x,
   }
   result
 }
+
+
+
+#' Run rowSum by chunk to conserve memory
+#' @param x a matrix
+#' @param nrows number of rows per chunk
+
+ExpMeanMatrixChunked <- function(x,
+                               rows_per_chunk=2000
+                               )
+{
+
+  result <- c()
+
+  nrows_x <- nrow(x)
+
+  for(i in seq(1, nrows_x, rows_per_chunk)){
+
+    j <- min(i + rows_per_chunk - 1, nrows_x)
+
+    result <- c(result,
+                rowSum(Matrix(x[i:j,]))/ncol(x))
+  }
+  result
+}
+

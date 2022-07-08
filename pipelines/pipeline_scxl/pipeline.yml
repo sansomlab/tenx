@@ -637,6 +637,9 @@ findmarkers:
     # Differential expression testing method(s)
     # Choices: 'wilcox'|'bimod'|'roc'|'t'|'tobit'|'poisson'|'negbinom'|'MAST'|'DESeq2'
     test: wilcox
+    # Normalisation method of data slot in seurat object
+    # Choices: 'lognorm'|'other' if other mean is calculated from Matrix not using Seurat method FastExpMean which transforms values before calculating mean 
+    normmethod: 'other'
 
     ## Differential expression parameters (see Seurat::FindMarkers)
     # Limit testing to genes which show, on average, at least X-fold difference

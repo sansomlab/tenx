@@ -326,6 +326,7 @@ def createSeuratObject(infile, outfile):
                    &> %(log_file)s
                 ''' % dict(PARAMS, **SPEC, **locals())
 
+
     P.run(statement)
     IOTools.touch_file(outfile)
 
@@ -2080,6 +2081,7 @@ def findMarkers(infile, outfile):
         statements.append('''Rscript %(tenx_dir)s/R/seurat_FindMarkers.R
                    --seuratobject=%(seurat_object)s
                    --seuratassay=RNA
+                   --norm_method=%(findmarkers_normmethod)s
                    --clusterids=%(cluster_ids)s
                    --cluster=%(i)s
                    --testuse=%(findmarkers_test)s
