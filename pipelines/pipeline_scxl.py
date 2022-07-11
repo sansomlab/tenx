@@ -1,4 +1,3 @@
-
 #
 #   Kennedy Institute of Rheumatology
 #
@@ -2136,6 +2135,7 @@ def clusterStats(infile, outfile):
         statements.append('''Rscript %(tenx_dir)s/R/seurat_clusterStats.R
                    --seuratobject=%(seurat_object)s
                    --seuratassay=RNA
+		   --norm_method=%(findmarkers_normmethod)s
                    --clusterids=%(cluster_ids)s
                    --cluster=%(i)s
                    %(conserved_options)s

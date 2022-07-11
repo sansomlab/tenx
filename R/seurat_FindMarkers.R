@@ -12,7 +12,8 @@ stopifnot(
   require(dplyr),
   require(Matrix),
   require(tenxutils),
-  require(reshape2)
+  require(reshape2),
+  require(Matrix)
 )
 
 

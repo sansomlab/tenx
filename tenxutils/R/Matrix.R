@@ -237,7 +237,7 @@ ExpMeanMatrixChunked <- function(x,
     j <- min(i + rows_per_chunk - 1, nrows_x)
 
     result <- c(result,
-                rowSum(Matrix(x[i:j,]))/ncol(x))
+                rowSums(Matrix(x[i:j,]))/ncol(x))
   }
   result
 }

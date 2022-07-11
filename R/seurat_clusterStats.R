@@ -12,7 +12,8 @@ stopifnot(
   require(dplyr),
   require(Matrix),
   require(tenxutils),
-  require(reshape2)
+  require(reshape2),
+  require(Matrix)
 )
 
 
@@ -23,6 +24,8 @@ option_list <- list(
                 help="A seurat object after PCA"),
     make_option(c("--seuratassay"), default="RNA",
                 help="the assay to set as the default"),
+    make_option(c("--norm_method"), default="lognorm",
+                 help="the normalisation method of data slot in seurat object"),
     make_option(c("--clusterids"), default="none",
                 help="A list object containing the cluster identities"),
     make_option(c("--cluster"), default=1,
@@ -146,13 +149,19 @@ for (conserved.level in levels(ident.conserved)){
 	other_pct <- rowSums(GetAssayData(object = s, slot="data")[genes,other_cells, drop=F]>0)/length(other_cells)
 
         pcts <- cbind(cluster_pct,other_pct)
-
-	message("calc mean expression in cluster...")
-	cluster_mean <- FastExpMeanChunked(GetAssayData(object = s, slot="data")[genes,cluster_cells],2000)
-	message("calc mean expression in other cells...")
-	other_mean <- FastExpMeanChunked(GetAssayData(object = s, slot="data")[genes,other_cells],2000)
-
-	message("saving stats")
+        
+	if(opt$norm_method == 'lognorm'){
+ 	    message("calc mean expression in cluster...")
+ 	    cluster_mean <- FastExpMeanChunked(GetAssayData(object = s, slot="data")[genes,cluster_cells],2000)
+ 	    message("calc mean expression in other cells...")
+ 	    other_mean <- FastExpMeanChunked(GetAssayData(object = s, slot="data")[genes,other_cells],2000)
+ 	} else {
+ 	    message("calc mean expression in cluster...")
+            cluster_mean <- ExpMeanMatrixChunked(GetAssayData(object = s, slot="data")[genes,cluster_cells],2000)
+            message("calc mean expression in other cells...")
+            other_mean <- ExpMeanMatrixChunked(GetAssayData(object = s, slot="data")[genes,other_cells],2000)
+            message("saving stats")
+ 	}
 
         ## store these stats so that they can added to the results table
         ## e.g. for later investigation of threshold effects...
