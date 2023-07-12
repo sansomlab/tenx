@@ -1,4 +1,4 @@
-* Please note that these pipelines are no longer in development or use by our group. We recommend to use instead the pipelines in our "cellhub" repository. Please see: https://cellhub.readthedocs.io/en/latest/ repository for more information. *
+<span style="color:red">**Please note that these pipelines are no longer in development or use by our group. We recommend to use instead the pipelines in our "cellhub" repository. Please see: https://cellhub.readthedocs.io/en/latest/ repository for more information.**</span>
 
 # tenx
 
