@@ -1,3 +1,5 @@
+* Please note that these pipelines are no longer in development or use by our group. We recommend to use instead the pipelines in our "cellhub" repository. Please see: https://cellhub.readthedocs.io/en/latest/ repository for more information. *
+
 # tenx
 
 A collection of Python3 pipelines that call R and Python3 scripts for the analysis of data generated with the 10x Genomics platform. The pipelines are based on 10x's [Cell Ranger pipeline](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/installation) and [DropEst](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1449-6) for mapping and quantitation.
@@ -6,7 +8,6 @@ Downstream analysis currently relies on both the [R Seurat library](https://sati
 
 For geneset over representation analysis the pipelines use a bespoke R package called [gsfisher](https://github.com/sansomlab/gsfisher), which can also be used [interactively to analyse single-cell data](https://github.com/sansomlab/gsfisher/blob/master/vignettes/single_cell_over_representation_analysis.pdf).
 
-The pipelines are in active development, and should be considered "beta" software - please use at your own risk!
 
 # update 5/11/2020
 
