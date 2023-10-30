@@ -298,7 +298,7 @@ for (conserved.level in levels(ident.conserved)){
         return.thresh = 1
 
         if (nrow(markers) > 0) {
-            markers = markers[order(markers$p_val, -markers$avg_logFC), ]
+            markers = markers[order(markers$p_val, -markers$avg_log2FC), ]
             markers = subset(markers, p_val < return.thresh)
 
             if (nrow(markers) > 0){
@@ -315,7 +315,7 @@ for (conserved.level in levels(ident.conserved)){
         markers$p.adj <- p.adjust(markers$p_val, method="BH")
 
         message("selecting columns of interest")
-        markers <- markers[,c("cluster","gene","p.adj","p_val","avg_logFC","pct.1","pct.2")]
+        markers <- markers[,c("cluster","gene","p.adj","p_val","avg_log2FC","pct.1","pct.2")]
         markers <- markers[order(markers$cluster, markers$p_val),]
 
         print(head(markers))
@@ -426,7 +426,7 @@ if (length(markers.conserved.list) > 1){
     table(markers.sig)
     markers.sig <- names(markers.sig)[markers.sig]
 
-    markers.fc <- do.call("cbind", lapply(markers.conserved.list, function(x){x[markers.sig, "avg_logFC"]}))
+    markers.fc <- do.call("cbind", lapply(markers.conserved.list, function(x){x[markers.sig, "avg_log2FC"]}))
     rownames(markers.fc) <- markers.sig
     colnames(markers.fc) <- names(markers.conserved.list)
 
@@ -481,14 +481,14 @@ if (length(markers.conserved.list) > 1){
         tmp.table <- do.call(
           "cbind",
           lapply(markers.conserved.list, function(x){
-            x[markers.conserved, "avg_logFC"]
+            x[markers.conserved, "avg_log2FC"]
           })
         )
         rownames(tmp.table) <- markers.conserved
         tmp.table <- exp(tmp.table) - 1
-        conserved.table$avg_logFC <- log(rowMeans(as.matrix(tmp.table[markers.conserved, , drop=FALSE])) + 1)
+        conserved.table$avg_log2FC <- log(rowMeans(as.matrix(tmp.table[markers.conserved, , drop=FALSE])) + 1)
 
-        message("avg_logFC added")
+        message("avg_log2FC added")
 
         # average percentage of cells in group 1 ----
         tmp.table <- do.call(
@@ -548,7 +548,7 @@ if (length(markers.conserved.list) > 1){
             gene_id = character(0),
             p_val = character(0),
             p.adj = character(0),
-            avg_logFC = character(0),
+            avg_log2FC = character(0),
             pct.1 = character(0),
             pct.2 = character(0),
             cluster_mean = character(0),

@@ -134,8 +134,8 @@ plotViolins <- function(data, seurat_object,
                         vncol=4, vnrow=3,
                         use.minfc=FALSE,
                         minfc_col="min_logFC", maxfc_col="max_logFC",
-                        avgfc_col="avg_logFC",
-                        m_col="avg_logFC", p_col="p.adj",
+                        avgfc_col="avg_log2FC",
+                        m_col="avg_log2FC", p_col="p.adj",
                         pt_size=0.1,
                         id_col="gene")
 {
@@ -206,7 +206,7 @@ plotViolins <- function(data, seurat_object,
         tmp <- tmp[!tmp[[id_col]] %in% genes_a,]
 
         ## order by largest fold change
-        ## tmp <- tmp[rev(order(abs(tmp$avg_logFC))),]
+        ## tmp <- tmp[rev(order(abs(tmp$avg_log2FC))),]
 
         ## subset to positive or negative markers
         if(type == "positive")
@@ -545,7 +545,7 @@ plotDownsampling <- function(matrixUMI, metadata, basename) {
 #' A function to draw a heatmap of top cluster marker genes with
 #' subgroup labels. The function uses the "scale.data" slot by default to make the heatmap.
 #' @param seurat_object A seurat objected with scaled data and cluster information
-#' @param marker_table A dataframe containing the marker information. Must contain "cluster", "gene" and "avg_logFC" columns
+#' @param marker_table A dataframe containing the marker information. Must contain "cluster", "gene" and "avg_log2FC" columns
 #' @param n_markers The number of markers to plot
 #' @param cells_use The names of the cells to use. If NULL all cells will be used
 #' @param row_names_gp The font size for the gene names
@@ -558,7 +558,7 @@ markerComplexHeatmap <- function(seurat_object,
                                  n_markers=20,
                                  cells_use=NULL,
                                  slot="scale.data",
-                                 priority="avg_logFC",
+                                 priority="avg_log2FC",
                                  row_names_gp=10,
                                  sub_group=NULL,
                                  disp_min=-2.5,
@@ -574,10 +574,10 @@ markerComplexHeatmap <- function(seurat_object,
                "it is avaliable via devtools here: https://github.com/jokergoo/ComplexHeatmap"))
   }
 
-  if(priority=="avg_logFC") {
+  if(priority=="avg_log2FC") {
     top_markers <- marker_table %>%
     group_by(cluster) %>%
-    top_n(n=n_markers,wt=avg_logFC)
+    top_n(n=n_markers,wt=avg_log2FC)
   } else if (priority=="min_logFC") {
     top_markers <- marker_table %>%
       group_by(cluster) %>%

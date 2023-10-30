@@ -4,7 +4,7 @@
 \alias{topGenes}
 \title{Function to add "top" indicator column to degenes}
 \usage{
-topGenes(data, m_col = "avg_logFC", use_fc = TRUE, id_col = "gene", ngenes = 7)
+topGenes(data, m_col = "avg_log2FC", use_fc = TRUE, id_col = "gene", ngenes = 7)
 }
 \arguments{
 \item{data}{The data}

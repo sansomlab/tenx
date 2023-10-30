@@ -102,13 +102,13 @@ print(file.path(opt$seurat_path, opt$runspecs,
                 "cluster.markers.dir","markers.summary.table.xlsx"))
 data_selected = openxlsx::read.xlsx(xlsxFile = file.path(opt$seurat_path, opt$runspecs,
                                               "cluster.markers.dir","markers.summary.table.xlsx"))
-output = data_selected[,c("gene","gene_id", "cluster","avg_logFC","p.adj")]
-output = output %>% group_by(cluster) %>% dplyr::arrange(desc(avg_logFC)) %>% do(head(.,n=20)) %>% ungroup()
+output = data_selected[,c("gene","gene_id", "cluster","avg_log2FC","p.adj")]
+output = output %>% group_by(cluster) %>% dplyr::arrange(desc(avg_log2FC)) %>% do(head(.,n=20)) %>% ungroup()
 output$celltype = "top20_marker_Seurat_cluster"
 output$cluster_marker = paste(output$celltype, output$cluster, sep="_")
 output = output %>% dplyr::select(-celltype)
-colnames(output) = c("gene","gene_id","cluster","avg_logFC","p_adjusted","celltype_marker")
-output = output[,c("cluster","gene","p_adjusted","avg_logFC","celltype_marker")]
+colnames(output) = c("gene","gene_id","cluster","avg_log2FC","p_adjusted","celltype_marker")
+output = output[,c("cluster","gene","p_adjusted","avg_log2FC","celltype_marker")]
 write.table(output, file.path(opt$outdir, "markers.tsv"), sep = "\t",
           quote = FALSE, row.names = FALSE)
 

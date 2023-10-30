@@ -16,8 +16,8 @@ plotViolins(
   use.minfc = FALSE,
   minfc_col = "min_logFC",
   maxfc_col = "max_logFC",
-  avgfc_col = "avg_logFC",
-  m_col = "avg_logFC",
+  avgfc_col = "avg_log2FC",
+  m_col = "avg_log2FC",
   p_col = "p.adj",
   pt_size = 0.1,
   id_col = "gene"

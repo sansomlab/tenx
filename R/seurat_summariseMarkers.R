@@ -93,7 +93,7 @@ print(dim(markers))
 
 markers <- markers[,c("cluster","gene","gene_id",
                       "p_val","p.adj",
-                      "avg_logFC","pct.1","pct.2",
+                      "avg_log2FC","pct.1","pct.2",
                       "cluster_mean","other_mean")]
 
 markers <- markers[order(markers$cluster, markers$p.adj),]
@@ -235,7 +235,7 @@ saveWorkbook(wb, file=paste(outPrefix,"table","xlsx",
 message("Making a heatmap of the top marker genes from each cluster")
 
 ## make a heatmap of the top DE genes.
-filtered_markers %>% group_by(cluster) %>% top_n(20, avg_logFC) -> top20
+filtered_markers %>% group_by(cluster) %>% top_n(20, avg_log2FC) -> top20
 
 if(!is.null(opt$subgroup))
 {
@@ -287,8 +287,8 @@ summary <- c()
 for(id in idents.all)
 {
     ncells = length(cluster_ids[cluster_ids==id])
-    npos = length(filtered_markers$p.adj[filtered_markers$cluster==id & filtered_markers$avg_logFC > 0] )
-    nneg = length(filtered_markers$p.adj[filtered_markers$cluster==id & filtered_markers$avg_logFC < 0] )
+    npos = length(filtered_markers$p.adj[filtered_markers$cluster==id & filtered_markers$avg_log2FC > 0] )
+    nneg = length(filtered_markers$p.adj[filtered_markers$cluster==id & filtered_markers$avg_log2FC < 0] )
     ntotal = npos + nneg
     summary <- c(summary,c(id, ncells, npos, nneg, ntotal))
 }

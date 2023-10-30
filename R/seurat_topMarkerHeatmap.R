@@ -59,7 +59,7 @@ markers <- read.table(opt$markers,
 filtered_markers <- data.table(markers[markers$p.adj < 0.1,])
 
 ## make a heatmap of the top DE genes.
-filtered_markers %>% group_by(cluster) %>% top_n(20, avg_logFC) -> top20
+filtered_markers %>% group_by(cluster) %>% top_n(20, avg_log2FC) -> top20
 
 if(!is.null(opt$subgroup))
 {

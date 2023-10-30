@@ -81,8 +81,8 @@ message("summarising and melting the data")
 summarised_data <- degenes %>%
     dplyr::group_by(cluster) %>%
     dplyr::summarise(
-      positive=length(which(p.adj < opt$minpadj & avg_logFC >= log(opt$minfc))),
-      negative=length(which(p.adj < opt$minpadj & avg_logFC <= -log(opt$minfc))))
+      positive=length(which(p.adj < opt$minpadj & avg_log2FC >= log(opt$minfc))),
+      negative=length(which(p.adj < opt$minpadj & avg_log2FC <= -log(opt$minfc))))
 
 melted_data <- melt(summarised_data, id=c("cluster"))
 
